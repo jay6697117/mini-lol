@@ -1,0 +1,17 @@
+{
+  "cell": 64,
+  "columns": 8,
+  "rows": 1,
+  "action": "death",
+  "directions": [
+    "south"
+  ],
+  "rows_meta": [
+    {
+      "row": 0,
+      "action": "death",
+      "direction": "south",
+      "frames": 8
+    }
+  ]
+}

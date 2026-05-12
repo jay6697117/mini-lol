@@ -1,0 +1,25 @@
+{
+  "action": "hit",
+  "cell": 64,
+  "status": "accepted",
+  "reviewed_files": [
+    "64/qa/hit-contact-sheet.png",
+    "64/qa/previews/hit-south-strip-x4.png",
+    "64/qa/previews/hit-east-strip-x4.png",
+    "64/qa/previews/hit-north-strip-x4.png",
+    "64/qa/previews/hit-west-strip-x4.png"
+  ],
+  "checks": {
+    "direction_readability": "accepted",
+    "silhouette_consistency": "accepted",
+    "animation_readability": "accepted",
+    "weapon_and_cape_consistency": "accepted",
+    "chroma_key_cleanup": "accepted"
+  },
+  "notes": [
+    "The hit action reads as a short flinch and recoil without becoming an attack or death animation.",
+    "The spear remains inside each 64x64 frame after slicing.",
+    "A green-dominant edge cleanup pass removed generated chroma-key artifacts; validation remained clean afterward.",
+    "Back-facing rows keep the cape dominant, which is acceptable for the MOBA top-down camera."
+  ]
+}

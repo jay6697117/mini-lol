@@ -1,0 +1,17 @@
+{
+  "cell": 64,
+  "columns": 4,
+  "rows": 1,
+  "action": "hit",
+  "directions": [
+    "south"
+  ],
+  "rows_meta": [
+    {
+      "row": 0,
+      "action": "hit",
+      "direction": "south",
+      "frames": 4
+    }
+  ]
+}

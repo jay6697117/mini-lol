@@ -1,0 +1,43 @@
+{
+  "accepted": true,
+  "scope": {
+    "cell": 64,
+    "completed_actions": [
+      "idle",
+      "move",
+      "basic_attack",
+      "cast",
+      "hit"
+    ],
+    "directions": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ]
+  },
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  },
+  "reviewer_notes": [
+    "The current Crimson Duelist run uses image-generated source strips grounded by the local MOBA reference image and the locked base character.",
+    "Completed actions preserve the red and black armor, crimson cape, long spear, and top-down MOBA readability.",
+    "The cast action required an additional green-dominant edge cleanup after the standard chroma-key pass; the final sheet validates cleanly.",
+    "This review covers completed actions only; death remains pending."
+  ],
+  "action_reviews": [
+    "64/qa/idle-visual-review.json",
+    "64/qa/move-visual-review.json",
+    "64/qa/basic_attack-visual-review.json",
+    "64/qa/cast-visual-review.json",
+    "64/qa/hit-visual-review.json"
+  ]
+}

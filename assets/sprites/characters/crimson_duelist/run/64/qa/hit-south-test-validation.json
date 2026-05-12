@@ -1,0 +1,136 @@
+{
+  "ok": true,
+  "file": "/Users/zhangjinhui/Desktop/mini-lol/assets/sprites/characters/crimson_duelist/run/64/final/hit-south-test-sheet-clean.png",
+  "width": 256,
+  "height": 64,
+  "errors": [],
+  "warnings": [],
+  "cells": [
+    {
+      "row": 0,
+      "row_name": "south",
+      "column": 0,
+      "nontransparent_pixels": 1105,
+      "edge_pixels": 0,
+      "chroma_residue_pixels": 0,
+      "bbox": [
+        2,
+        5,
+        62,
+        58
+      ]
+    },
+    {
+      "row": 0,
+      "row_name": "south",
+      "column": 1,
+      "nontransparent_pixels": 1036,
+      "edge_pixels": 0,
+      "chroma_residue_pixels": 0,
+      "bbox": [
+        2,
+        7,
+        62,
+        58
+      ]
+    },
+    {
+      "row": 0,
+      "row_name": "south",
+      "column": 2,
+      "nontransparent_pixels": 1282,
+      "edge_pixels": 0,
+      "chroma_residue_pixels": 0,
+      "bbox": [
+        3,
+        2,
+        60,
+        62
+      ]
+    },
+    {
+      "row": 0,
+      "row_name": "south",
+      "column": 3,
+      "nontransparent_pixels": 1285,
+      "edge_pixels": 0,
+      "chroma_residue_pixels": 0,
+      "bbox": [
+        4,
+        2,
+        60,
+        62
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "row": 0,
+      "row_name": "south",
+      "frame_diffs": [
+        0.05475,
+        0.12609,
+        0.13058
+      ],
+      "bbox_shift": 1.0,
+      "cells": [
+        {
+          "row": 0,
+          "row_name": "south",
+          "column": 0,
+          "nontransparent_pixels": 1105,
+          "edge_pixels": 0,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            2,
+            5,
+            62,
+            58
+          ]
+        },
+        {
+          "row": 0,
+          "row_name": "south",
+          "column": 1,
+          "nontransparent_pixels": 1036,
+          "edge_pixels": 0,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            2,
+            7,
+            62,
+            58
+          ]
+        },
+        {
+          "row": 0,
+          "row_name": "south",
+          "column": 2,
+          "nontransparent_pixels": 1282,
+          "edge_pixels": 0,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            3,
+            2,
+            60,
+            62
+          ]
+        },
+        {
+          "row": 0,
+          "row_name": "south",
+          "column": 3,
+          "nontransparent_pixels": 1285,
+          "edge_pixels": 0,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            4,
+            2,
+            60,
+            62
+          ]
+        }
+      ]
+    }
+  ]
+}

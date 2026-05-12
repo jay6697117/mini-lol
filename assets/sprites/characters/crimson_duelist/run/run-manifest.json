@@ -12,8 +12,17 @@
     ]
   },
   "scope": {
-    "sizes": [64],
-    "actions": ["idle", "move", "basic_attack", "cast", "hit", "death"],
+    "sizes": [
+      64
+    ],
+    "actions": [
+      "idle",
+      "move",
+      "basic_attack",
+      "cast",
+      "hit",
+      "death"
+    ],
     "directions": [
       "south",
       "south-east",
@@ -256,6 +265,150 @@
       "imagegen_output_path": "source/64-basic_attack-south-west.png",
       "source_path": "64/generated/basic_attack-south-west.png",
       "prompt_path": "64/prompts/basic_attack-south-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "south",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-south.png",
+      "source_path": "64/generated/cast-south.png",
+      "prompt_path": "64/prompts/cast-south.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "south-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-south-east.png",
+      "source_path": "64/generated/cast-south-east.png",
+      "prompt_path": "64/prompts/cast-south-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-east.png",
+      "source_path": "64/generated/cast-east.png",
+      "prompt_path": "64/prompts/cast-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "north-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-north-east.png",
+      "source_path": "64/generated/cast-north-east.png",
+      "prompt_path": "64/prompts/cast-north-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "north",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-north.png",
+      "source_path": "64/generated/cast-north.png",
+      "prompt_path": "64/prompts/cast-north.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "north-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-north-west.png",
+      "source_path": "64/generated/cast-north-west.png",
+      "prompt_path": "64/prompts/cast-north-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-west.png",
+      "source_path": "64/generated/cast-west.png",
+      "prompt_path": "64/prompts/cast-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "south-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-south-west.png",
+      "source_path": "64/generated/cast-south-west.png",
+      "prompt_path": "64/prompts/cast-south-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "south",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-south.png",
+      "source_path": "64/generated/hit-south.png",
+      "prompt_path": "64/prompts/hit-south.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "south-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-south-east.png",
+      "source_path": "64/generated/hit-south-east.png",
+      "prompt_path": "64/prompts/hit-south-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-east.png",
+      "source_path": "64/generated/hit-east.png",
+      "prompt_path": "64/prompts/hit-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "north-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-north-east.png",
+      "source_path": "64/generated/hit-north-east.png",
+      "prompt_path": "64/prompts/hit-north-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "north",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-north.png",
+      "source_path": "64/generated/hit-north.png",
+      "prompt_path": "64/prompts/hit-north.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "north-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-north-west.png",
+      "source_path": "64/generated/hit-north-west.png",
+      "prompt_path": "64/prompts/hit-north-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-west.png",
+      "source_path": "64/generated/hit-west.png",
+      "prompt_path": "64/prompts/hit-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "south-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-south-west.png",
+      "source_path": "64/generated/hit-south-west.png",
+      "prompt_path": "64/prompts/hit-south-west.txt"
     }
   ],
   "visual_review": {

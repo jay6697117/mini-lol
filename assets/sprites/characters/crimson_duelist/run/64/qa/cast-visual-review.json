@@ -1,0 +1,25 @@
+{
+  "action": "cast",
+  "cell": 64,
+  "status": "accepted",
+  "reviewed_files": [
+    "64/qa/cast-contact-sheet.png",
+    "64/qa/previews/cast-south-strip-x4.png",
+    "64/qa/previews/cast-east-strip-x4.png",
+    "64/qa/previews/cast-north-strip-x4.png",
+    "64/qa/previews/cast-west-strip-x4.png"
+  ],
+  "checks": {
+    "direction_readability": "accepted",
+    "silhouette_consistency": "accepted",
+    "animation_readability": "accepted",
+    "weapon_and_cape_consistency": "accepted",
+    "chroma_key_cleanup": "accepted"
+  },
+  "notes": [
+    "The eight rows preserve the red-team duelist identity, spear silhouette, dark armor, and crimson cape.",
+    "The cast action reads as a charge-and-release sequence with red-orange energy accents.",
+    "A secondary green-dominant edge cleanup pass was applied after the standard chroma-key cleanup; validation remained clean afterward.",
+    "Back-facing rows are more cape-dominant, which is acceptable for the top-down MOBA camera."
+  ]
+}
