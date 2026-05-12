@@ -112,6 +112,366 @@
       "imagegen_output_path": "source/64-move-south-west.png",
       "source_path": "64/generated/move-south-west.png",
       "prompt_path": "64/prompts/move-south-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "south",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-south.png",
+      "source_path": "64/generated/idle-south.png",
+      "prompt_path": "64/prompts/idle-south.txt"
+    },
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "south-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-south-east.png",
+      "source_path": "64/generated/idle-south-east.png",
+      "prompt_path": "64/prompts/idle-south-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-east.png",
+      "source_path": "64/generated/idle-east.png",
+      "prompt_path": "64/prompts/idle-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "north-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-north-east.png",
+      "source_path": "64/generated/idle-north-east.png",
+      "prompt_path": "64/prompts/idle-north-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "north",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-north.png",
+      "source_path": "64/generated/idle-north.png",
+      "prompt_path": "64/prompts/idle-north.txt"
+    },
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "north-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-north-west.png",
+      "source_path": "64/generated/idle-north-west.png",
+      "prompt_path": "64/prompts/idle-north-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-west.png",
+      "source_path": "64/generated/idle-west.png",
+      "prompt_path": "64/prompts/idle-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "south-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-south-west.png",
+      "source_path": "64/generated/idle-south-west.png",
+      "prompt_path": "64/prompts/idle-south-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "south",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-south.png",
+      "source_path": "64/generated/basic_attack-south.png",
+      "prompt_path": "64/prompts/basic_attack-south.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "south-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-south-east.png",
+      "source_path": "64/generated/basic_attack-south-east.png",
+      "prompt_path": "64/prompts/basic_attack-south-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-east-v2.png",
+      "source_path": "64/generated/basic_attack-east.png",
+      "prompt_path": "64/prompts/basic_attack-east-v2.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "north-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-north-east.png",
+      "source_path": "64/generated/basic_attack-north-east.png",
+      "prompt_path": "64/prompts/basic_attack-north-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "north",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-north.png",
+      "source_path": "64/generated/basic_attack-north.png",
+      "prompt_path": "64/prompts/basic_attack-north.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "north-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-north-west.png",
+      "source_path": "64/generated/basic_attack-north-west.png",
+      "prompt_path": "64/prompts/basic_attack-north-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-west.png",
+      "source_path": "64/generated/basic_attack-west.png",
+      "prompt_path": "64/prompts/basic_attack-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "south-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-south-west.png",
+      "source_path": "64/generated/basic_attack-south-west.png",
+      "prompt_path": "64/prompts/basic_attack-south-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "south",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-south.png",
+      "source_path": "64/generated/cast-south.png",
+      "prompt_path": "64/prompts/cast-south.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "south-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-south-east.png",
+      "source_path": "64/generated/cast-south-east.png",
+      "prompt_path": "64/prompts/cast-south-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-east.png",
+      "source_path": "64/generated/cast-east.png",
+      "prompt_path": "64/prompts/cast-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "north-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-north-east.png",
+      "source_path": "64/generated/cast-north-east.png",
+      "prompt_path": "64/prompts/cast-north-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "north",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-north.png",
+      "source_path": "64/generated/cast-north.png",
+      "prompt_path": "64/prompts/cast-north.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "north-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-north-west.png",
+      "source_path": "64/generated/cast-north-west.png",
+      "prompt_path": "64/prompts/cast-north-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-west.png",
+      "source_path": "64/generated/cast-west.png",
+      "prompt_path": "64/prompts/cast-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "cast",
+      "direction": "south-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-cast-south-west.png",
+      "source_path": "64/generated/cast-south-west.png",
+      "prompt_path": "64/prompts/cast-south-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "south",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-south.png",
+      "source_path": "64/generated/hit-south.png",
+      "prompt_path": "64/prompts/hit-south.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "south-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-south-east.png",
+      "source_path": "64/generated/hit-south-east.png",
+      "prompt_path": "64/prompts/hit-south-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-east.png",
+      "source_path": "64/generated/hit-east.png",
+      "prompt_path": "64/prompts/hit-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "north-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-north-east.png",
+      "source_path": "64/generated/hit-north-east.png",
+      "prompt_path": "64/prompts/hit-north-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "north",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-north.png",
+      "source_path": "64/generated/hit-north.png",
+      "prompt_path": "64/prompts/hit-north.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "north-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-north-west.png",
+      "source_path": "64/generated/hit-north-west.png",
+      "prompt_path": "64/prompts/hit-north-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-west.png",
+      "source_path": "64/generated/hit-west.png",
+      "prompt_path": "64/prompts/hit-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "hit",
+      "direction": "south-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-hit-south-west.png",
+      "source_path": "64/generated/hit-south-west.png",
+      "prompt_path": "64/prompts/hit-south-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "south",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-south.png",
+      "source_path": "64/generated/death-south.png",
+      "prompt_path": "64/prompts/death-south.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "south-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-south-east.png",
+      "source_path": "64/generated/death-south-east.png",
+      "prompt_path": "64/prompts/death-south-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-east.png",
+      "source_path": "64/generated/death-east.png",
+      "prompt_path": "64/prompts/death-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "north-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-north-east.png",
+      "source_path": "64/generated/death-north-east.png",
+      "prompt_path": "64/prompts/death-north-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "north",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-north.png",
+      "source_path": "64/generated/death-north.png",
+      "prompt_path": "64/prompts/death-north.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "north-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-north-west.png",
+      "source_path": "64/generated/death-north-west.png",
+      "prompt_path": "64/prompts/death-north-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-west.png",
+      "source_path": "64/generated/death-west.png",
+      "prompt_path": "64/prompts/death-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "south-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-south-west.png",
+      "source_path": "64/generated/death-south-west.png",
+      "prompt_path": "64/prompts/death-south-west.txt"
     }
   ],
   "visual_review": {

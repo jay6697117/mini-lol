@@ -1,0 +1,17 @@
+{
+  "cell": 64,
+  "columns": 6,
+  "rows": 1,
+  "action": "basic_attack",
+  "directions": [
+    "east"
+  ],
+  "rows_meta": [
+    {
+      "row": 0,
+      "action": "basic_attack",
+      "direction": "east",
+      "frames": 6
+    }
+  ]
+}

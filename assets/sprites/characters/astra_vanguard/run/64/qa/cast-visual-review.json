@@ -1,0 +1,18 @@
+{
+  "accepted": true,
+  "reviewer_notes": "Accepted for the Astra Vanguard 64x64 cast action. The sheet keeps the blue-team swordsman identity and shows a readable raise sword, energy gather, release, and recovery sequence across 8 directions. VFX stays compact enough for cell usage.",
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  },
+  "reviewed_files": [
+    "64/qa/cast-contact-sheet.png",
+    "64/qa/previews/cast-south-transparent-x4.webp",
+    "64/qa/previews/cast-east-transparent-x4.webp",
+    "64/qa/previews/cast-north-transparent-x4.webp",
+    "64/qa/previews/cast-west-transparent-x4.webp"
+  ]
+}

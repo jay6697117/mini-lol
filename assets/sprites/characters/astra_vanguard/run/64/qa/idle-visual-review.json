@@ -1,0 +1,18 @@
+{
+  "accepted": true,
+  "reviewer_notes": "Accepted for the Astra Vanguard 64x64 idle action. The rows preserve the blue-team swordsman identity, show clear 8-direction silhouettes, keep feet planted, and use subtle cape, breathing, and sword-glow changes appropriate for idle animation. South-east and south-west remain slightly front-biased but are distinguishable in the contact sheet.",
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  },
+  "reviewed_files": [
+    "64/qa/idle-contact-sheet.png",
+    "64/qa/previews/idle-south-transparent-x4.webp",
+    "64/qa/previews/idle-east-transparent-x4.webp",
+    "64/qa/previews/idle-north-transparent-x4.webp",
+    "64/qa/previews/idle-west-transparent-x4.webp"
+  ]
+}

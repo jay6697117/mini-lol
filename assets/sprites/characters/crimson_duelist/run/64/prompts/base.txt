@@ -1,0 +1,5 @@
+64x64 pixel-art game sprite, single original MOBA hero character, transparent or flat pure green chroma-key background.
+Use the attached reference image only for overall 2.5D isometric top-down MOBA art direction, scale, readability, and red-team visual language. Do not copy any existing character from the reference.
+Character identity: Crimson Duelist, red-team melee spear fighter, red and black light armor, deep crimson cape, long double-bladed spear with red-orange highlights, sharp shoulder silhouette, aggressive compact stance.
+Camera and pose: 2.5D isometric top-down game view, three-quarter south-facing pose, feet anchored at the bottom center, full body visible, weapon fully inside the image.
+Style: crisp pixel-art edges, clear outline, saturated readable colors, limited palette, no UI, no text, no frame border, no floor, no shadow, no labels.

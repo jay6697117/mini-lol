@@ -1,0 +1,8 @@
+64x64 pixel-art game sprite animation strip for Astra Vanguard.
+Use the attached base sprite as the exact character identity reference and the MOBA screenshot only for 2.5D isometric top-down visual direction.
+One horizontal row of exactly 4 separated full-body frames on a flat pure solid chroma-key background #00ff00.
+Action: hit reaction. Direction: south-east, facing diagonally toward screen right and downward in a 2.5D isometric MOBA view.
+Pose sequence: normal, impact recoil, armor flash, recover.
+Animation rules: short hit stun, body leans back, small blue-white impact spark, feet mostly planted, no attack swing, no walking.
+Preserve identity exactly: silver and white armor, deep blue cape, long blue energy sword, blue-team accents.
+Output constraints: no UI, no text, no numbers, no frame borders, no floor, no shadows, no labels, no rounded panels, no gradients. Keep green space between frames.

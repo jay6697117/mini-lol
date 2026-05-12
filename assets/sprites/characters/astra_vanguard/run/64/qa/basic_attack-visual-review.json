@@ -1,0 +1,18 @@
+{
+  "accepted": true,
+  "reviewer_notes": "Accepted for the Astra Vanguard 64x64 basic_attack action. The contact sheet shows readable anticipation, swing/contact, and recovery frames across 8 directions. The blue sword effects remain inside the cells after cleanup. East was regenerated as v2 to improve frame separation before final assembly.",
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  },
+  "reviewed_files": [
+    "64/qa/basic_attack-contact-sheet.png",
+    "64/qa/previews/basic_attack-south-transparent-x4.webp",
+    "64/qa/previews/basic_attack-east-transparent-x4.webp",
+    "64/qa/previews/basic_attack-north-transparent-x4.webp",
+    "64/qa/previews/basic_attack-west-transparent-x4.webp"
+  ]
+}

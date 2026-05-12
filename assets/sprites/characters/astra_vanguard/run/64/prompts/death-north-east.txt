@@ -1,0 +1,8 @@
+64x64 pixel-art game sprite animation strip for Astra Vanguard.
+Use the attached base sprite as the exact character identity reference and the MOBA screenshot only for 2.5D isometric top-down visual direction.
+One horizontal row of exactly 8 separated full-body frames on a flat pure solid chroma-key background #00ff00.
+Action: death animation, non-looping. Direction: north-east, back three-quarter facing diagonally toward screen right and upward in a 2.5D isometric MOBA view. Show the back of the cape and shoulders; do not show a front-facing face.
+Pose sequence: standing hurt, stagger, drop sword lower, kneel, collapse, fall to side, down, final still body.
+Animation rules: readable defeat, no gore, sword remains near hand, cape settles, full body and weapon inside every frame.
+Preserve identity exactly: silver and white armor, deep blue cape, long blue energy sword, blue-team accents.
+Output constraints: no UI, no text, no numbers, no frame borders, no floor, no shadows, no labels, no rounded panels, no gradients. Keep green space between frames.

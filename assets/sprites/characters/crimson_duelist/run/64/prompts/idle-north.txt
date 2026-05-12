@@ -1,0 +1,7 @@
+64x64 pixel-art game sprite animation strip for Crimson Duelist.
+Use the attached base sprite as the exact character identity reference and the MOBA screenshot only for 2.5D isometric top-down visual direction.
+One horizontal row of exactly 6 separated full-body frames on a flat pure solid chroma-key background #00ff00.
+Action: idle breathing loop. Direction: north, back-facing away from the camera and upward in a 2.5D isometric MOBA view. Show the back of the head, armor, cape, and spear; no front face visible.
+Animation rules: subtle breathing, spear tip lightly shifts, crimson cape gently sways, feet stay planted, no walking.
+Preserve identity exactly: red and black light armor, deep crimson cape, long double-bladed spear with red-orange highlights, sharp aggressive silhouette.
+Output constraints: no UI, no text, no numbers, no frame borders, no floor, no shadows, no motion blur, no labels, no rounded panels, no gradients. Keep green space between frames. Each frame must show the whole body and weapon with 2-4 pixel margin.

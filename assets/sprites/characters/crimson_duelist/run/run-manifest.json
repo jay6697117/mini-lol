@@ -1,0 +1,51 @@
+{
+  "reference": {
+    "source_type": "file",
+    "source": "assets/images/moba-interface-concept.png",
+    "used_for_generation": true,
+    "identity_notes": [
+      "original red-team 2.5D MOBA spear duelist, not copied from the reference",
+      "red and black light armor with sharp shoulder silhouette",
+      "deep crimson cape visible from an isometric top-down angle",
+      "long double-bladed spear with readable red-orange highlights",
+      "hard-edged game sprite style with saturated readable colors"
+    ]
+  },
+  "scope": {
+    "sizes": [64],
+    "actions": ["idle", "move", "basic_attack", "cast", "hit", "death"],
+    "directions": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ],
+    "frames_by_action": {
+      "idle": 6,
+      "move": 6,
+      "basic_attack": 6,
+      "cast": 6,
+      "hit": 4,
+      "death": 8
+    }
+  },
+  "generation": {
+    "method": "imagegen",
+    "imagegen_output_path": "source/64-base-crimson-duelist.png",
+    "procedural": false,
+    "text_only": false,
+    "imported_contact_sheet": false
+  },
+  "strips": [],
+  "visual_review": {
+    "path": "64/qa/visual-review.json"
+  },
+  "notes": [
+    "This manifest covers the Crimson Duelist 64x64 production run.",
+    "Rows are generated one action-direction strip at a time, then assembled and validated."
+  ]
+}
