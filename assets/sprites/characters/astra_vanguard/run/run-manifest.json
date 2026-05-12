@@ -1,0 +1,124 @@
+{
+  "reference": {
+    "source_type": "file",
+    "source": "assets/images/moba-interface-concept.png",
+    "used_for_generation": true,
+    "identity_notes": [
+      "original blue-team 2.5D MOBA swordsman, not copied from the reference",
+      "silver and white armor with clear blue faction accents",
+      "deep blue cape visible from an isometric top-down angle",
+      "long blue energy sword with a readable silhouette",
+      "hard-edged game sprite style with saturated readable colors"
+    ]
+  },
+  "scope": {
+    "sizes": [64],
+    "actions": ["idle", "move", "basic_attack", "cast", "hit", "death"],
+    "directions": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ],
+    "frames_by_action": {
+      "idle": 6,
+      "move": 6,
+      "basic_attack": 6,
+      "cast": 6,
+      "hit": 4,
+      "death": 8
+    }
+  },
+  "generation": {
+    "method": "imagegen",
+    "imagegen_output_path": "source/64-base-astra-vanguard.png",
+    "procedural": false,
+    "text_only": false,
+    "imported_contact_sheet": false
+  },
+  "strips": [
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "south",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-south.png",
+      "source_path": "64/generated/move-south.png",
+      "prompt_path": "64/prompts/move-south.txt"
+    },
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "south-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-south-east.png",
+      "source_path": "64/generated/move-south-east.png",
+      "prompt_path": "64/prompts/move-south-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-east.png",
+      "source_path": "64/generated/move-east.png",
+      "prompt_path": "64/prompts/move-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "north-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-north-east.png",
+      "source_path": "64/generated/move-north-east.png",
+      "prompt_path": "64/prompts/move-north-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "north",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-north.png",
+      "source_path": "64/generated/move-north.png",
+      "prompt_path": "64/prompts/move-north.txt"
+    },
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "north-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-north-west.png",
+      "source_path": "64/generated/move-north-west.png",
+      "prompt_path": "64/prompts/move-north-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-west.png",
+      "source_path": "64/generated/move-west.png",
+      "prompt_path": "64/prompts/move-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "south-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-south-west.png",
+      "source_path": "64/generated/move-south-west.png",
+      "prompt_path": "64/prompts/move-south-west.txt"
+    }
+  ],
+  "visual_review": {
+    "path": "64/qa/visual-review.json"
+  },
+  "notes": [
+    "This manifest covers the Astra Vanguard 64x64 production run.",
+    "Rows are generated one action-direction strip at a time, then assembled and validated."
+  ]
+}
