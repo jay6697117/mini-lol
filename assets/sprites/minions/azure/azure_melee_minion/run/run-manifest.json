@@ -1,0 +1,50 @@
+{
+  "reference": {
+    "source_type": "file",
+    "source": "assets/images/moba-interface-concept.png",
+    "used_for_generation": true,
+    "identity_notes": [
+      "original blue-team 2.5D MOBA melee lane minion, not copied from the reference",
+      "blue cloth armor over dull silver plates",
+      "small round shield and short sword",
+      "compact front-line silhouette readable at 64x64",
+      "rounded helmet crest distinct from red-team minions"
+    ]
+  },
+  "scope": {
+    "sizes": [64],
+    "actions": ["idle", "move", "basic_attack", "hit", "death"],
+    "directions": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ],
+    "frames_by_action": {
+      "idle": 4,
+      "move": 6,
+      "basic_attack": 6,
+      "hit": 4,
+      "death": 6
+    }
+  },
+  "generation": {
+    "method": "imagegen",
+    "imagegen_output_path": "source/64-base-azure-melee-minion.png",
+    "procedural": false,
+    "text_only": false,
+    "imported_contact_sheet": false
+  },
+  "strips": [],
+  "visual_review": {
+    "path": "64/qa/visual-review.json"
+  },
+  "notes": [
+    "This manifest covers the Azure Melee Minion 64x64 production run.",
+    "Rows are generated one action-direction strip at a time, then assembled and validated."
+  ]
+}

@@ -20,6 +20,7 @@ Use `.codex/skills/game-character-sprites` to produce the sprite assets required
 - `assets/sprites/characters/crimson_duelist/run/64/final/basic_attack-sheet-clean.png`
 - `assets/sprites/characters/crimson_duelist/run/64/final/cast-sheet-clean.png`
 - `assets/sprites/characters/crimson_duelist/run/64/final/hit-sheet-clean.png`
+- `assets/sprites/characters/crimson_duelist/run/64/final/death-sheet-clean.png`
 - `assets/sprites/characters/astra_vanguard/run/64/qa/move-contact-sheet.png`
 - `assets/sprites/characters/astra_vanguard/run/64/qa/move-validation.json`
 - `assets/sprites/characters/astra_vanguard/run/64/qa/move-motion-audit.json`
@@ -31,7 +32,7 @@ Use `.codex/skills/game-character-sprites` to produce the sprite assets required
 
 ## Current Focus
 
-Generate and validate `crimson_duelist` 64x64 `death` 8-direction sheet.
+Generate base sprites and action sheets for lane minions, starting with `azure_melee_minion`.
 
 ## Remaining Character Sprite Sheets
 
@@ -51,7 +52,7 @@ Generate and validate `crimson_duelist` 64x64 `death` 8-direction sheet.
 - `basic_attack`: complete
 - `cast`: complete
 - `hit`: complete
-- `death`: pending
+- `death`: complete
 
 ### Azure Melee Minion
 

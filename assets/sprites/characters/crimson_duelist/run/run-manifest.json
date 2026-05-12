@@ -409,6 +409,78 @@
       "imagegen_output_path": "source/64-hit-south-west.png",
       "source_path": "64/generated/hit-south-west.png",
       "prompt_path": "64/prompts/hit-south-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "south",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-south.png",
+      "source_path": "64/generated/death-south.png",
+      "prompt_path": "64/prompts/death-south.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "south-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-south-east.png",
+      "source_path": "64/generated/death-south-east.png",
+      "prompt_path": "64/prompts/death-south-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-east.png",
+      "source_path": "64/generated/death-east.png",
+      "prompt_path": "64/prompts/death-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "north-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-north-east.png",
+      "source_path": "64/generated/death-north-east.png",
+      "prompt_path": "64/prompts/death-north-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "north",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-north.png",
+      "source_path": "64/generated/death-north.png",
+      "prompt_path": "64/prompts/death-north.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "north-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-north-west.png",
+      "source_path": "64/generated/death-north-west.png",
+      "prompt_path": "64/prompts/death-north-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-west.png",
+      "source_path": "64/generated/death-west.png",
+      "prompt_path": "64/prompts/death-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "death",
+      "direction": "south-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-death-south-west.png",
+      "source_path": "64/generated/death-south-west.png",
+      "prompt_path": "64/prompts/death-south-west.txt"
     }
   ],
   "visual_review": {
