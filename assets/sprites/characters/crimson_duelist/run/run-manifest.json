@@ -40,7 +40,152 @@
     "text_only": false,
     "imported_contact_sheet": false
   },
-  "strips": [],
+  "strips": [
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "south",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-south.png",
+      "source_path": "64/generated/idle-south.png",
+      "prompt_path": "64/prompts/idle-south.txt"
+    },
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "south-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-south-east.png",
+      "source_path": "64/generated/idle-south-east.png",
+      "prompt_path": "64/prompts/idle-south-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-east.png",
+      "source_path": "64/generated/idle-east.png",
+      "prompt_path": "64/prompts/idle-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "north-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-north-east.png",
+      "source_path": "64/generated/idle-north-east.png",
+      "prompt_path": "64/prompts/idle-north-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "north",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-north.png",
+      "source_path": "64/generated/idle-north.png",
+      "prompt_path": "64/prompts/idle-north.txt"
+    },
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "north-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-north-west.png",
+      "source_path": "64/generated/idle-north-west.png",
+      "prompt_path": "64/prompts/idle-north-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-west.png",
+      "source_path": "64/generated/idle-west.png",
+      "prompt_path": "64/prompts/idle-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "idle",
+      "direction": "south-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-idle-south-west.png",
+      "source_path": "64/generated/idle-south-west.png",
+      "prompt_path": "64/prompts/idle-south-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "south",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-south.png",
+      "source_path": "64/generated/move-south.png",
+      "prompt_path": "64/prompts/move-south.txt"
+    },
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "south-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-south-east.png",
+      "source_path": "64/generated/move-south-east.png",
+      "prompt_path": "64/prompts/move-south-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-east.png",
+      "source_path": "64/generated/move-east.png",
+      "prompt_path": "64/prompts/move-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "north-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-north-east.png",
+      "source_path": "64/generated/move-north-east.png",
+      "prompt_path": "64/prompts/move-north-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "north",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-north.png",
+      "source_path": "64/generated/move-north.png",
+      "prompt_path": "64/prompts/move-north.txt"
+    },
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "north-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-north-west.png",
+      "source_path": "64/generated/move-north-west.png",
+      "prompt_path": "64/prompts/move-north-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-west.png",
+      "source_path": "64/generated/move-west.png",
+      "prompt_path": "64/prompts/move-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "move",
+      "direction": "south-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-move-south-west.png",
+      "source_path": "64/generated/move-south-west.png",
+      "prompt_path": "64/prompts/move-south-west.txt"
+    }
+  ],
   "visual_review": {
     "path": "64/qa/visual-review.json"
   },

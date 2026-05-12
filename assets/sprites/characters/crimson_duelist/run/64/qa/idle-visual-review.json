@@ -1,0 +1,18 @@
+{
+  "accepted": true,
+  "reviewer_notes": "Accepted for the Crimson Duelist 64x64 idle action. The contact sheet preserves the original red-team spear fighter identity, keeps a clear 8-direction silhouette, and uses subtle planted idle motion with readable spear and cape shapes.",
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  },
+  "reviewed_files": [
+    "64/qa/idle-contact-sheet.png",
+    "64/qa/previews/idle-south-transparent-x4.webp",
+    "64/qa/previews/idle-east-transparent-x4.webp",
+    "64/qa/previews/idle-north-transparent-x4.webp",
+    "64/qa/previews/idle-west-transparent-x4.webp"
+  ]
+}
