@@ -17,6 +17,7 @@ Use `.codex/skills/game-character-sprites` to produce the sprite assets required
 - `assets/sprites/characters/astra_vanguard/run/64/final/death-sheet-clean.png`
 - `assets/sprites/characters/crimson_duelist/run/64/final/idle-sheet-clean.png`
 - `assets/sprites/characters/crimson_duelist/run/64/final/move-sheet-clean.png`
+- `assets/sprites/characters/crimson_duelist/run/64/final/basic_attack-sheet-clean.png`
 - `assets/sprites/characters/astra_vanguard/run/64/qa/move-contact-sheet.png`
 - `assets/sprites/characters/astra_vanguard/run/64/qa/move-validation.json`
 - `assets/sprites/characters/astra_vanguard/run/64/qa/move-motion-audit.json`
@@ -28,7 +29,7 @@ Use `.codex/skills/game-character-sprites` to produce the sprite assets required
 
 ## Current Focus
 
-Generate and validate `crimson_duelist` 64x64 `basic_attack` 8-direction sheet.
+Generate and validate `crimson_duelist` 64x64 `cast` 8-direction sheet.
 
 ## Remaining Character Sprite Sheets
 
@@ -45,7 +46,7 @@ Generate and validate `crimson_duelist` 64x64 `basic_attack` 8-direction sheet.
 
 - `idle`: complete
 - `move`: complete
-- `basic_attack`: pending
+- `basic_attack`: complete
 - `cast`: pending
 - `hit`: pending
 - `death`: pending

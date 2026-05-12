@@ -1,0 +1,18 @@
+{
+  "accepted": true,
+  "reviewer_notes": "Accepted for the Crimson Duelist 64x64 basic_attack action. The sheet keeps the red spear duelist identity and shows readable spear thrust/contact/recovery across 8 directions without cross-frame trails.",
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  },
+  "reviewed_files": [
+    "64/qa/basic_attack-contact-sheet.png",
+    "64/qa/previews/basic_attack-south-transparent-x4.webp",
+    "64/qa/previews/basic_attack-east-transparent-x4.webp",
+    "64/qa/previews/basic_attack-north-transparent-x4.webp",
+    "64/qa/previews/basic_attack-west-transparent-x4.webp"
+  ]
+}

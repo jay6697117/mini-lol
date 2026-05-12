@@ -184,6 +184,78 @@
       "imagegen_output_path": "source/64-move-south-west.png",
       "source_path": "64/generated/move-south-west.png",
       "prompt_path": "64/prompts/move-south-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "south",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-south.png",
+      "source_path": "64/generated/basic_attack-south.png",
+      "prompt_path": "64/prompts/basic_attack-south.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "south-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-south-east.png",
+      "source_path": "64/generated/basic_attack-south-east.png",
+      "prompt_path": "64/prompts/basic_attack-south-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-east.png",
+      "source_path": "64/generated/basic_attack-east.png",
+      "prompt_path": "64/prompts/basic_attack-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "north-east",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-north-east.png",
+      "source_path": "64/generated/basic_attack-north-east.png",
+      "prompt_path": "64/prompts/basic_attack-north-east.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "north",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-north.png",
+      "source_path": "64/generated/basic_attack-north.png",
+      "prompt_path": "64/prompts/basic_attack-north.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "north-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-north-west.png",
+      "source_path": "64/generated/basic_attack-north-west.png",
+      "prompt_path": "64/prompts/basic_attack-north-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-west.png",
+      "source_path": "64/generated/basic_attack-west.png",
+      "prompt_path": "64/prompts/basic_attack-west.txt"
+    },
+    {
+      "cell": 64,
+      "action": "basic_attack",
+      "direction": "south-west",
+      "method": "imagegen",
+      "imagegen_output_path": "source/64-basic_attack-south-west.png",
+      "source_path": "64/generated/basic_attack-south-west.png",
+      "prompt_path": "64/prompts/basic_attack-south-west.txt"
     }
   ],
   "visual_review": {
