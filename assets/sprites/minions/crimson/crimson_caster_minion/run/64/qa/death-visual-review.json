@@ -1,0 +1,17 @@
+{
+  "action": "death",
+  "accepted": true,
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  },
+  "reviewer_notes": [
+    "Death rows were visually inspected through the corrected contact sheet and exported previews.",
+    "The animation reads as a non-looping collapse from standing or staggered pose to final still body, with no gore.",
+    "West and south-west rows use frame-order-preserving mirrored derivatives from successful imagegen rows; north-east and north-west use back-view fallbacks derived from the successful north row because repeated direct generation returned no image result.",
+    "The crimson caster identity, robe, dark shoulder plates, and ruby staff remain readable across all rows."
+  ]
+}

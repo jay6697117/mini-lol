@@ -1,0 +1,37 @@
+{
+  "asset_id": "astra_skill_vfx",
+  "type": "skill_vfx",
+  "atlas": "assets/sprites/effects/astra_skill_vfx/final/astra_skill_vfx-atlas.png",
+  "cell_size": {
+    "width": 128,
+    "height": 128
+  },
+  "frames_per_effect": 6,
+  "effects": [
+    {
+      "effect": "q_slash_arc",
+      "path": "assets/sprites/effects/astra_skill_vfx/final/astra_skill_vfx-q_slash_arc-sheet.png",
+      "frames": 6
+    },
+    {
+      "effect": "w_shield_pulse",
+      "path": "assets/sprites/effects/astra_skill_vfx/final/astra_skill_vfx-w_shield_pulse-sheet.png",
+      "frames": 6
+    },
+    {
+      "effect": "e_dash_trail",
+      "path": "assets/sprites/effects/astra_skill_vfx/final/astra_skill_vfx-e_dash_trail-sheet.png",
+      "frames": 6
+    },
+    {
+      "effect": "r_shockwave",
+      "path": "assets/sprites/effects/astra_skill_vfx/final/astra_skill_vfx-r_shockwave-sheet.png",
+      "frames": 6
+    }
+  ],
+  "qa": {
+    "contact_sheet": "assets/sprites/effects/astra_skill_vfx/qa/astra_skill_vfx-contact-sheet.png",
+    "validation": "assets/sprites/effects/astra_skill_vfx/qa/astra_skill_vfx-validation.json",
+    "visual_review": "accepted"
+  }
+}

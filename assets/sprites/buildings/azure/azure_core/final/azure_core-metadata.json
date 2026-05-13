@@ -1,0 +1,70 @@
+{
+  "asset_id": "azure_core",
+  "team": "azure",
+  "type": "core",
+  "source": "assets/sprites/buildings/azure/azure_core/source/azure-core-states.png",
+  "atlas": "assets/sprites/buildings/azure/azure_core/final/azure_core-atlas.png",
+  "cell_size": {
+    "width": 384,
+    "height": 384
+  },
+  "states": [
+    {
+      "state": "idle",
+      "path": "assets/sprites/buildings/azure/azure_core/final/azure_core-idle.png",
+      "source_slice": [
+        0,
+        0,
+        341,
+        1024
+      ],
+      "source_alpha_bbox": [
+        15,
+        303,
+        330,
+        661
+      ],
+      "scale": 0.986
+    },
+    {
+      "state": "damaged",
+      "path": "assets/sprites/buildings/azure/azure_core/final/azure_core-damaged.png",
+      "source_slice": [
+        341,
+        0,
+        682,
+        1024
+      ],
+      "source_alpha_bbox": [
+        18,
+        352,
+        327,
+        666
+      ],
+      "scale": 1.0
+    },
+    {
+      "state": "destroyed",
+      "path": "assets/sprites/buildings/azure/azure_core/final/azure_core-destroyed.png",
+      "source_slice": [
+        682,
+        0,
+        1024,
+        1024
+      ],
+      "source_alpha_bbox": [
+        11,
+        409,
+        328,
+        668
+      ],
+      "scale": 1.0
+    }
+  ],
+  "qa": {
+    "contact_sheet": "assets/sprites/buildings/azure/azure_core/qa/azure_core-contact-sheet.png",
+    "green_pixels_removed": 871765,
+    "remaining_key_like_pixels": 986,
+    "visual_review": "accepted"
+  }
+}

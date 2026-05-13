@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "asset_group": "secondary_gameplay_assets",
+  "status": "complete_first_pass",
+  "manifests": {
+    "buildings": "assets/sprites/buildings/building-assets-manifest.json",
+    "skill_vfx": "assets/sprites/effects/skill-vfx-manifest.json",
+    "ui_icons": "assets/sprites/ui/moba-ui-icons-manifest.json"
+  },
+  "qa": {
+    "buildings_validation": "assets/sprites/buildings/building-assets-validation.json",
+    "buildings_contact_overview": "assets/sprites/buildings/building-assets-contact-overview.png",
+    "skill_vfx_contact_overview": "assets/sprites/effects/skill-vfx-contact-overview.png",
+    "ui_icons_contact_overview": "assets/sprites/ui/moba_ui_icons/qa/moba_ui_icons-contact-overview.png"
+  },
+  "notes": [
+    "Building source sheets were generated with image generation and post-processed into transparent 384x384 state atlases.",
+    "Skill VFX sheets are original procedural alpha sprites to preserve strict 128x128 cells and six-frame timing.",
+    "UI icons are original procedural alpha icons with 128x128 source cells for skills, items, minimap, and status indicators."
+  ]
+}

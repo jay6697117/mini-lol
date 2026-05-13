@@ -1,0 +1,70 @@
+{
+  "asset_id": "crimson_outer_tower",
+  "team": "crimson",
+  "type": "outer_tower",
+  "source": "assets/sprites/buildings/crimson/crimson_outer_tower/source/crimson-outer-tower-states.png",
+  "atlas": "assets/sprites/buildings/crimson/crimson_outer_tower/final/crimson_outer_tower-atlas.png",
+  "cell_size": {
+    "width": 384,
+    "height": 384
+  },
+  "states": [
+    {
+      "state": "idle",
+      "path": "assets/sprites/buildings/crimson/crimson_outer_tower/final/crimson_outer_tower-idle.png",
+      "source_slice": [
+        0,
+        0,
+        341,
+        1024
+      ],
+      "source_alpha_bbox": [
+        36,
+        211,
+        312,
+        801
+      ],
+      "scale": 0.5983
+    },
+    {
+      "state": "attack",
+      "path": "assets/sprites/buildings/crimson/crimson_outer_tower/final/crimson_outer_tower-attack.png",
+      "source_slice": [
+        341,
+        0,
+        682,
+        1024
+      ],
+      "source_alpha_bbox": [
+        24,
+        211,
+        301,
+        806
+      ],
+      "scale": 0.5933
+    },
+    {
+      "state": "destroyed",
+      "path": "assets/sprites/buildings/crimson/crimson_outer_tower/final/crimson_outer_tower-destroyed.png",
+      "source_slice": [
+        682,
+        0,
+        1024,
+        1024
+      ],
+      "source_alpha_bbox": [
+        3,
+        519,
+        307,
+        804
+      ],
+      "scale": 1.0
+    }
+  ],
+  "qa": {
+    "contact_sheet": "assets/sprites/buildings/crimson/crimson_outer_tower/qa/crimson_outer_tower-contact-sheet.png",
+    "green_pixels_removed": 783259,
+    "remaining_key_like_pixels": 644,
+    "visual_review": "accepted"
+  }
+}

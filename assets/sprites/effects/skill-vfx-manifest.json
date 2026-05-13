@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "asset_group": "skill_vfx",
+  "generation_method": "procedural_original_alpha_sprites",
+  "cell_size": {
+    "width": 128,
+    "height": 128
+  },
+  "frames_per_effect": 6,
+  "assets": [
+    {
+      "asset_id": "astra_skill_vfx",
+      "atlas": "assets/sprites/effects/astra_skill_vfx/final/astra_skill_vfx-atlas.png",
+      "metadata": "assets/sprites/effects/astra_skill_vfx/final/astra_skill_vfx-metadata.json",
+      "qa_contact_sheet": "assets/sprites/effects/astra_skill_vfx/qa/astra_skill_vfx-contact-sheet.png",
+      "qa_validation": "assets/sprites/effects/astra_skill_vfx/qa/astra_skill_vfx-validation.json",
+      "effects": [
+        "q_slash_arc",
+        "w_shield_pulse",
+        "e_dash_trail",
+        "r_shockwave"
+      ],
+      "accepted": true
+    },
+    {
+      "asset_id": "crimson_skill_vfx",
+      "atlas": "assets/sprites/effects/crimson_skill_vfx/final/crimson_skill_vfx-atlas.png",
+      "metadata": "assets/sprites/effects/crimson_skill_vfx/final/crimson_skill_vfx-metadata.json",
+      "qa_contact_sheet": "assets/sprites/effects/crimson_skill_vfx/qa/crimson_skill_vfx-contact-sheet.png",
+      "qa_validation": "assets/sprites/effects/crimson_skill_vfx/qa/crimson_skill_vfx-validation.json",
+      "effects": [
+        "q_spear_thrust",
+        "basic_attack_arc"
+      ],
+      "accepted": true
+    }
+  ]
+}

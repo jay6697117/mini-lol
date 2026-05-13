@@ -1,0 +1,70 @@
+{
+  "asset_id": "azure_outer_tower",
+  "team": "azure",
+  "type": "outer_tower",
+  "source": "assets/sprites/buildings/azure/azure_outer_tower/source/azure-outer-tower-states.png",
+  "atlas": "assets/sprites/buildings/azure/azure_outer_tower/final/azure_outer_tower-atlas.png",
+  "cell_size": {
+    "width": 384,
+    "height": 384
+  },
+  "states": [
+    {
+      "state": "idle",
+      "path": "assets/sprites/buildings/azure/azure_outer_tower/final/azure_outer_tower-idle.png",
+      "source_slice": [
+        0,
+        0,
+        341,
+        1024
+      ],
+      "source_alpha_bbox": [
+        43,
+        250,
+        312,
+        724
+      ],
+      "scale": 0.7447
+    },
+    {
+      "state": "attack",
+      "path": "assets/sprites/buildings/azure/azure_outer_tower/final/azure_outer_tower-attack.png",
+      "source_slice": [
+        341,
+        0,
+        682,
+        1024
+      ],
+      "source_alpha_bbox": [
+        36,
+        260,
+        305,
+        727
+      ],
+      "scale": 0.7559
+    },
+    {
+      "state": "destroyed",
+      "path": "assets/sprites/buildings/azure/azure_outer_tower/final/azure_outer_tower-destroyed.png",
+      "source_slice": [
+        682,
+        0,
+        1024,
+        1024
+      ],
+      "source_alpha_bbox": [
+        2,
+        444,
+        311,
+        744
+      ],
+      "scale": 1.0
+    }
+  ],
+  "qa": {
+    "contact_sheet": "assets/sprites/buildings/azure/azure_outer_tower/qa/azure_outer_tower-contact-sheet.png",
+    "green_pixels_removed": 836731,
+    "remaining_key_like_pixels": 1814,
+    "visual_review": "accepted"
+  }
+}

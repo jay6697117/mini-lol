@@ -1,0 +1,50 @@
+{
+  "ok": true,
+  "errors": [],
+  "summary": [
+    {
+      "asset_id": "azure_outer_tower",
+      "atlas": "assets/sprites/buildings/azure/azure_outer_tower/final/azure_outer_tower-atlas.png",
+      "green_like_pixels": 2825,
+      "alpha_bbox": [
+        92,
+        19,
+        1114,
+        372
+      ]
+    },
+    {
+      "asset_id": "crimson_outer_tower",
+      "atlas": "assets/sprites/buildings/crimson/crimson_outer_tower/final/crimson_outer_tower-atlas.png",
+      "green_like_pixels": 1107,
+      "alpha_bbox": [
+        109,
+        19,
+        1112,
+        372
+      ]
+    },
+    {
+      "asset_id": "azure_core",
+      "atlas": "assets/sprites/buildings/azure/azure_core/final/azure_core-atlas.png",
+      "green_like_pixels": 1615,
+      "alpha_bbox": [
+        37,
+        19,
+        1118,
+        372
+      ]
+    },
+    {
+      "asset_id": "crimson_core",
+      "atlas": "assets/sprites/buildings/crimson/crimson_core/final/crimson_core-atlas.png",
+      "green_like_pixels": 139,
+      "alpha_bbox": [
+        38,
+        89,
+        1114,
+        372
+      ]
+    }
+  ]
+}

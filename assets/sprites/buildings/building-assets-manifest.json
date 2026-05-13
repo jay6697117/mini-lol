@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "asset_group": "secondary_buildings",
+  "generation_method": "imagegen_source_with_chroma_key_postprocess",
+  "cell_size": {
+    "width": 384,
+    "height": 384
+  },
+  "assets": [
+    {
+      "asset_id": "azure_outer_tower",
+      "team": "azure",
+      "source": "assets/sprites/buildings/azure/azure_outer_tower/source/azure-outer-tower-states.png",
+      "atlas": "assets/sprites/buildings/azure/azure_outer_tower/final/azure_outer_tower-atlas.png",
+      "metadata": "assets/sprites/buildings/azure/azure_outer_tower/final/azure_outer_tower-metadata.json",
+      "qa_contact_sheet": "assets/sprites/buildings/azure/azure_outer_tower/qa/azure_outer_tower-contact-sheet.png",
+      "states": [
+        "idle",
+        "attack",
+        "destroyed"
+      ],
+      "accepted": true
+    },
+    {
+      "asset_id": "crimson_outer_tower",
+      "team": "crimson",
+      "source": "assets/sprites/buildings/crimson/crimson_outer_tower/source/crimson-outer-tower-states.png",
+      "atlas": "assets/sprites/buildings/crimson/crimson_outer_tower/final/crimson_outer_tower-atlas.png",
+      "metadata": "assets/sprites/buildings/crimson/crimson_outer_tower/final/crimson_outer_tower-metadata.json",
+      "qa_contact_sheet": "assets/sprites/buildings/crimson/crimson_outer_tower/qa/crimson_outer_tower-contact-sheet.png",
+      "states": [
+        "idle",
+        "attack",
+        "destroyed"
+      ],
+      "accepted": true
+    },
+    {
+      "asset_id": "azure_core",
+      "team": "azure",
+      "source": "assets/sprites/buildings/azure/azure_core/source/azure-core-states.png",
+      "atlas": "assets/sprites/buildings/azure/azure_core/final/azure_core-atlas.png",
+      "metadata": "assets/sprites/buildings/azure/azure_core/final/azure_core-metadata.json",
+      "qa_contact_sheet": "assets/sprites/buildings/azure/azure_core/qa/azure_core-contact-sheet.png",
+      "states": [
+        "idle",
+        "damaged",
+        "destroyed"
+      ],
+      "accepted": true
+    },
+    {
+      "asset_id": "crimson_core",
+      "team": "crimson",
+      "source": "assets/sprites/buildings/crimson/crimson_core/source/crimson-core-states.png",
+      "atlas": "assets/sprites/buildings/crimson/crimson_core/final/crimson_core-atlas.png",
+      "metadata": "assets/sprites/buildings/crimson/crimson_core/final/crimson_core-metadata.json",
+      "qa_contact_sheet": "assets/sprites/buildings/crimson/crimson_core/qa/crimson_core-contact-sheet.png",
+      "states": [
+        "idle",
+        "damaged",
+        "destroyed"
+      ],
+      "accepted": true
+    }
+  ]
+}

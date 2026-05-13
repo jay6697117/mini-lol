@@ -1,0 +1,323 @@
+{
+  "asset_id": "moba_ui_icons",
+  "type": "ui_icons",
+  "generation_method": "procedural_original_alpha_icons",
+  "cell_size": {
+    "width": 128,
+    "height": 128
+  },
+  "sets": {
+    "skills": {
+      "atlas": "assets/sprites/ui/moba_ui_icons/final/skill-icons-atlas.png",
+      "qa_contact_sheet": "assets/sprites/ui/moba_ui_icons/qa/skill-icons-contact-sheet.png",
+      "icons": [
+        {
+          "id": "astra_q",
+          "path": "assets/sprites/ui/moba_ui_icons/final/skill-icons-astra_q.png",
+          "frame": [
+            0,
+            0,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "astra_w",
+          "path": "assets/sprites/ui/moba_ui_icons/final/skill-icons-astra_w.png",
+          "frame": [
+            128,
+            0,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "astra_e",
+          "path": "assets/sprites/ui/moba_ui_icons/final/skill-icons-astra_e.png",
+          "frame": [
+            256,
+            0,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "astra_r",
+          "path": "assets/sprites/ui/moba_ui_icons/final/skill-icons-astra_r.png",
+          "frame": [
+            384,
+            0,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "crimson_q",
+          "path": "assets/sprites/ui/moba_ui_icons/final/skill-icons-crimson_q.png",
+          "frame": [
+            0,
+            128,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "crimson_w",
+          "path": "assets/sprites/ui/moba_ui_icons/final/skill-icons-crimson_w.png",
+          "frame": [
+            128,
+            128,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "crimson_e",
+          "path": "assets/sprites/ui/moba_ui_icons/final/skill-icons-crimson_e.png",
+          "frame": [
+            256,
+            128,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "crimson_r",
+          "path": "assets/sprites/ui/moba_ui_icons/final/skill-icons-crimson_r.png",
+          "frame": [
+            384,
+            128,
+            128,
+            128
+          ]
+        }
+      ],
+      "columns": 4,
+      "rows": 2
+    },
+    "items": {
+      "atlas": "assets/sprites/ui/moba_ui_icons/final/item-icons-atlas.png",
+      "qa_contact_sheet": "assets/sprites/ui/moba_ui_icons/qa/item-icons-contact-sheet.png",
+      "icons": [
+        {
+          "id": "bronze_sword",
+          "path": "assets/sprites/ui/moba_ui_icons/final/item-icons-bronze_sword.png",
+          "frame": [
+            0,
+            0,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "plated_boots",
+          "path": "assets/sprites/ui/moba_ui_icons/final/item-icons-plated_boots.png",
+          "frame": [
+            128,
+            0,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "focus_crystal",
+          "path": "assets/sprites/ui/moba_ui_icons/final/item-icons-focus_crystal.png",
+          "frame": [
+            256,
+            0,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "guard_shield",
+          "path": "assets/sprites/ui/moba_ui_icons/final/item-icons-guard_shield.png",
+          "frame": [
+            0,
+            128,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "haste_talisman",
+          "path": "assets/sprites/ui/moba_ui_icons/final/item-icons-haste_talisman.png",
+          "frame": [
+            128,
+            128,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "siege_hammer",
+          "path": "assets/sprites/ui/moba_ui_icons/final/item-icons-siege_hammer.png",
+          "frame": [
+            256,
+            128,
+            128,
+            128
+          ]
+        }
+      ],
+      "columns": 3,
+      "rows": 2
+    },
+    "minimap": {
+      "atlas": "assets/sprites/ui/moba_ui_icons/final/minimap-icons-atlas.png",
+      "qa_contact_sheet": "assets/sprites/ui/moba_ui_icons/qa/minimap-icons-contact-sheet.png",
+      "icons": [
+        {
+          "id": "azure_hero",
+          "path": "assets/sprites/ui/moba_ui_icons/final/minimap-icons-azure_hero.png",
+          "frame": [
+            0,
+            0,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "crimson_hero",
+          "path": "assets/sprites/ui/moba_ui_icons/final/minimap-icons-crimson_hero.png",
+          "frame": [
+            128,
+            0,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "azure_minion",
+          "path": "assets/sprites/ui/moba_ui_icons/final/minimap-icons-azure_minion.png",
+          "frame": [
+            256,
+            0,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "crimson_minion",
+          "path": "assets/sprites/ui/moba_ui_icons/final/minimap-icons-crimson_minion.png",
+          "frame": [
+            384,
+            0,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "azure_tower",
+          "path": "assets/sprites/ui/moba_ui_icons/final/minimap-icons-azure_tower.png",
+          "frame": [
+            0,
+            128,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "crimson_tower",
+          "path": "assets/sprites/ui/moba_ui_icons/final/minimap-icons-crimson_tower.png",
+          "frame": [
+            128,
+            128,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "azure_core",
+          "path": "assets/sprites/ui/moba_ui_icons/final/minimap-icons-azure_core.png",
+          "frame": [
+            256,
+            128,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "crimson_core",
+          "path": "assets/sprites/ui/moba_ui_icons/final/minimap-icons-crimson_core.png",
+          "frame": [
+            384,
+            128,
+            128,
+            128
+          ]
+        }
+      ],
+      "columns": 4,
+      "rows": 2
+    },
+    "status": {
+      "atlas": "assets/sprites/ui/moba_ui_icons/final/status-icons-atlas.png",
+      "qa_contact_sheet": "assets/sprites/ui/moba_ui_icons/qa/status-icons-contact-sheet.png",
+      "icons": [
+        {
+          "id": "gold",
+          "path": "assets/sprites/ui/moba_ui_icons/final/status-icons-gold.png",
+          "frame": [
+            0,
+            0,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "level_up",
+          "path": "assets/sprites/ui/moba_ui_icons/final/status-icons-level_up.png",
+          "frame": [
+            128,
+            0,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "skill_point",
+          "path": "assets/sprites/ui/moba_ui_icons/final/status-icons-skill_point.png",
+          "frame": [
+            256,
+            0,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "recall",
+          "path": "assets/sprites/ui/moba_ui_icons/final/status-icons-recall.png",
+          "frame": [
+            0,
+            128,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "death_timer",
+          "path": "assets/sprites/ui/moba_ui_icons/final/status-icons-death_timer.png",
+          "frame": [
+            128,
+            128,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "shop",
+          "path": "assets/sprites/ui/moba_ui_icons/final/status-icons-shop.png",
+          "frame": [
+            256,
+            128,
+            128,
+            128
+          ]
+        }
+      ],
+      "columns": 3,
+      "rows": 2
+    }
+  }
+}

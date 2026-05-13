@@ -1,0 +1,70 @@
+{
+  "asset_id": "crimson_core",
+  "team": "crimson",
+  "type": "core",
+  "source": "assets/sprites/buildings/crimson/crimson_core/source/crimson-core-states.png",
+  "atlas": "assets/sprites/buildings/crimson/crimson_core/final/crimson_core-atlas.png",
+  "cell_size": {
+    "width": 384,
+    "height": 384
+  },
+  "states": [
+    {
+      "state": "idle",
+      "path": "assets/sprites/buildings/crimson/crimson_core/final/crimson_core-idle.png",
+      "source_slice": [
+        0,
+        0,
+        341,
+        1024
+      ],
+      "source_alpha_bbox": [
+        26,
+        365,
+        334,
+        629
+      ],
+      "scale": 1.0
+    },
+    {
+      "state": "damaged",
+      "path": "assets/sprites/buildings/crimson/crimson_core/final/crimson_core-damaged.png",
+      "source_slice": [
+        341,
+        0,
+        682,
+        1024
+      ],
+      "source_alpha_bbox": [
+        14,
+        366,
+        328,
+        649
+      ],
+      "scale": 1.0
+    },
+    {
+      "state": "destroyed",
+      "path": "assets/sprites/buildings/crimson/crimson_core/final/crimson_core-destroyed.png",
+      "source_slice": [
+        682,
+        0,
+        1024,
+        1024
+      ],
+      "source_alpha_bbox": [
+        3,
+        405,
+        312,
+        649
+      ],
+      "scale": 1.0
+    }
+  ],
+  "qa": {
+    "contact_sheet": "assets/sprites/buildings/crimson/crimson_core/qa/crimson_core-contact-sheet.png",
+    "green_pixels_removed": 874152,
+    "remaining_key_like_pixels": 139,
+    "visual_review": "accepted"
+  }
+}

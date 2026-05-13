@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "asset_id": "moba_ui_icons",
+  "metadata": "assets/sprites/ui/moba_ui_icons/final/moba_ui_icons-metadata.json",
+  "validation": "assets/sprites/ui/moba_ui_icons/qa/moba_ui_icons-validation.json",
+  "contact_overview": "assets/sprites/ui/moba_ui_icons/qa/moba_ui_icons-contact-overview.png",
+  "accepted": true
+}

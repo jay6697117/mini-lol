@@ -9,9 +9,14 @@
   },
   "completed_actions": [
     "idle",
-    "move"
+    "move",
+    "basic_attack",
+    "hit",
+    "death"
   ],
   "reviewer_notes": [
-    "Crimson Caster Minion idle and move actions are accepted after source generation, assembly, cleanup, validation, preview export, and motion audit for move."
+    "All Crimson Caster Minion 64x64 actions were visually accepted after source generation, assembly, cleanup, validation, preview export, and motion audit for move.",
+    "The death sheet uses documented frame-order-preserving fallback derivatives for directions where repeated direct image generation returned empty results.",
+    "No commercial MOBA character, UI, or map assets are copied into the sprite outputs."
   ]
 }
