@@ -21,6 +21,27 @@ Use `.codex/skills/game-character-sprites` to produce the sprite assets required
 - `assets/sprites/characters/crimson_duelist/run/64/final/cast-sheet-clean.png`
 - `assets/sprites/characters/crimson_duelist/run/64/final/hit-sheet-clean.png`
 - `assets/sprites/characters/crimson_duelist/run/64/final/death-sheet-clean.png`
+- `assets/sprites/minions/azure/azure_melee_minion/run/source/64-base-azure-melee-minion.png`
+- `assets/sprites/minions/azure/azure_melee_minion/run/64/final/idle-sheet-clean.png`
+- `assets/sprites/minions/azure/azure_melee_minion/run/64/final/move-sheet-clean.png`
+- `assets/sprites/minions/azure/azure_melee_minion/run/64/final/basic_attack-sheet-clean.png`
+- `assets/sprites/minions/azure/azure_melee_minion/run/64/final/hit-sheet-clean.png`
+- `assets/sprites/minions/azure/azure_melee_minion/run/64/final/death-sheet-clean.png`
+- `assets/sprites/minions/crimson/crimson_melee_minion/run/source/64-base-crimson-melee-minion.png`
+- `assets/sprites/minions/crimson/crimson_melee_minion/run/64/final/idle-sheet-clean.png`
+- `assets/sprites/minions/crimson/crimson_melee_minion/run/64/final/move-sheet-clean.png`
+- `assets/sprites/minions/crimson/crimson_melee_minion/run/64/final/basic_attack-sheet-clean.png`
+- `assets/sprites/minions/crimson/crimson_melee_minion/run/64/final/hit-sheet-clean.png`
+- `assets/sprites/minions/crimson/crimson_melee_minion/run/64/final/death-sheet-clean.png`
+- `assets/sprites/minions/azure/azure_caster_minion/run/source/64-base-azure-caster-minion.png`
+- `assets/sprites/minions/azure/azure_caster_minion/run/64/final/idle-sheet-clean.png`
+- `assets/sprites/minions/azure/azure_caster_minion/run/64/final/move-sheet-clean.png`
+- `assets/sprites/minions/azure/azure_caster_minion/run/64/final/basic_attack-sheet-clean.png`
+- `assets/sprites/minions/azure/azure_caster_minion/run/64/final/hit-sheet-clean.png`
+- `assets/sprites/minions/azure/azure_caster_minion/run/64/final/death-sheet-clean.png`
+- `assets/sprites/minions/crimson/crimson_caster_minion/run/source/64-base-crimson-caster-minion.png`
+- `assets/sprites/minions/crimson/crimson_caster_minion/run/64/final/idle-sheet-clean.png`
+- `assets/sprites/minions/crimson/crimson_caster_minion/run/64/final/move-sheet-clean.png`
 - `assets/sprites/characters/astra_vanguard/run/64/qa/move-contact-sheet.png`
 - `assets/sprites/characters/astra_vanguard/run/64/qa/move-validation.json`
 - `assets/sprites/characters/astra_vanguard/run/64/qa/move-motion-audit.json`
@@ -32,7 +53,7 @@ Use `.codex/skills/game-character-sprites` to produce the sprite assets required
 
 ## Current Focus
 
-Generate base sprites and action sheets for lane minions, starting with `azure_melee_minion`.
+Generate and validate `crimson_caster_minion` 64x64 `basic_attack` 8-direction sheet.
 
 ## Remaining Character Sprite Sheets
 
@@ -56,32 +77,32 @@ Generate base sprites and action sheets for lane minions, starting with `azure_m
 
 ### Azure Melee Minion
 
-- `idle`: pending
-- `move`: pending
-- `basic_attack`: pending
-- `hit`: pending
-- `death`: pending
+- `idle`: complete
+- `move`: complete
+- `basic_attack`: complete
+- `hit`: complete
+- `death`: complete
 
 ### Crimson Melee Minion
 
-- `idle`: pending
-- `move`: pending
-- `basic_attack`: pending
-- `hit`: pending
-- `death`: pending
+- `idle`: complete
+- `move`: complete
+- `basic_attack`: complete
+- `hit`: complete
+- `death`: complete
 
 ### Azure Caster Minion
 
-- `idle`: pending
-- `move`: pending
-- `basic_attack`: pending
-- `hit`: pending
-- `death`: pending
+- `idle`: complete
+- `move`: complete
+- `basic_attack`: complete
+- `hit`: complete
+- `death`: complete
 
 ### Crimson Caster Minion
 
-- `idle`: pending
-- `move`: pending
+- `idle`: complete
+- `move`: complete
 - `basic_attack`: pending
 - `hit`: pending
 - `death`: pending

@@ -1,0 +1,22 @@
+{
+  "action": "basic_attack",
+  "cell": 64,
+  "status": "accepted",
+  "reviewed_files": [
+    "64/qa/basic_attack-contact-sheet.png",
+    "64/qa/previews/basic_attack-south-strip-x4.png",
+    "64/qa/previews/basic_attack-north-strip-x4.png"
+  ],
+  "checks": {
+    "direction_readability": "accepted",
+    "silhouette_consistency": "accepted",
+    "animation_readability": "accepted",
+    "weapon_and_shield_consistency": "accepted",
+    "chroma_key_cleanup": "accepted"
+  },
+  "notes": [
+    "The basic attack reads as a compact hand-axe chop with a small red-orange contact frame.",
+    "The pointed shield remains attached and readable across rows.",
+    "A key-green cleanup pass was applied; validation remained clean afterward."
+  ]
+}

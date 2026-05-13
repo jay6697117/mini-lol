@@ -1,0 +1,22 @@
+{
+  "action": "move",
+  "cell": 64,
+  "status": "accepted",
+  "reviewed_files": [
+    "64/qa/move-contact-sheet.png",
+    "64/qa/previews/move-south-strip-x4.png",
+    "64/qa/previews/move-east-strip-x4.png"
+  ],
+  "checks": {
+    "direction_readability": "accepted",
+    "silhouette_consistency": "accepted",
+    "animation_readability": "accepted",
+    "weapon_and_shield_consistency": "accepted",
+    "chroma_key_cleanup": "accepted"
+  },
+  "notes": [
+    "The move action reads as a compact marching loop suitable for a front-line minion.",
+    "Motion audit passed for all eight rows.",
+    "The final sheet validates cleanly and has no green-dominant edge residue."
+  ]
+}

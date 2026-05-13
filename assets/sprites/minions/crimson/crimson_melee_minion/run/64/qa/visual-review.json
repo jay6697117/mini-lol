@@ -1,0 +1,47 @@
+{
+  "accepted": true,
+  "scope": {
+    "cell": 64,
+    "completed_actions": [
+      "idle",
+      "move",
+      "basic_attack",
+      "hit"
+    ],
+    "directions": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ]
+  },
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  },
+  "reviewer_notes": [
+    "All Crimson Melee Minion 64x64 actions were visually accepted after source generation, assembly, cleanup, validation, and preview export.",
+    "The sprite pack keeps an original red-team melee minion identity and uses the MOBA reference only for 2.5D readability.",
+    "Death rows include clear non-looping collapse poses in all eight directions with transparent final output."
+  ],
+  "action_reviews": [
+    "64/qa/idle-visual-review.json",
+    "64/qa/move-visual-review.json",
+    "64/qa/basic_attack-visual-review.json",
+    "64/qa/hit-visual-review.json"
+  ],
+  "completed_actions": [
+    "idle",
+    "move",
+    "basic_attack",
+    "hit",
+    "death"
+  ]
+}

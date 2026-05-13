@@ -1,0 +1,5 @@
+64x64 pixel-art game sprite, single original MOBA lane minion character, transparent or flat pure green chroma-key background.
+Use the attached MOBA screenshot only for overall 2.5D isometric top-down art direction, scale, readability, and red-team visual language. Use the attached blue caster only as a size and role reference; do not copy it exactly and do not make a simple recolor.
+Character identity: Crimson Caster Minion, red-team back-line spellcaster, compact short body, crimson hooded robe over dark iron shoulder plates, small jagged ruby-tipped staff held close, short angular helmet under hood, no shield, no sword, red-orange magic focus, readable support silhouette distinct from melee minions and from the Azure Caster.
+Camera and pose: 2.5D isometric top-down game view, three-quarter south-facing pose, feet anchored at the bottom center, full body visible, staff fully inside the image.
+Style: crisp pixel-art edges, clear outline, saturated readable colors, limited palette, no UI, no text, no frame border, no floor, no shadow, no labels.

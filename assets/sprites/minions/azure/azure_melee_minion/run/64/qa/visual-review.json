@@ -1,0 +1,42 @@
+{
+  "accepted": true,
+  "scope": {
+    "cell": 64,
+    "completed_actions": [
+      "idle",
+      "move",
+      "basic_attack",
+      "hit",
+      "death"
+    ],
+    "directions": [
+      "south",
+      "south-east",
+      "east",
+      "north-east",
+      "north",
+      "north-west",
+      "west",
+      "south-west"
+    ]
+  },
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  },
+  "reviewer_notes": [
+    "The current Azure Melee Minion run uses image-generated source strips grounded by the local MOBA reference image and the locked base minion.",
+    "Completed actions preserve the blue-team melee lane minion silhouette, round shield, short sword, and compact scale.",
+    "This review covers all requested Azure Melee Minion 64x64 actions."
+  ],
+  "action_reviews": [
+    "64/qa/idle-visual-review.json",
+    "64/qa/move-visual-review.json",
+    "64/qa/basic_attack-visual-review.json",
+    "64/qa/hit-visual-review.json",
+    "64/qa/death-visual-review.json"
+  ]
+}

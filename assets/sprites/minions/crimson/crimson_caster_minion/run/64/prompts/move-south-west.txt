@@ -1,0 +1,10 @@
+64x64 pixel-art game sprite animation strip for Crimson Caster Minion.
+Use the attached base sprite as the exact costume and silhouette identity reference, but redraw the body orientation for the requested direction and the MOBA screenshot only for 2.5D isometric top-down visual direction.
+One horizontal row of exactly 6 separated full-body frames on a flat pure solid chroma-key background #00ff00.
+Spacing requirement: make six clearly separated sprite islands with wide pure green gaps between every frame, no overlap, no touching pixels, and no merged silhouettes.
+Action: walk cycle. Direction: south-west, body facing down-left in a 2.5D isometric MOBA view.
+Direction lock: redraw the full body rotated to face down-left. Do not keep the south/front pose. Show asymmetric down-left stance, staff angled to the down-left side, visible near shoulder and partial side of hood.
+Pose sequence: step left, pass, step right, pass, robe sway, recover stride.
+Animation rules: short shuffling caster walk, staff held close, small robe sway, no projectile, full body and staff inside every frame.
+Preserve identity exactly: compact red-team caster lane minion, crimson hooded robe over dark iron shoulder plates, small jagged ruby-tipped staff, short angular helmet under hood, no shield, no sword, red-orange magic focus.
+Output constraints: no UI, no text, no numbers, no frame borders, no floor, no shadows, no labels, no rounded panels, no gradients. Keep green space between frames.

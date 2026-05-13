@@ -1,0 +1,66 @@
+{
+  "cell": 64,
+  "columns": 4,
+  "rows": 8,
+  "action": "idle",
+  "directions": [
+    "south",
+    "south-east",
+    "east",
+    "north-east",
+    "north",
+    "north-west",
+    "west",
+    "south-west"
+  ],
+  "rows_meta": [
+    {
+      "row": 0,
+      "action": "idle",
+      "direction": "south",
+      "frames": 4
+    },
+    {
+      "row": 1,
+      "action": "idle",
+      "direction": "south-east",
+      "frames": 4
+    },
+    {
+      "row": 2,
+      "action": "idle",
+      "direction": "east",
+      "frames": 4
+    },
+    {
+      "row": 3,
+      "action": "idle",
+      "direction": "north-east",
+      "frames": 4
+    },
+    {
+      "row": 4,
+      "action": "idle",
+      "direction": "north",
+      "frames": 4
+    },
+    {
+      "row": 5,
+      "action": "idle",
+      "direction": "north-west",
+      "frames": 4
+    },
+    {
+      "row": 6,
+      "action": "idle",
+      "direction": "west",
+      "frames": 4
+    },
+    {
+      "row": 7,
+      "action": "idle",
+      "direction": "south-west",
+      "frames": 4
+    }
+  ]
+}

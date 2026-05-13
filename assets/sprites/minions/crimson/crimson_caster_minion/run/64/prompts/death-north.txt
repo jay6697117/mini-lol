@@ -1,0 +1,9 @@
+64x64 pixel-art game sprite animation strip for Crimson Caster Minion.
+Use the attached base sprite as the exact costume and silhouette identity reference, but redraw the body orientation for the requested direction and the MOBA screenshot only for 2.5D isometric top-down visual direction.
+One horizontal row of exactly 6 separated full-body frames on a flat pure solid chroma-key background #00ff00.
+Action: death animation, non-looping. Direction: north, back-facing away from the camera and slightly upward in a 2.5D isometric MOBA view.
+Direction lock: redraw the full body back-facing away from camera. Do not keep the south/front pose. Show the back of the hood and robe, no front face slit, staff visible beside the back silhouette.
+Pose sequence: standing hurt, stagger, kneel, collapse, down, final still body.
+Animation rules: readable defeat, no gore, staff remains near the body, robe cloth settles, full body and staff inside every frame.
+Preserve identity exactly: compact red-team caster lane minion, crimson hooded robe over dark iron shoulder plates, small jagged ruby-tipped staff, short angular helmet under hood, no shield, no sword, red-orange magic focus.
+Output constraints: no UI, no text, no numbers, no frame borders, no floor, no shadows, no labels, no rounded panels, no gradients. Keep green space between frames.

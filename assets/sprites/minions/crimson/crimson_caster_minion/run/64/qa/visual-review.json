@@ -1,0 +1,17 @@
+{
+  "accepted": true,
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  },
+  "completed_actions": [
+    "idle",
+    "move"
+  ],
+  "reviewer_notes": [
+    "Crimson Caster Minion idle and move actions are accepted after source generation, assembly, cleanup, validation, preview export, and motion audit for move."
+  ]
+}

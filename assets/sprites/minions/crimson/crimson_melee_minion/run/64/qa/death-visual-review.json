@@ -1,0 +1,16 @@
+{
+  "action": "death",
+  "accepted": true,
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  },
+  "reviewer_notes": [
+    "Eight death rows were visually inspected through the contact sheet and enlarged strip previews.",
+    "The red-team melee identity, pointed shield, hand axe, helmet crest, and red cloth armor remain readable at 64x64.",
+    "The non-looping defeat pose reads clearly from standing hurt to final still body, with no gore and no copied MOBA assets."
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "action": "death",
+  "cell": 64,
+  "status": "accepted",
+  "reviewed_files": [
+    "64/qa/death-contact-sheet.png",
+    "64/qa/previews/death-south-strip-x4.png",
+    "64/qa/previews/death-north-strip-x4.png"
+  ],
+  "checks": {
+    "direction_readability": "accepted",
+    "silhouette_consistency": "accepted",
+    "animation_readability": "accepted",
+    "weapon_and_shield_consistency": "accepted",
+    "chroma_key_cleanup": "accepted"
+  },
+  "notes": [
+    "The death action reads as a non-looping defeat sequence from standing to a final still body.",
+    "The sword and shield stay near the minion across final frames.",
+    "A small key-green cleanup pass was applied; validation remained clean afterward."
+  ]
+}

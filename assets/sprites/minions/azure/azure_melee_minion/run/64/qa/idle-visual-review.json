@@ -1,0 +1,22 @@
+{
+  "action": "idle",
+  "cell": 64,
+  "status": "accepted",
+  "reviewed_files": [
+    "64/qa/idle-contact-sheet.png",
+    "64/qa/previews/idle-south-strip-x4.png",
+    "64/qa/previews/idle-north-strip-x4.png"
+  ],
+  "checks": {
+    "direction_readability": "accepted",
+    "silhouette_consistency": "accepted",
+    "animation_readability": "accepted",
+    "weapon_and_shield_consistency": "accepted",
+    "chroma_key_cleanup": "accepted"
+  },
+  "notes": [
+    "The idle action preserves the Azure Melee Minion identity, blue armor, round shield, short sword, and rounded helmet crest.",
+    "The action is intentionally subtle, with small guard and breathing motion.",
+    "The final sheet validates cleanly and has no green-dominant edge residue."
+  ]
+}

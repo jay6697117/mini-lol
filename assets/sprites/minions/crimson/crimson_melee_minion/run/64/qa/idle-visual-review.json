@@ -1,0 +1,22 @@
+{
+  "action": "idle",
+  "cell": 64,
+  "status": "accepted",
+  "reviewed_files": [
+    "64/qa/idle-contact-sheet.png",
+    "64/qa/previews/idle-south-strip-x4.png",
+    "64/qa/previews/idle-north-strip-x4.png"
+  ],
+  "checks": {
+    "direction_readability": "accepted",
+    "silhouette_consistency": "accepted",
+    "animation_readability": "accepted",
+    "weapon_and_shield_consistency": "accepted",
+    "chroma_key_cleanup": "accepted"
+  },
+  "notes": [
+    "The idle action preserves the Crimson Melee Minion identity, red armor, pointed shield, hand axe, and sharp helmet crest.",
+    "The action is intentionally subtle, with small guard and breathing motion.",
+    "A small key-green cleanup pass was applied; validation remained clean afterward."
+  ]
+}

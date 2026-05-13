@@ -1,0 +1,8 @@
+64x64 pixel-art game sprite animation strip for Crimson Melee Minion.
+Use the attached base sprite as the exact character identity reference and the MOBA screenshot only for 2.5D isometric top-down visual direction.
+One horizontal row of exactly 6 separated full-body frames on a flat pure solid chroma-key background #00ff00.
+Action: death animation, non-looping. Direction: north-east, body facing up-right with the back partly visible in a 2.5D isometric MOBA view.
+Pose sequence: standing hurt, stagger, kneel, collapse, down, final still body.
+Animation rules: readable defeat, no gore, hand axe and shield remain near the body, cloth settles, full body and equipment inside every frame.
+Preserve identity exactly: compact red-team melee lane minion, red cloth armor over dark iron plates, small pointed shield, short hand axe, sharp helmet crest.
+Output constraints: no UI, no text, no numbers, no frame borders, no floor, no shadows, no labels, no rounded panels, no gradients. Keep green space between frames.

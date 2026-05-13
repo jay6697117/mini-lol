@@ -1,0 +1,22 @@
+{
+  "action": "hit",
+  "cell": 64,
+  "status": "accepted",
+  "reviewed_files": [
+    "64/qa/hit-contact-sheet.png",
+    "64/qa/previews/hit-south-strip-x4.png",
+    "64/qa/previews/hit-north-strip-x4.png"
+  ],
+  "checks": {
+    "direction_readability": "accepted",
+    "silhouette_consistency": "accepted",
+    "animation_readability": "accepted",
+    "weapon_and_shield_consistency": "accepted",
+    "chroma_key_cleanup": "accepted"
+  },
+  "notes": [
+    "The hit action reads as a short shield-and-armor flinch without turning into a death pose.",
+    "Blue hit sparks are compact and do not obscure the minion silhouette.",
+    "The final sheet validates cleanly and key-green-like residue check returned zero."
+  ]
+}

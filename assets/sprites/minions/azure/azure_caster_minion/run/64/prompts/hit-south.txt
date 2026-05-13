@@ -1,0 +1,8 @@
+64x64 pixel-art game sprite animation strip for Azure Caster Minion.
+Use the attached base sprite as the exact character identity reference and the MOBA screenshot only for 2.5D isometric top-down visual direction.
+One horizontal row of exactly 4 separated full-body frames on a flat pure solid chroma-key background #00ff00.
+Action: hit reaction. Direction: south, front-facing toward the camera and slightly downward in a 2.5D isometric MOBA view.
+Pose sequence: guarded stance, impact flinch, short recoil, recover guard.
+Animation rules: brief pale-blue hit spark on robe or shoulder plate, no attacker, no projectile, no death pose, no knockdown, full body and staff inside every frame.
+Preserve identity exactly: compact blue-team caster lane minion, blue hooded robe over dull silver shoulder plates, small crystal-tipped staff, short round helmet under hood, no shield, no sword, cyan magic focus.
+Output constraints: no UI, no text, no numbers, no frame borders, no floor, no shadows, no labels, no rounded panels, no gradients. Keep green space between frames.

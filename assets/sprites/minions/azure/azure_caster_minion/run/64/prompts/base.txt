@@ -1,0 +1,5 @@
+64x64 pixel-art game sprite, single original MOBA lane minion character, transparent or flat pure green chroma-key background.
+Use the attached reference image only for overall 2.5D isometric top-down MOBA art direction, scale, readability, and blue-team visual language. Do not copy any existing character from the reference.
+Character identity: Azure Caster Minion, blue-team back-line spellcaster, compact short body, blue hooded robe over dull silver shoulder plates, small crystal-tipped staff held close, short round helmet under hood, no shield, no sword, cyan magic focus, readable support silhouette distinct from melee minions.
+Camera and pose: 2.5D isometric top-down game view, three-quarter south-facing pose, feet anchored at the bottom center, full body visible, staff fully inside the image.
+Style: crisp pixel-art edges, clear outline, saturated readable colors, limited palette, no UI, no text, no frame border, no floor, no shadow, no labels.
