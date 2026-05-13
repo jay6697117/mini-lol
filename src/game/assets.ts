@@ -115,6 +115,18 @@ export const UNIT_ASSETS: Record<string, UnitAssetSpec> = {
       death: unitSheet(minionPath("azure", "azure_caster_minion", "death"), 6),
     },
   },
+  azure_siege_minion: {
+    id: "azure_siege_minion",
+    team: "azure",
+    scale: 1.18,
+    actions: {
+      idle: unitSheet(minionPath("azure", "azure_siege_minion", "idle"), 4),
+      move: unitSheet(minionPath("azure", "azure_siege_minion", "move"), 6),
+      basic_attack: unitSheet(minionPath("azure", "azure_siege_minion", "basic_attack"), 6),
+      hit: unitSheet(minionPath("azure", "azure_siege_minion", "hit"), 4),
+      death: unitSheet(minionPath("azure", "azure_siege_minion", "death"), 6),
+    },
+  },
   crimson_caster_minion: {
     id: "crimson_caster_minion",
     team: "crimson",
@@ -125,6 +137,18 @@ export const UNIT_ASSETS: Record<string, UnitAssetSpec> = {
       basic_attack: unitSheet(minionPath("crimson", "crimson_caster_minion", "basic_attack"), 6),
       hit: unitSheet(minionPath("crimson", "crimson_caster_minion", "hit"), 4),
       death: unitSheet(minionPath("crimson", "crimson_caster_minion", "death"), 6),
+    },
+  },
+  crimson_siege_minion: {
+    id: "crimson_siege_minion",
+    team: "crimson",
+    scale: 1.18,
+    actions: {
+      idle: unitSheet(minionPath("crimson", "crimson_siege_minion", "idle"), 4),
+      move: unitSheet(minionPath("crimson", "crimson_siege_minion", "move"), 6),
+      basic_attack: unitSheet(minionPath("crimson", "crimson_siege_minion", "basic_attack"), 6),
+      hit: unitSheet(minionPath("crimson", "crimson_siege_minion", "hit"), 4),
+      death: unitSheet(minionPath("crimson", "crimson_siege_minion", "death"), 6),
     },
   },
 };

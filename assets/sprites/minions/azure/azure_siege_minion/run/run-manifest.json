@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "id": "azure_siege_minion",
+  "team": "azure",
+  "source": "azure_caster_minion",
+  "method": "runtime_ready_derived_sheet_with_unique_siege_chassis_overlay",
+  "cell": 64,
+  "directions": [
+    "south",
+    "south-east",
+    "east",
+    "north-east",
+    "north",
+    "north-west",
+    "west",
+    "south-west"
+  ],
+  "actions": {
+    "idle": {
+      "columns": 4,
+      "frames": 4,
+      "path": "run/64/final/idle-sheet-clean.png"
+    },
+    "move": {
+      "columns": 6,
+      "frames": 6,
+      "path": "run/64/final/move-sheet-clean.png"
+    },
+    "basic_attack": {
+      "columns": 6,
+      "frames": 6,
+      "path": "run/64/final/basic_attack-sheet-clean.png"
+    },
+    "hit": {
+      "columns": 4,
+      "frames": 4,
+      "path": "run/64/final/hit-sheet-clean.png"
+    },
+    "death": {
+      "columns": 6,
+      "frames": 6,
+      "path": "run/64/final/death-sheet-clean.png"
+    }
+  }
+}

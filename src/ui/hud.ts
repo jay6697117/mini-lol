@@ -29,10 +29,14 @@ export const initHud = () => {
         <div class="bar health"><span data-health-bar></span><em data-health-text></em></div>
         <div class="bar mana"><span data-mana-bar></span><em data-mana-text></em></div>
         <div class="stat-row">
-          <span class="stat-pill">${icon(UI_ICON_URLS.status.level_up, "Level")}<strong data-level>6</strong></span>
+          <span class="stat-pill">${icon(UI_ICON_URLS.status.level_up, "Level")}<strong data-level>1</strong></span>
           <span class="stat-pill">${icon(UI_ICON_URLS.status.gold, "Gold")}<strong data-gold>842</strong></span>
           <span class="stat-pill">${icon(UI_ICON_URLS.status.skill_point, "XP")}<strong data-xp>0</strong></span>
+          <span class="stat-pill text-stat">CS <strong data-last-hits>0</strong></span>
+          <span class="stat-pill text-stat">SP <strong data-skill-points>0</strong></span>
+          <span class="stat-pill text-stat">W <strong data-wave>1</strong></span>
         </div>
+        <div class="recall-bar" data-recall-wrap hidden><span data-recall-bar></span><em data-recall-text></em></div>
       </div>
     </section>
 
@@ -46,10 +50,18 @@ export const initHud = () => {
     </section>
 
     <section class="ability-dock" aria-label="Abilities">
-      <button class="ability" data-skill="q">${icon(UI_ICON_URLS.skills.astra_q, "Q")}<span>Q</span><em data-cooldown="q"></em></button>
-      <button class="ability" data-skill="w">${icon(UI_ICON_URLS.skills.astra_w, "W")}<span>W</span><em data-cooldown="w"></em></button>
-      <button class="ability" data-skill="e">${icon(UI_ICON_URLS.skills.astra_e, "E")}<span>E</span><em data-cooldown="e"></em></button>
-      <button class="ability ultimate" data-skill="r">${icon(UI_ICON_URLS.skills.astra_r, "R")}<span>R</span><em data-cooldown="r"></em></button>
+      ${(["q", "w", "e", "r"] as const)
+        .map((skill) => {
+          const src = UI_ICON_URLS.skills[`astra_${skill}`];
+          return `
+            <div class="ability-cell ${skill === "r" ? "ultimate-cell" : ""}">
+              <button class="ability ${skill === "r" ? "ultimate" : ""}" data-skill="${skill}">${icon(src, skill.toUpperCase())}<span>${skill.toUpperCase()}</span><strong data-skill-rank="${skill}">${skill === "r" ? 0 : 1}</strong><em data-cooldown="${skill}"></em></button>
+              <button class="skill-upgrade" data-upgrade="${skill}" aria-label="Upgrade ${skill.toUpperCase()}">+</button>
+            </div>
+          `;
+        })
+        .join("")}
+      <button class="recall-button" data-recall title="Recall">${icon(UI_ICON_URLS.status.recall, "Recall")}<span>B</span></button>
     </section>
 
     <section class="item-dock" aria-label="Items">
@@ -66,9 +78,25 @@ export const initHud = () => {
   `;
 
   root.addEventListener("click", (event) => {
-    const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("[data-item]") : null;
-    if (!target?.dataset.item) return;
-    window.miniLolDebug?.buyItem(target.dataset.item as Parameters<NonNullable<typeof window.miniLolDebug>["buyItem"]>[0]);
+    const element = event.target instanceof Element ? event.target : null;
+    const item = element?.closest<HTMLButtonElement>("[data-item]");
+    if (item?.dataset.item) {
+      window.miniLolDebug?.buyItem(item.dataset.item as Parameters<NonNullable<typeof window.miniLolDebug>["buyItem"]>[0]);
+      return;
+    }
+    const upgrade = element?.closest<HTMLButtonElement>("[data-upgrade]");
+    const upgradeKey = upgrade?.dataset.upgrade;
+    if (upgradeKey === "q" || upgradeKey === "w" || upgradeKey === "e" || upgradeKey === "r") {
+      window.miniLolDebug?.upgradeSkill(upgradeKey);
+      return;
+    }
+    if (element?.closest("[data-recall]")) {
+      window.miniLolDebug?.startRecall();
+      return;
+    }
+    const skill = element?.closest<HTMLButtonElement>("[data-skill]");
+    const skillKey = skill?.dataset.skill;
+    if (skillKey === "q" || skillKey === "w" || skillKey === "e" || skillKey === "r") window.miniLolDebug?.castSkill(skillKey);
   });
 };
 
@@ -85,13 +113,30 @@ export const updateHud = (snapshot: GameSnapshot) => {
   query<HTMLElement>("[data-level]").textContent = String(snapshot.player.level);
   query<HTMLElement>("[data-gold]").textContent = String(snapshot.player.gold);
   query<HTMLElement>("[data-xp]").textContent = String(snapshot.player.xp);
-  query<HTMLElement>("[data-message]").textContent = snapshot.message;
+  query<HTMLElement>("[data-last-hits]").textContent = String(snapshot.player.lastHits);
+  query<HTMLElement>("[data-skill-points]").textContent = String(snapshot.player.skillPoints);
+  query<HTMLElement>("[data-wave]").textContent = String(snapshot.lane.waveNumber);
+  query<HTMLElement>("[data-message]").textContent = `${snapshot.message} · AI ${snapshot.enemyAi.state}`;
+  const recallWrap = query<HTMLElement>("[data-recall-wrap]");
+  recallWrap.hidden = !snapshot.player.recalling;
+  query<HTMLElement>("[data-recall-bar]").style.width = `${Math.round(snapshot.player.recallProgress * 100)}%`;
+  query<HTMLElement>("[data-recall-text]").textContent = snapshot.player.recalling ? "Recalling" : "";
 
   for (const skill of ["q", "w", "e", "r"] as const) {
     const cooldown = snapshot.cooldowns[skill];
     query<HTMLElement>(`[data-cooldown="${skill}"]`).textContent = cooldownText(cooldown);
-    query<HTMLButtonElement>(`[data-skill="${skill}"]`).classList.toggle("cooling", cooldown > 0);
+    query<HTMLElement>(`[data-skill-rank="${skill}"]`).textContent = String(snapshot.skills[skill].level);
+    const button = query<HTMLButtonElement>(`[data-skill="${skill}"]`);
+    const upgradeButton = query<HTMLButtonElement>(`[data-upgrade="${skill}"]`);
+    button.classList.toggle("cooling", cooldown > 0);
+    button.classList.toggle("locked", !snapshot.skills[skill].canCast && snapshot.skills[skill].level <= 0);
+    button.classList.toggle("upgradeable", snapshot.skills[skill].canUpgrade);
+    upgradeButton.hidden = !snapshot.skills[skill].canUpgrade;
+    upgradeButton.disabled = !snapshot.skills[skill].canUpgrade;
   }
+
+  const recallButton = query<HTMLButtonElement>("[data-recall]");
+  recallButton.classList.toggle("channeling", snapshot.player.recalling);
 
   renderBuildings(snapshot.buildings);
   renderMinimap(snapshot.units, snapshot.buildings);
