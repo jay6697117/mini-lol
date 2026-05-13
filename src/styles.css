@@ -323,6 +323,13 @@ button {
     0 8px 20px rgba(0, 0, 0, 0.38);
 }
 
+.ability.queued {
+  border-color: rgba(139, 239, 255, 0.96);
+  box-shadow:
+    0 0 0 3px rgba(111, 224, 255, 0.48),
+    0 8px 20px rgba(0, 0, 0, 0.38);
+}
+
 .skill-upgrade {
   pointer-events: auto;
   position: absolute;
@@ -398,8 +405,47 @@ button {
   background: var(--panel);
 }
 
+.shop-button {
+  pointer-events: auto;
+  grid-column: span 3;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 7px;
+  align-items: center;
+  height: 36px;
+  padding: 3px 8px;
+  border: 1px solid rgba(232, 186, 85, 0.42);
+  border-radius: 6px;
+  background: rgba(28, 19, 10, 0.84);
+  color: #f7e3a5;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.shop-button img {
+  width: 28px;
+  height: 28px;
+}
+
+.shop-button.available {
+  border-color: rgba(232, 186, 85, 0.88);
+  box-shadow: 0 0 0 1px rgba(232, 186, 85, 0.2);
+}
+
+.shop-button.open {
+  background: rgba(52, 34, 12, 0.94);
+}
+
+.shop-button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.55);
+  opacity: 0.54;
+}
+
 .item-slot {
   pointer-events: auto;
+  position: relative;
   width: 42px;
   height: 42px;
   padding: 0;
@@ -422,9 +468,345 @@ button {
   opacity: 0.84;
 }
 
+.item-slot.active-ready {
+  border-color: rgba(95, 205, 255, 0.84);
+  box-shadow: 0 0 0 1px rgba(95, 205, 255, 0.22);
+}
+
 .item-slot img {
   width: 100%;
   height: 100%;
+}
+
+.item-slot span {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  display: grid;
+  width: 15px;
+  height: 15px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.72);
+  color: #eef7ff;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.item-slot em {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(3, 8, 12, 0.62);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 900;
+  opacity: 0;
+}
+
+.item-slot.cooling em {
+  opacity: 1;
+}
+
+.settings-button {
+  pointer-events: auto;
+  position: absolute;
+  top: 16px;
+  left: 18px;
+  width: 46px;
+  height: 30px;
+  border: 1px solid rgba(238, 247, 255, 0.22);
+  border-radius: 7px;
+  background: rgba(7, 16, 19, 0.76);
+  color: #eef7ff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.settings-button.open {
+  border-color: rgba(232, 186, 85, 0.82);
+  color: #f7e3a5;
+}
+
+.shop-panel,
+.scoreboard-panel,
+.settings-panel {
+  pointer-events: auto;
+  position: absolute;
+  overflow: hidden;
+  border: 1px solid rgba(232, 214, 160, 0.34);
+  border-radius: 8px;
+  background: rgba(7, 14, 17, 0.94);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
+}
+
+.shop-panel[hidden],
+.scoreboard-panel[hidden],
+.settings-panel[hidden],
+.death-overlay[hidden] {
+  display: none;
+}
+
+.shop-panel {
+  right: 32px;
+  top: 270px;
+  width: 360px;
+  max-width: calc(100vw - 64px);
+}
+
+.scoreboard-panel {
+  top: 62px;
+  left: 50%;
+  width: min(760px, calc(100vw - 40px));
+  transform: translateX(-50%);
+}
+
+.settings-panel {
+  top: 62px;
+  right: 224px;
+  width: 290px;
+  max-width: calc(100vw - 40px);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(230, 240, 255, 0.16);
+  background: linear-gradient(90deg, rgba(29, 51, 58, 0.76), rgba(42, 25, 13, 0.72));
+}
+
+.panel-header strong {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.panel-close {
+  pointer-events: auto;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(238, 247, 255, 0.2);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: #eef7ff;
+  font-weight: 900;
+}
+
+.shop-status {
+  padding: 8px 12px 0;
+  color: #f0cf81;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.shop-grid {
+  display: grid;
+  gap: 7px;
+  max-height: min(420px, calc(100vh - 360px));
+  overflow: auto;
+  padding: 10px 12px 12px;
+}
+
+.shop-item {
+  display: grid;
+  grid-template-columns: 44px 1fr 82px;
+  gap: 9px;
+  align-items: center;
+  min-height: 58px;
+  padding: 7px;
+  border: 1px solid rgba(238, 247, 255, 0.13);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.shop-item.owned {
+  border-color: rgba(116, 240, 157, 0.5);
+}
+
+.shop-item.locked {
+  opacity: 0.66;
+}
+
+.shop-item img {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+}
+
+.shop-item div {
+  min-width: 0;
+}
+
+.shop-item strong,
+.shop-item span {
+  display: block;
+}
+
+.shop-item strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shop-item span {
+  color: rgba(238, 247, 255, 0.68);
+  font-size: 11px;
+}
+
+.shop-item button {
+  pointer-events: auto;
+  min-height: 34px;
+  border: 1px solid rgba(232, 186, 85, 0.48);
+  border-radius: 6px;
+  background: rgba(73, 51, 18, 0.88);
+  color: #ffe1a0;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.shop-item button:disabled {
+  cursor: not-allowed;
+  border-color: rgba(238, 247, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(238, 247, 255, 0.58);
+}
+
+.settings-list {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.setting-toggle,
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid rgba(238, 247, 255, 0.14);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.045);
+  color: #eef7ff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.setting-toggle {
+  pointer-events: auto;
+}
+
+.setting-toggle strong,
+.setting-row strong {
+  color: #f0cf81;
+}
+
+.scoreboard-table {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.scoreboard-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.4fr) 58px 70px 70px 72px 72px minmax(120px, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 9px;
+  border: 1px solid rgba(238, 247, 255, 0.13);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.045);
+  font-size: 12px;
+}
+
+.scoreboard-row.azure {
+  border-left: 3px solid var(--azure);
+}
+
+.scoreboard-row.crimson {
+  border-left: 3px solid var(--crimson);
+}
+
+.scoreboard-row strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-state {
+  color: #f0cf81;
+  font-weight: 900;
+}
+
+.row-items {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  min-height: 24px;
+}
+
+.row-items img {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+}
+
+.empty-items {
+  color: rgba(238, 247, 255, 0.42);
+}
+
+.death-overlay {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  bottom: 152px;
+  display: grid;
+  width: min(320px, calc(100vw - 40px));
+  transform: translateX(-50%);
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid rgba(255, 117, 97, 0.36);
+  border-radius: 8px;
+  background: rgba(24, 9, 9, 0.82);
+  text-align: center;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.36);
+}
+
+.death-overlay strong {
+  color: #ffb0a6;
+  text-transform: uppercase;
+}
+
+.death-overlay span {
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.death-overlay em {
+  color: rgba(255, 221, 198, 0.72);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.death-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.death-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff705c, #f0cf81);
 }
 
 .objective-panel {
@@ -551,6 +933,25 @@ button {
   color: rgba(245, 250, 255, 0.84);
 }
 
+.result-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: min(520px, calc(100vw - 40px));
+  margin-top: 6px;
+}
+
+.result-summary span {
+  padding: 6px 9px;
+  border: 1px solid rgba(238, 247, 255, 0.18);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f6fbff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 @media (max-width: 760px) {
   .objective-panel {
     display: none;
@@ -591,5 +992,25 @@ button {
   .recall-button {
     width: 54px;
     height: 54px;
+  }
+
+  .item-dock {
+    right: 12px;
+    bottom: 192px;
+  }
+
+  .shop-panel {
+    right: 12px;
+    top: 210px;
+    width: calc(100vw - 24px);
+  }
+
+  .scoreboard-row {
+    grid-template-columns: 1fr 48px 58px 58px;
+  }
+
+  .scoreboard-row span:nth-of-type(n + 4),
+  .scoreboard-row .row-items {
+    display: none;
   }
 }

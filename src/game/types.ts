@@ -16,7 +16,73 @@ export type SkillKey = keyof CooldownSnapshot;
 export interface SkillSnapshot {
   level: number;
   canCast: boolean;
+  canQueue: boolean;
+  queued: boolean;
   canUpgrade: boolean;
+}
+
+export interface ShopItemSnapshot {
+  id: string;
+  name: string;
+  cost: number;
+  stats: string;
+  activeLabel: string | null;
+  slot: number | null;
+  cooldown: number;
+  canUse: boolean;
+  owned: boolean;
+  affordable: boolean;
+  available: boolean;
+}
+
+export interface ItemSlotSnapshot {
+  id: string;
+  name: string;
+  activeLabel: string | null;
+  slot: number | null;
+  cooldown: number;
+  canUse: boolean;
+  owned: boolean;
+}
+
+export interface ScoreboardRowSnapshot {
+  id: string;
+  team: Team;
+  name: string;
+  level: number;
+  kills: number;
+  deaths: number;
+  gold: number;
+  lastHits: number;
+  items: string[];
+  alive: boolean;
+  respawnTimer: number;
+}
+
+export interface MatchSummarySnapshot {
+  duration: number;
+  result: GameResult;
+  player: {
+    kills: number;
+    deaths: number;
+    level: number;
+    lastHits: number;
+    gold: number;
+    items: string[];
+  };
+  enemy: {
+    kills: number;
+    deaths: number;
+    level: number;
+    lastHits: number;
+    gold: number;
+  };
+  objectives: {
+    azureTowerDestroyed: boolean;
+    crimsonTowerDestroyed: boolean;
+    azureCoreHp: number;
+    crimsonCoreHp: number;
+  };
 }
 
 export interface BuildingSnapshot {
@@ -36,6 +102,7 @@ export interface UnitSnapshot {
   maxHp: number;
   x: number;
   y: number;
+  effects: string[];
 }
 
 export interface GameSnapshot {
@@ -45,6 +112,8 @@ export interface GameSnapshot {
   score: {
     azureKills: number;
     crimsonKills: number;
+    azureHeroKills: number;
+    crimsonHeroKills: number;
   };
   player: {
     hp: number;
@@ -58,9 +127,12 @@ export interface GameSnapshot {
     xp: number;
     gold: number;
     lastHits: number;
+    deaths: number;
     skillPoints: number;
     recallProgress: number;
     recalling: boolean;
+    deathTimer: number;
+    respawnProgress: number;
     items: string[];
     shopAvailable: boolean;
     x: number;
@@ -69,9 +141,35 @@ export interface GameSnapshot {
   };
   cooldowns: CooldownSnapshot;
   skills: Record<SkillKey, SkillSnapshot>;
+  casting: {
+    locked: boolean;
+    activeSkill: SkillKey | null;
+    lockout: number;
+    queuedSkill: SkillKey | null;
+    queuedExpiresIn: number;
+  };
   lane: {
     waveNumber: number;
     nextSiegeWave: number;
+  };
+  shop: {
+    open: boolean;
+    available: boolean;
+    items: ShopItemSnapshot[];
+  };
+  itemSlots: ItemSlotSnapshot[];
+  settings: {
+    open: boolean;
+    quickCast: boolean;
+    showRangeIndicators: boolean;
+  };
+  controls: {
+    blocked: boolean;
+    reason: string;
+  };
+  scoreboard: {
+    open: boolean;
+    rows: ScoreboardRowSnapshot[];
   };
   enemyAi: {
     state: EnemyAiState;
@@ -79,9 +177,12 @@ export interface GameSnapshot {
     gold: number;
     xp: number;
     lastHits: number;
+    deaths: number;
   };
   aimPreview: {
     active: boolean;
+    skill: SkillKey | null;
+    mode: "quick" | "normal" | "hold" | "off";
     x: number;
     y: number;
   };
@@ -90,4 +191,5 @@ export interface GameSnapshot {
   activeVfx: number;
   nextWaveIn: number;
   message: string;
+  matchSummary: MatchSummarySnapshot | null;
 }

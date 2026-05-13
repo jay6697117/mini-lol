@@ -8,7 +8,7 @@ import {
   UNIT_ASSETS,
   VFX_ASSETS,
 } from "./assets";
-import type { BuildingSnapshot, EnemyAiState, GameResult, GameSnapshot, SkillKey, UnitKind, UnitSnapshot } from "./types";
+import type { BuildingSnapshot, EnemyAiState, GameResult, GameSnapshot, ItemSlotSnapshot, MatchSummarySnapshot, ScoreboardRowSnapshot, ShopItemSnapshot, SkillKey, UnitKind, UnitSnapshot } from "./types";
 import { updateHud } from "../ui/hud";
 
 interface Point {
@@ -44,6 +44,10 @@ interface Unit {
   lastDirection: Direction;
   slowTimer: number;
   slowMultiplier: number;
+  rootTimer: number;
+  markTimer: number;
+  hasteTimer: number;
+  hasteMultiplier: number;
   shieldTimer: number;
   recallTimer: number;
   recallDuration: number;
@@ -55,6 +59,7 @@ interface Unit {
   attackMovePoint?: Point;
   alive: boolean;
   respawnTimer: number;
+  respawnDuration: number;
 }
 
 interface Building {
@@ -80,6 +85,20 @@ interface VfxInstance {
   ttl: number;
 }
 
+interface SlowEffect {
+  multiplier: number;
+  duration: number;
+}
+
+interface DamageHitEffects {
+  slow?: SlowEffect;
+  knockback?: number;
+  root?: number;
+  mark?: number;
+  consumeMarkBonus?: number;
+  cooldownRefund?: Partial<Record<SkillKey, number>>;
+}
+
 interface PendingDamageEvent {
   id: string;
   triggerAt: number;
@@ -97,11 +116,12 @@ interface PendingDamageEvent {
   damage: number;
   buildingDamageMultiplier: number;
   cancelIfSourceDead: boolean;
-  slow?: {
-    multiplier: number;
-    duration: number;
-  };
+  slow?: SlowEffect;
   knockback?: number;
+  root?: number;
+  mark?: number;
+  consumeMarkBonus?: number;
+  cooldownRefund?: Partial<Record<SkillKey, number>>;
   vfx?: {
     key: string;
     x: number;
@@ -110,7 +130,10 @@ interface PendingDamageEvent {
   };
 }
 
-type KeyMap = Record<"up" | "down" | "left" | "right" | "a" | "b" | "q" | "w" | "e" | "r" | "space" | "f" | "ctrl", Phaser.Input.Keyboard.Key>;
+type KeyMap = Record<
+  "up" | "down" | "left" | "right" | "a" | "b" | "p" | "q" | "w" | "e" | "r" | "one" | "two" | "three" | "four" | "space" | "f" | "ctrl" | "tab" | "escape",
+  Phaser.Input.Keyboard.Key
+>;
 
 declare global {
   interface Window {
@@ -123,14 +146,30 @@ declare global {
       damagePlayerCore: (damage?: number) => void;
       levelPlayerTo6: () => void;
       buyItem: (itemId: keyof typeof ITEM_CATALOG) => boolean;
+      itemSlotAction: (itemId: keyof typeof ITEM_CATALOG) => boolean;
+      useItem: (itemId: keyof typeof ITEM_CATALOG) => boolean;
+      useItemSlot: (slot: number) => boolean;
+      toggleShop: () => boolean;
+      setShopOpen: (open: boolean) => boolean;
+      toggleSettings: () => boolean;
+      setSettingsOpen: (open: boolean) => boolean;
+      setQuickCast: (enabled: boolean) => boolean;
+      setRangeIndicators: (enabled: boolean) => boolean;
+      setScoreboardOpen: (open: boolean) => boolean;
+      resetPlayerCooldowns: () => void;
+      clearStatusEffects: () => void;
+      activateSkill: (skill: SkillKey) => boolean;
       castSkill: (skill: SkillKey) => boolean;
       upgradeSkill: (skill: SkillKey) => boolean;
       startRecall: () => boolean;
       injurePlayer: (hp: number, mana?: number) => void;
       injureEnemyHero: (hp: number) => void;
+      killPlayer: () => void;
+      setPlayerGold: (gold: number) => void;
       forceWave: () => number;
       setPlayerPosition: (x: number, y: number) => void;
       setEnemyHeroPosition: (x: number, y: number) => void;
+      setPointerWorld: (x: number, y: number) => void;
       spawnLastHitTarget: () => string;
       spawnEnemyLastHitTarget: () => string;
       triggerVictory: () => void;
@@ -143,6 +182,9 @@ const WORLD_WIDTH = 1600;
 const WORLD_HEIGHT = 900;
 const WAVE_INTERVAL = 25;
 const RECALL_DURATION = 4;
+const BASE_RESPAWN_SECONDS = 8;
+const RESPAWN_TIME_PER_DEATH = 2;
+const MAX_RESPAWN_SECONDS = 22;
 const BASE_REGEN_RADIUS = 390;
 const BASE_HEALTH_REGEN_PER_SECOND = 0.16;
 const BASE_MANA_REGEN_PER_SECOND = 0.2;
@@ -159,6 +201,7 @@ const BASIC_ATTACK_WINDUP = 0.28;
 const MINION_ATTACK_WINDUP = 0.34;
 const TOWER_ATTACK_WINDUP = 0.2;
 const TOWER_HERO_AGGRO_SECONDS = 3.2;
+const CAST_QUEUE_WINDOW = 0.75;
 const DEFAULT_SKILL_LEVELS: Record<SkillKey, number> = { q: 1, w: 1, e: 1, r: 0 };
 const SKILL_CONFIG = {
   q: {
@@ -168,6 +211,7 @@ const SKILL_CONFIG = {
     range: 205,
     halfAngleDeg: 36,
     hitDelay: 0.18,
+    markDuration: 3.2,
   },
   w: {
     mana: 55,
@@ -178,33 +222,45 @@ const SKILL_CONFIG = {
     hitDelay: 0.14,
     slowMultiplier: 0.68,
     slowDuration: 1.6,
+    markDuration: 2.2,
   },
   e: {
     mana: 50,
     cooldown: [0, 7.0, 6.4, 5.8, 5.2],
     damage: [0, 74, 104, 134, 164],
+    markBonus: [0, 40, 52, 64, 76],
     dashX: [0, 165, 182, 199, 216],
     dashY: [0, 112, 124, 136, 148],
     radius: 96,
+    markRefund: { q: 1.1, e: 0.75 },
   },
   r: {
     mana: 100,
     cooldown: [0, 28, 24],
     damage: [0, 235, 315],
+    markBonus: [0, 72, 104],
     range: 340,
     halfAngleDeg: 44,
     hitDelay: 0.24,
     knockback: 70,
+    rootDuration: 0.75,
+    markRefund: { q: 1.45, w: 0.8 },
   },
 } as const;
 const ITEM_CATALOG = {
-  bronze_sword: { cost: 350, attackDamage: 18, moveSpeed: 0, maxHp: 0, maxMana: 0, cooldownReduction: 0 },
-  plated_boots: { cost: 300, attackDamage: 0, moveSpeed: 35, maxHp: 0, maxMana: 0, cooldownReduction: 0 },
-  focus_crystal: { cost: 400, attackDamage: 0, moveSpeed: 0, maxHp: 0, maxMana: 180, cooldownReduction: 0 },
-  guard_shield: { cost: 450, attackDamage: 0, moveSpeed: 0, maxHp: 140, maxMana: 0, cooldownReduction: 0 },
-  haste_talisman: { cost: 700, attackDamage: 12, moveSpeed: 12, maxHp: 0, maxMana: 0, cooldownReduction: 0.08 },
-  siege_hammer: { cost: 900, attackDamage: 28, moveSpeed: 0, maxHp: 0, maxMana: 0, cooldownReduction: 0 },
+  bronze_sword: { name: "Bronze Sword", cost: 350, stats: "+18 Attack Damage", activeLabel: null, slot: null, activeKind: "none", activeCooldown: 0, attackDamage: 18, moveSpeed: 0, maxHp: 0, maxMana: 0, cooldownReduction: 0 },
+  plated_boots: { name: "Plated Boots", cost: 300, stats: "+35 Move Speed", activeLabel: null, slot: null, activeKind: "none", activeCooldown: 0, attackDamage: 0, moveSpeed: 35, maxHp: 0, maxMana: 0, cooldownReduction: 0 },
+  focus_crystal: { name: "Focus Crystal", cost: 400, stats: "+180 Mana", activeLabel: "Clarity", slot: 1, activeKind: "mana", activeCooldown: 32, attackDamage: 0, moveSpeed: 0, maxHp: 0, maxMana: 180, cooldownReduction: 0 },
+  guard_shield: { name: "Guard Shield", cost: 450, stats: "+140 Health", activeLabel: "Barrier", slot: 2, activeKind: "shield", activeCooldown: 42, attackDamage: 0, moveSpeed: 0, maxHp: 140, maxMana: 0, cooldownReduction: 0 },
+  haste_talisman: { name: "Haste Talisman", cost: 700, stats: "+12 Attack, +12 Move, +8% Haste", activeLabel: "Tempo", slot: 3, activeKind: "haste", activeCooldown: 38, attackDamage: 12, moveSpeed: 12, maxHp: 0, maxMana: 0, cooldownReduction: 0.08 },
+  siege_hammer: { name: "Siege Hammer", cost: 900, stats: "+28 Attack Damage", activeLabel: "Demolish", slot: 4, activeKind: "demolish", activeCooldown: 48, attackDamage: 28, moveSpeed: 0, maxHp: 0, maxMana: 0, cooldownReduction: 0 },
 } as const;
+type ItemId = keyof typeof ITEM_CATALOG;
+type ActiveItemKind = (typeof ITEM_CATALOG)[ItemId]["activeKind"];
+const ACTIVE_ITEM_IDS = Object.entries(ITEM_CATALOG)
+  .filter(([, item]) => item.activeKind !== "none")
+  .sort(([, a], [, b]) => (a.slot ?? 0) - (b.slot ?? 0))
+  .map(([id]) => id as ItemId);
 const GOLD_REWARDS = { melee: 21, caster: 14, siege: 60, hero: 300 } as const;
 const XP_REWARDS = { melee: 58, caster: 29, siege: 92, hero: 220 } as const;
 
@@ -240,14 +296,36 @@ export class MobaScene extends Phaser.Scene {
   private vfx: VfxInstance[] = [];
   private pendingDamageEvents: PendingDamageEvent[] = [];
   private playerCooldowns = { q: 0, w: 0, e: 0, r: 0 };
+  private itemCooldowns: Record<ItemId, number> = {
+    bronze_sword: 0,
+    plated_boots: 0,
+    focus_crystal: 0,
+    guard_shield: 0,
+    haste_talisman: 0,
+    siege_hammer: 0,
+  };
   private purchasedItems = new Set<string>();
   private towerHeroAggro: Partial<Record<Team, { targetId: string; ttl: number }>> = {};
   private pointerWorld: Point = { ...ENEMY_START };
+  private pendingSkill: SkillKey | null = null;
+  private queuedSkill: SkillKey | null = null;
+  private queuedSkillAim: Point | null = null;
+  private queuedSkillTimer = 0;
+  private activeCastSkill: SkillKey | null = null;
+  private settingsOpen = false;
+  private quickCast = true;
+  private showRangeIndicators = true;
   private enemyAiState: EnemyAiState = "Laning";
   private enemySkillCooldown = 1.8;
   private enemyGold = 0;
   private enemyXp = 0;
   private enemyLastHits = 0;
+  private playerHeroKills = 0;
+  private enemyHeroKills = 0;
+  private playerDeaths = 0;
+  private enemyDeaths = 0;
+  private shopOpen = false;
+  private scoreboardOpen = false;
   private elapsed = 0;
   private waveTimer = WAVE_INTERVAL;
   private waveNumber = 0;
@@ -325,9 +403,11 @@ export class MobaScene extends Phaser.Scene {
 
     this.updateCooldowns(dt);
     this.updateStatusEffects(dt);
+    this.updateQueuedSkill(dt);
     this.updateTowerAggro(dt);
     this.updateBaseRecovery(dt);
     this.updateRecallChannels(dt);
+    this.updateShopState();
     this.updatePlayerInput(dt);
     this.updateEnemyHeroAI(dt);
     this.updateUnitAI(dt);
@@ -467,21 +547,47 @@ export class MobaScene extends Phaser.Scene {
       right: Phaser.Input.Keyboard.KeyCodes.RIGHT,
       a: Phaser.Input.Keyboard.KeyCodes.A,
       b: Phaser.Input.Keyboard.KeyCodes.B,
+      p: Phaser.Input.Keyboard.KeyCodes.P,
       q: Phaser.Input.Keyboard.KeyCodes.Q,
       w: Phaser.Input.Keyboard.KeyCodes.W,
       e: Phaser.Input.Keyboard.KeyCodes.E,
       r: Phaser.Input.Keyboard.KeyCodes.R,
+      one: Phaser.Input.Keyboard.KeyCodes.ONE,
+      two: Phaser.Input.Keyboard.KeyCodes.TWO,
+      three: Phaser.Input.Keyboard.KeyCodes.THREE,
+      four: Phaser.Input.Keyboard.KeyCodes.FOUR,
       space: Phaser.Input.Keyboard.KeyCodes.SPACE,
       f: Phaser.Input.Keyboard.KeyCodes.F,
       ctrl: Phaser.Input.Keyboard.KeyCodes.CTRL,
+      tab: Phaser.Input.Keyboard.KeyCodes.TAB,
+      escape: Phaser.Input.Keyboard.KeyCodes.ESC,
     }) as KeyMap;
 
     keyboard.on("keydown", (event: KeyboardEvent) => {
+      if (event.key === "Tab") {
+        event.preventDefault();
+        this.scoreboardOpen = true;
+        this.syncViews();
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        this.handleEscapeKey();
+        this.syncViews();
+        return;
+      }
       if (!event.ctrlKey) return;
       const skill = event.key.toLowerCase();
       if (skill !== "q" && skill !== "w" && skill !== "e" && skill !== "r") return;
       event.preventDefault();
       this.tryUpgradeSkill(skill);
+    });
+
+    keyboard.on("keyup", (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      event.preventDefault();
+      this.scoreboardOpen = false;
+      this.syncViews();
     });
 
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
@@ -492,6 +598,13 @@ export class MobaScene extends Phaser.Scene {
       const player = this.getPlayer();
       const worldPoint = this.toWorldPoint(pointer);
       this.pointerWorld = worldPoint;
+      if (this.pendingSkill) {
+        if (pointer.leftButtonDown()) this.castPendingSkill(worldPoint);
+        else this.cancelPendingSkill();
+        this.syncViews();
+        return;
+      }
+      if (!player.alive || this.isModalOpen()) return;
       const targetUnit = this.pickEnemyUnit(worldPoint, player.team);
       if (targetUnit) {
         this.commandAttackUnit(player, targetUnit);
@@ -541,6 +654,84 @@ export class MobaScene extends Phaser.Scene {
         this.syncViews();
         return purchased;
       },
+      itemSlotAction: (itemId) => {
+        const acted = this.itemSlotAction(itemId);
+        this.syncViews();
+        return acted;
+      },
+      useItem: (itemId) => {
+        const used = this.useItem(itemId);
+        this.syncViews();
+        return used;
+      },
+      useItemSlot: (slot) => {
+        const used = this.useItemSlot(slot);
+        this.syncViews();
+        return used;
+      },
+      toggleShop: () => {
+        const open = this.toggleShop();
+        this.syncViews();
+        return open;
+      },
+      setShopOpen: (open) => {
+        const changed = this.setShopOpen(open);
+        this.syncViews();
+        return changed;
+      },
+      toggleSettings: () => {
+        const open = this.toggleSettings();
+        this.syncViews();
+        return open;
+      },
+      setSettingsOpen: (open) => {
+        const changed = this.setSettingsOpen(open);
+        this.syncViews();
+        return changed;
+      },
+      setQuickCast: (enabled) => {
+        const current = this.setQuickCast(enabled);
+        this.syncViews();
+        return current;
+      },
+      setRangeIndicators: (enabled) => {
+        const current = this.setRangeIndicators(enabled);
+        this.syncViews();
+        return current;
+      },
+      setScoreboardOpen: (open) => {
+        this.scoreboardOpen = open;
+        this.syncViews();
+        return this.scoreboardOpen;
+      },
+      resetPlayerCooldowns: () => {
+        const player = this.getPlayer();
+        this.playerCooldowns = { q: 0, w: 0, e: 0, r: 0 };
+        if (player.action === "cast") {
+          player.action = "idle";
+          player.actionTimer = 0;
+        }
+        this.activeCastSkill = null;
+        this.pendingSkill = null;
+        this.clearQueuedSkill();
+        this.syncViews();
+      },
+      clearStatusEffects: () => {
+        for (const unit of this.units) {
+          unit.slowTimer = 0;
+          unit.slowMultiplier = 1;
+          unit.rootTimer = 0;
+          unit.markTimer = 0;
+          unit.hasteTimer = 0;
+          unit.hasteMultiplier = 1;
+        }
+        this.syncViews();
+      },
+      activateSkill: (skill) => {
+        const activated = this.activatePlayerSkill(skill);
+        this.syncViews();
+        return activated;
+      },
       castSkill: (skill) => {
         const cast = this.castPlayerSkill(skill);
         this.syncViews();
@@ -568,6 +759,16 @@ export class MobaScene extends Phaser.Scene {
         enemy.hp = clamp(hp, 1, enemy.maxHp);
         this.syncViews();
       },
+      killPlayer: () => {
+        const player = this.getPlayer();
+        this.damageUnit(player, player.hp + player.shield + 999, "crimson", "enemy_hero");
+        this.syncViews();
+      },
+      setPlayerGold: (gold) => {
+        const player = this.getPlayer();
+        player.gold = Math.max(0, Math.floor(gold));
+        this.syncViews();
+      },
       forceWave: () => {
         this.spawnWave();
         this.syncViews();
@@ -586,6 +787,13 @@ export class MobaScene extends Phaser.Scene {
         enemy.x = clamp(x, 80, WORLD_WIDTH - 80);
         enemy.y = clamp(y, 90, WORLD_HEIGHT - 90);
         enemy.targetPoint = undefined;
+        this.syncViews();
+      },
+      setPointerWorld: (x, y) => {
+        this.pointerWorld = {
+          x: clamp(x, 80, WORLD_WIDTH - 80),
+          y: clamp(y, 90, WORLD_HEIGHT - 90),
+        };
         this.syncViews();
       },
       spawnLastHitTarget: () => {
@@ -626,6 +834,9 @@ export class MobaScene extends Phaser.Scene {
     for (const key of Object.keys(this.playerCooldowns) as Array<keyof typeof this.playerCooldowns>) {
       this.playerCooldowns[key] = Math.max(0, this.playerCooldowns[key] - dt);
     }
+    for (const itemId of Object.keys(this.itemCooldowns) as ItemId[]) {
+      this.itemCooldowns[itemId] = Math.max(0, this.itemCooldowns[itemId] - dt);
+    }
   }
 
   private updateStatusEffects(dt: number) {
@@ -633,10 +844,34 @@ export class MobaScene extends Phaser.Scene {
       unit.attackTimer = Math.max(0, unit.attackTimer - dt);
       unit.actionTimer = Math.max(0, unit.actionTimer - dt);
       unit.slowTimer = Math.max(0, unit.slowTimer - dt);
+      unit.rootTimer = Math.max(0, unit.rootTimer - dt);
+      unit.markTimer = Math.max(0, unit.markTimer - dt);
+      unit.hasteTimer = Math.max(0, unit.hasteTimer - dt);
       unit.shieldTimer = Math.max(0, unit.shieldTimer - dt);
       if (unit.slowTimer <= 0) unit.slowMultiplier = 1;
+      if (unit.hasteTimer <= 0) unit.hasteMultiplier = 1;
       if (unit.shieldTimer <= 0) unit.shield = 0;
+      if (unit.id === "player" && unit.actionTimer <= 0) this.activeCastSkill = null;
     }
+  }
+
+  private updateQueuedSkill(dt: number) {
+    if (!this.queuedSkill) return;
+    const player = this.getPlayer();
+    this.queuedSkillTimer = Math.max(0, this.queuedSkillTimer - dt);
+    if (this.result !== "playing" || !player.alive || this.isModalOpen()) {
+      this.clearQueuedSkill();
+      return;
+    }
+    if (this.queuedSkillTimer <= 0) {
+      this.clearQueuedSkill("Cast buffer expired");
+      return;
+    }
+    if (this.isPlayerCastingLocked(player)) return;
+    const skill = this.queuedSkill;
+    const aimPoint = this.queuedSkillAim ?? this.pointerWorld;
+    this.clearQueuedSkill();
+    this.castPlayerSkill(skill, aimPoint, false);
   }
 
   private updateTowerAggro(dt: number) {
@@ -673,14 +908,131 @@ export class MobaScene extends Phaser.Scene {
       unit.mana = unit.maxMana;
       unit.shield = 0;
       unit.shieldTimer = 0;
+      unit.slowTimer = 0;
+      unit.slowMultiplier = 1;
+      unit.rootTimer = 0;
+      unit.markTimer = 0;
       this.clearUnitCommands(unit);
       this.spawnVfx(unit.team === "azure" ? "vfx-astra-w_shield_pulse" : "vfx-crimson-q_spear_thrust", unit.x, unit.y - 10, 1);
       this.message = unit.id === "player" ? "Recall complete" : "Crimson recalled";
     }
   }
 
+  private updateShopState() {
+    if (!this.shopOpen) return;
+    const player = this.getPlayer();
+    if (this.result !== "playing" || !player.alive || !this.isPlayerInShop()) {
+      this.shopOpen = false;
+      if (this.result === "playing" && player.alive) this.message = "Shop closed";
+    }
+  }
+
+  private isModalOpen() {
+    return this.shopOpen || this.scoreboardOpen || this.settingsOpen;
+  }
+
+  private isPlayerCastingLocked(player = this.getPlayer()) {
+    return player.action === "cast" && player.actionTimer > 0;
+  }
+
+  private clearQueuedSkill(message?: string) {
+    this.queuedSkill = null;
+    this.queuedSkillAim = null;
+    this.queuedSkillTimer = 0;
+    if (message) this.message = message;
+  }
+
+  private inputBlockedReason(player = this.getPlayer()) {
+    if (this.result !== "playing") return "Match ended";
+    if (!player.alive) return "Respawning";
+    if (this.settingsOpen) return "Settings open";
+    if (this.shopOpen) return "Shop open";
+    if (this.scoreboardOpen) return "Scoreboard open";
+    if (this.isPlayerCastingLocked(player)) return "Casting";
+    return "";
+  }
+
+  private handleEscapeKey() {
+    if (this.queuedSkill) {
+      this.clearQueuedSkill("Cast buffer cancelled");
+      return;
+    }
+    if (this.pendingSkill) {
+      this.cancelPendingSkill();
+      return;
+    }
+    if (this.shopOpen) {
+      this.setShopOpen(false);
+      return;
+    }
+    if (this.settingsOpen) {
+      this.setSettingsOpen(false);
+      return;
+    }
+    this.setSettingsOpen(true);
+  }
+
+  private toggleShop() {
+    return this.setShopOpen(!this.shopOpen);
+  }
+
+  private setShopOpen(open: boolean) {
+    const player = this.getPlayer();
+    if (!open) {
+      this.shopOpen = false;
+      this.message = "Shop closed";
+      return true;
+    }
+    if (!player.alive) {
+      this.shopOpen = false;
+      this.message = "Cannot shop while dead";
+      return false;
+    }
+    if (!this.isPlayerInShop()) {
+      this.shopOpen = false;
+      this.message = "Shop is only available in base";
+      return false;
+    }
+    this.shopOpen = true;
+    this.settingsOpen = false;
+    this.cancelPendingSkill();
+    this.clearQueuedSkill();
+    this.message = "Shop opened";
+    return true;
+  }
+
+  private toggleSettings() {
+    return this.setSettingsOpen(!this.settingsOpen);
+  }
+
+  private setSettingsOpen(open: boolean) {
+    this.settingsOpen = open;
+    if (open) {
+      this.shopOpen = false;
+      this.cancelPendingSkill();
+      this.clearQueuedSkill();
+    }
+    this.message = open ? "Settings opened" : "Settings closed";
+    return this.settingsOpen;
+  }
+
+  private setQuickCast(enabled: boolean) {
+    this.quickCast = enabled;
+    if (enabled) this.cancelPendingSkill();
+    this.clearQueuedSkill();
+    this.message = enabled ? "Quick Cast enabled" : "Normal Cast enabled";
+    return this.quickCast;
+  }
+
+  private setRangeIndicators(enabled: boolean) {
+    this.showRangeIndicators = enabled;
+    this.message = enabled ? "Range indicators enabled" : "Range indicators hidden";
+    return this.showRangeIndicators;
+  }
+
   private startRecall(unit: Unit) {
     if (!unit.alive || unit.kind !== "hero") return false;
+    if (unit.id === "player" && !this.canStartPlayerAction(unit)) return false;
     if (unit.recallTimer > 0) return false;
     const nearestEnemy = this.findNearestEnemyUnit(unit, 260);
     if (nearestEnemy) {
@@ -688,6 +1040,7 @@ export class MobaScene extends Phaser.Scene {
       return false;
     }
     this.clearUnitCommands(unit);
+    if (unit.id === "player") this.clearQueuedSkill();
     unit.recallTimer = unit.recallDuration;
     unit.action = "cast";
     unit.actionTimer = 0.4;
@@ -804,20 +1157,36 @@ export class MobaScene extends Phaser.Scene {
 
   private updatePlayerInput(dt: number) {
     const player = this.getPlayer();
-    if (!player.alive || !this.keys) return;
+    if (!this.keys) return;
+    if (!player.alive) {
+      this.cancelPendingSkill();
+      this.clearQueuedSkill();
+      return;
+    }
+
+    if (!this.settingsOpen && Phaser.Input.Keyboard.JustDown(this.keys.p)) this.toggleShop();
+    if (this.isModalOpen()) {
+      player.action = player.actionTimer > 0 ? player.action : "idle";
+      return;
+    }
 
     const axisX = Number(this.keys.right.isDown) - Number(this.keys.left.isDown);
     const axisY = Number(this.keys.down.isDown) - Number(this.keys.up.isDown);
     const ctrlDown = this.keys.ctrl.isDown;
-    if (!ctrlDown && Phaser.Input.Keyboard.JustDown(this.keys.q)) this.castPlayerSkill("q");
-    if (!ctrlDown && Phaser.Input.Keyboard.JustDown(this.keys.w)) this.castPlayerSkill("w");
-    if (!ctrlDown && Phaser.Input.Keyboard.JustDown(this.keys.e)) this.castPlayerSkill("e");
-    if (!ctrlDown && Phaser.Input.Keyboard.JustDown(this.keys.r)) this.castPlayerSkill("r");
+    if (!ctrlDown && Phaser.Input.Keyboard.JustDown(this.keys.q)) this.activatePlayerSkill("q");
+    if (!ctrlDown && Phaser.Input.Keyboard.JustDown(this.keys.w)) this.activatePlayerSkill("w");
+    if (!ctrlDown && Phaser.Input.Keyboard.JustDown(this.keys.e)) this.activatePlayerSkill("e");
+    if (!ctrlDown && Phaser.Input.Keyboard.JustDown(this.keys.r)) this.activatePlayerSkill("r");
+    if (Phaser.Input.Keyboard.JustDown(this.keys.one)) this.useItemSlot(1);
+    if (Phaser.Input.Keyboard.JustDown(this.keys.two)) this.useItemSlot(2);
+    if (Phaser.Input.Keyboard.JustDown(this.keys.three)) this.useItemSlot(3);
+    if (Phaser.Input.Keyboard.JustDown(this.keys.four)) this.useItemSlot(4);
     if (Phaser.Input.Keyboard.JustDown(this.keys.b)) this.startRecall(player);
     if (Phaser.Input.Keyboard.JustDown(this.keys.space)) this.tryUnitAttack(player, true);
     if (Phaser.Input.Keyboard.JustDown(this.keys.f)) this.toggleFullscreen();
 
     if (player.recallTimer > 0 && (axisX !== 0 || axisY !== 0)) this.cancelRecall(player, "Recall interrupted");
+    if (this.pendingSkill && (axisX !== 0 || axisY !== 0)) this.cancelPendingSkill();
 
     if (player.action === "cast" && player.actionTimer > 0) return;
 
@@ -1028,10 +1397,14 @@ export class MobaScene extends Phaser.Scene {
       if (event.kind === "unit" && event.targetId) {
         const target = this.units.find((unit) => unit.id === event.targetId);
         if (target?.alive) {
-          const beforeAlive = target.alive;
-          this.damageUnit(target, event.damage, event.sourceTeam, event.sourceId);
-          if (event.slow && target.alive) this.applySlow(target, event.slow.multiplier, event.slow.duration);
-          if (beforeAlive && !target.alive) this.grantEnemyLastHitEconomy(target, event.sourceId);
+          this.applyAbilityDamageToUnit(target, event.damage, event.sourceTeam, event.sourceId, {
+            slow: event.slow,
+            root: event.root,
+            mark: event.mark,
+            knockback: event.knockback,
+            consumeMarkBonus: event.consumeMarkBonus,
+            cooldownRefund: event.cooldownRefund,
+          });
         }
       } else if (event.kind === "building" && event.buildingId) {
         const building = this.buildings.find((candidate) => candidate.id === event.buildingId);
@@ -1043,8 +1416,14 @@ export class MobaScene extends Phaser.Scene {
           event.radius,
           event.sourceTeam,
           event.sourceId,
-          event.slow,
-          event.knockback,
+          {
+            slow: event.slow,
+            root: event.root,
+            mark: event.mark,
+            knockback: event.knockback,
+            consumeMarkBonus: event.consumeMarkBonus,
+            cooldownRefund: event.cooldownRefund,
+          },
           event.buildingDamageMultiplier,
         );
       } else if (event.kind === "cone" && event.origin && event.direction && event.range && event.halfAngleDeg) {
@@ -1056,7 +1435,14 @@ export class MobaScene extends Phaser.Scene {
           event.damage,
           event.sourceTeam,
           event.sourceId,
-          event.knockback,
+          {
+            slow: event.slow,
+            root: event.root,
+            mark: event.mark,
+            knockback: event.knockback,
+            consumeMarkBonus: event.consumeMarkBonus,
+            cooldownRefund: event.cooldownRefund,
+          },
           event.buildingDamageMultiplier,
         );
       }
@@ -1072,35 +1458,111 @@ export class MobaScene extends Phaser.Scene {
     return true;
   }
 
-  private castPlayerSkill(skill: SkillKey) {
+  private activatePlayerSkill(skill: SkillKey) {
     const player = this.getPlayer();
-    if (!player.alive) return false;
-    if (this.playerCooldowns[skill] > 0) {
-      this.message = "Skill cooling down";
+    if (this.isPlayerCastingLocked(player)) return this.queuePlayerSkill(skill);
+    if (this.quickCast) return this.castPlayerSkill(skill);
+    if (!this.canStartPlayerAction(player)) return false;
+    if (!this.canAttemptSkill(player, skill)) return false;
+    this.pendingSkill = skill;
+    this.clearPlayerCommands(player);
+    this.message = `${skill.toUpperCase()} aiming`;
+    return true;
+  }
+
+  private castPendingSkill(aimPoint = this.pointerWorld) {
+    if (!this.pendingSkill) return false;
+    const skill = this.pendingSkill;
+    this.pendingSkill = null;
+    return this.castPlayerSkill(skill, aimPoint);
+  }
+
+  private cancelPendingSkill() {
+    if (!this.pendingSkill) return;
+    this.pendingSkill = null;
+    this.message = "Cast cancelled";
+  }
+
+  private canStartPlayerAction(player: Unit) {
+    if (this.result !== "playing") return false;
+    if (!player.alive) {
+      this.message = "Respawning";
       return false;
     }
-    if (skill === "r" && player.level < 6) {
-      this.message = "Ultimate locked";
+    if (this.isModalOpen()) {
+      this.message = this.inputBlockedReason(player);
       return false;
+    }
+    if (this.isPlayerCastingLocked(player)) {
+      this.message = "Casting";
+      return false;
+    }
+    return true;
+  }
+
+  private skillAttemptFailure(player: Unit, skill: SkillKey) {
+    if (this.playerCooldowns[skill] > 0) {
+      return "Skill cooling down";
+    }
+    if (skill === "r" && player.level < 6) {
+      return "Ultimate locked";
     }
     const level = this.skillLevel(player, skill);
     if (level <= 0) {
-      this.message = "Skill not learned";
-      return false;
+      return "Skill not learned";
     }
     const config = SKILL_CONFIG[skill];
     if (player.mana < config.mana) {
-      this.message = "Not enough mana";
-      return false;
+      return "Not enough mana";
     }
+    if (skill === "e" && player.rootTimer > 0) {
+      return "Rooted";
+    }
+    return "";
+  }
 
-    const dir = this.getPlayerAimDirection(player);
+  private canAttemptSkillSilently(player: Unit, skill: SkillKey) {
+    return !this.skillAttemptFailure(player, skill);
+  }
+
+  private canAttemptSkill(player: Unit, skill: SkillKey) {
+    const failure = this.skillAttemptFailure(player, skill);
+    if (!failure) return true;
+    this.message = failure;
+    return false;
+  }
+
+  private queuePlayerSkill(skill: SkillKey, aimPoint = this.pointerWorld) {
+    const player = this.getPlayer();
+    if (!player.alive || this.result !== "playing" || this.isModalOpen()) return this.canStartPlayerAction(player);
+    if (!this.canAttemptSkill(player, skill)) return false;
+    this.pendingSkill = null;
+    this.queuedSkill = skill;
+    this.queuedSkillAim = { ...aimPoint };
+    this.queuedSkillTimer = CAST_QUEUE_WINDOW;
+    this.clearPlayerCommands(player);
+    this.message = `${skill.toUpperCase()} buffered`;
+    return true;
+  }
+
+  private castPlayerSkill(skill: SkillKey, aimPoint = this.pointerWorld, allowQueue = true) {
+    const player = this.getPlayer();
+    if (this.isPlayerCastingLocked(player) && allowQueue) return this.queuePlayerSkill(skill, aimPoint);
+    if (!this.canStartPlayerAction(player)) return false;
+    if (!this.canAttemptSkill(player, skill)) return false;
+    const level = this.skillLevel(player, skill);
+    const config = SKILL_CONFIG[skill];
+
+    const dir = this.getPlayerAimDirection(player, aimPoint);
+    this.pendingSkill = null;
+    this.clearQueuedSkill();
     this.cancelRecall(player, "Recall interrupted");
     player.lastDirection = directionFromVector(dir.x, dir.y);
     player.mana -= config.mana;
     this.playerCooldowns[skill] = this.skillCooldown(player, skill);
     player.action = "cast";
     player.actionTimer = skill === "e" ? 0.24 : 0.42;
+    this.activeCastSkill = skill;
     this.clearPlayerCommands(player);
 
     if (skill === "q") {
@@ -1118,6 +1580,7 @@ export class MobaScene extends Phaser.Scene {
         damage: SKILL_CONFIG.q.damage[level],
         buildingDamageMultiplier: 0.45,
         cancelIfSourceDead: true,
+        mark: SKILL_CONFIG.q.markDuration,
         vfx: {
           key: "vfx-astra-q_slash_arc",
           x: origin.x + dir.x * 78,
@@ -1144,6 +1607,7 @@ export class MobaScene extends Phaser.Scene {
           multiplier: SKILL_CONFIG.w.slowMultiplier,
           duration: SKILL_CONFIG.w.slowDuration,
         },
+        mark: SKILL_CONFIG.w.markDuration,
         vfx: {
           key: "vfx-astra-w_shield_pulse",
           x: player.x,
@@ -1167,6 +1631,8 @@ export class MobaScene extends Phaser.Scene {
         damage: SKILL_CONFIG.e.damage[level],
         buildingDamageMultiplier: 0,
         cancelIfSourceDead: true,
+        consumeMarkBonus: SKILL_CONFIG.e.markBonus[level],
+        cooldownRefund: SKILL_CONFIG.e.markRefund,
       });
       this.message = "Astra E dash";
     } else {
@@ -1185,6 +1651,9 @@ export class MobaScene extends Phaser.Scene {
         buildingDamageMultiplier: 0.35,
         cancelIfSourceDead: true,
         knockback: SKILL_CONFIG.r.knockback,
+        root: SKILL_CONFIG.r.rootDuration,
+        consumeMarkBonus: SKILL_CONFIG.r.markBonus[level],
+        cooldownRefund: SKILL_CONFIG.r.markRefund,
         vfx: {
           key: "vfx-astra-r_shockwave",
           x: origin.x + dir.x * 104,
@@ -1236,15 +1705,23 @@ export class MobaScene extends Phaser.Scene {
 
   private skillSnapshot(player: Unit, skill: SkillKey) {
     const level = this.skillLevel(player, skill);
+    const canAttempt = this.canAttemptSkillSilently(player, skill);
+    const locked = this.isPlayerCastingLocked(player);
     return {
       level,
-      canCast: player.alive && level > 0 && player.mana >= SKILL_CONFIG[skill].mana && this.playerCooldowns[skill] <= 0 && (skill !== "r" || player.level >= 6),
+      canCast:
+        this.result === "playing" &&
+        player.alive &&
+        !this.isModalOpen() &&
+        !locked &&
+        canAttempt,
+      canQueue: this.result === "playing" && player.alive && !this.isModalOpen() && locked && canAttempt,
+      queued: this.queuedSkill === skill,
       canUpgrade: player.skillPoints > 0 && level < this.maxSkillLevel(skill) && (skill !== "r" || player.level >= 6),
     };
   }
 
-  private getPlayerAimDirection(player: Unit) {
-    const aim = this.pointerWorld;
+  private getPlayerAimDirection(player: Unit, aim = this.pointerWorld) {
     const dx = aim.x - player.x;
     const dy = aim.y - player.y;
     if (Math.hypot(dx, dy) > 18) return normalize(dx, dy);
@@ -1253,6 +1730,7 @@ export class MobaScene extends Phaser.Scene {
 
   private tryUnitAttack(attacker: Unit, manual: boolean, forcedTarget?: Unit) {
     if (!attacker.alive || attacker.attackTimer > 0) return false;
+    if (attacker.kind === "hero" && attacker.action === "cast" && attacker.actionTimer > 0) return false;
     this.cancelRecall(attacker, "Recall interrupted");
     const target = forcedTarget ?? this.findNearestEnemyUnit(attacker, attacker.attackRange + 16);
     if (target) {
@@ -1328,9 +1806,52 @@ export class MobaScene extends Phaser.Scene {
     this.towerHeroAggro[target.team] = { targetId: source.id, ttl: TOWER_HERO_AGGRO_SECONDS };
   }
 
+  private applyAbilityDamageToUnit(target: Unit, baseDamage: number, sourceTeam: Team, sourceId?: string, effects: DamageHitEffects = {}) {
+    const marked = target.markTimer > 0 && (effects.consumeMarkBonus ?? 0) > 0;
+    const damage = baseDamage + (marked ? effects.consumeMarkBonus ?? 0 : 0);
+    const beforeAlive = target.alive;
+    this.damageUnit(target, damage, sourceTeam, sourceId);
+    if (beforeAlive && !target.alive) this.grantEnemyLastHitEconomy(target, sourceId);
+    if (!target.alive) return;
+    if (marked) {
+      target.markTimer = 0;
+      if (sourceId === "player") {
+        this.applyCooldownRefund(effects.cooldownRefund);
+        this.spawnVfx("vfx-astra-w_shield_pulse", target.x, target.y - 6, 0.68);
+        this.message = "Mark consumed";
+      }
+    }
+    if (effects.mark) this.applyMark(target, effects.mark);
+    if (effects.slow) this.applySlow(target, effects.slow.multiplier, effects.slow.duration);
+    if (effects.root) this.applyRoot(target, effects.root);
+    if (effects.knockback && effects.knockback > 0) this.knockbackUnit(target, this.getEffectOrigin(sourceId, target), effects.knockback);
+  }
+
+  private getEffectOrigin(sourceId: string | undefined, fallback: Point) {
+    const source = sourceId ? this.units.find((unit) => unit.id === sourceId) : undefined;
+    return source ?? fallback;
+  }
+
+  private applyCooldownRefund(refund?: Partial<Record<SkillKey, number>>) {
+    if (!refund) return;
+    for (const [skill, seconds] of Object.entries(refund) as Array<[SkillKey, number]>) {
+      this.playerCooldowns[skill] = Math.max(0, this.playerCooldowns[skill] - seconds);
+    }
+  }
+
   private applySlow(unit: Unit, multiplier: number, duration: number) {
     unit.slowMultiplier = Math.min(unit.slowMultiplier, multiplier);
     unit.slowTimer = Math.max(unit.slowTimer, duration);
+  }
+
+  private applyRoot(unit: Unit, duration: number) {
+    unit.rootTimer = Math.max(unit.rootTimer, duration);
+    unit.targetPoint = undefined;
+    unit.attackMovePoint = undefined;
+  }
+
+  private applyMark(unit: Unit, duration: number) {
+    unit.markTimer = Math.max(unit.markTimer, duration);
   }
 
   private knockbackUnit(unit: Unit, origin: Point, distancePixels: number) {
@@ -1346,14 +1867,13 @@ export class MobaScene extends Phaser.Scene {
     radius: number,
     sourceTeam: Team,
     sourceId?: string,
-    slow?: PendingDamageEvent["slow"],
-    knockback?: number,
+    effects: DamageHitEffects = {},
     buildingDamageMultiplier = 0.45,
   ) {
+    const { knockback, ...damageEffects } = effects;
     for (const unit of this.units) {
       if (!unit.alive || unit.team === sourceTeam || distance(unit, center) > radius + unit.radius) continue;
-      this.damageUnit(unit, damage, sourceTeam, sourceId);
-      if (slow && unit.alive) this.applySlow(unit, slow.multiplier, slow.duration);
+      this.applyAbilityDamageToUnit(unit, damage, sourceTeam, sourceId, damageEffects);
       if (knockback && unit.alive) this.knockbackUnit(unit, center, knockback);
     }
     for (const building of this.buildings) {
@@ -1371,11 +1891,12 @@ export class MobaScene extends Phaser.Scene {
     damage: number,
     sourceTeam: Team,
     sourceId?: string,
-    knockback = 0,
+    effects: DamageHitEffects = {},
     buildingDamageMultiplier = 0.45,
   ) {
     const dir = normalize(direction.x, direction.y);
     const maxWidthAtEdge = Math.tan(Phaser.Math.DegToRad(halfAngleDeg)) * range;
+    const { knockback, ...damageEffects } = effects;
     for (const unit of this.units) {
       if (!unit.alive || unit.team === sourceTeam) continue;
       const rel = { x: unit.x - origin.x, y: unit.y - origin.y };
@@ -1384,8 +1905,8 @@ export class MobaScene extends Phaser.Scene {
       const perpendicular = Math.abs(rel.x * dir.y - rel.y * dir.x);
       const allowedWidth = Math.max(42, (forward / range) * maxWidthAtEdge) + unit.radius;
       if (perpendicular > allowedWidth) continue;
-      this.damageUnit(unit, damage, sourceTeam, sourceId);
-      if (knockback > 0 && unit.alive) this.knockbackUnit(unit, origin, knockback);
+      this.applyAbilityDamageToUnit(unit, damage, sourceTeam, sourceId, damageEffects);
+      if (knockback && unit.alive) this.knockbackUnit(unit, origin, knockback);
     }
     for (const building of this.buildings) {
       if (building.team === sourceTeam || building.hp <= 0 || !this.isBuildingVulnerable(building)) continue;
@@ -1432,6 +1953,7 @@ export class MobaScene extends Phaser.Scene {
   private handleUnitDeath(target: Unit, sourceTeam: Team, sourceId?: string) {
     if (sourceTeam === "azure") this.azureKills += 1;
     if (sourceTeam === "crimson") this.crimsonKills += 1;
+    if (target.kind === "hero") this.handleHeroDeath(target, sourceTeam);
     const player = this.getPlayer();
     if (target.team !== player.team && distance(player, target) <= PLAYER_XP_SHARE_RANGE) {
       this.grantPlayerExperience(target);
@@ -1439,6 +1961,45 @@ export class MobaScene extends Phaser.Scene {
     if (sourceId === "player" && target.team !== player.team) {
       this.grantPlayerLastHitGold(target);
     }
+  }
+
+  private handleHeroDeath(target: Unit, sourceTeam: Team) {
+    this.cancelRecall(target, target.id === "player" ? "Recall interrupted" : undefined);
+    this.clearUnitCommands(target);
+    target.attackTimer = 0;
+    target.shield = 0;
+    target.shieldTimer = 0;
+    target.slowTimer = 0;
+    target.slowMultiplier = 1;
+    target.rootTimer = 0;
+    target.markTimer = 0;
+    target.hasteTimer = 0;
+    target.hasteMultiplier = 1;
+    if (target.id === "player") {
+      this.playerDeaths += 1;
+      if (sourceTeam === "crimson") this.enemyHeroKills += 1;
+      this.shopOpen = false;
+      this.settingsOpen = false;
+      this.cancelPendingSkill();
+      this.clearQueuedSkill();
+      this.activeCastSkill = null;
+      target.respawnDuration = this.respawnDurationFor(this.playerDeaths);
+      target.respawnTimer = target.respawnDuration;
+      this.message = `Astra down · ${Math.ceil(target.respawnTimer)}s`;
+      return;
+    }
+    if (target.id === "enemy_hero") {
+      this.enemyDeaths += 1;
+      if (sourceTeam === "azure") this.playerHeroKills += 1;
+      target.respawnDuration = this.respawnDurationFor(this.enemyDeaths);
+      target.respawnTimer = target.respawnDuration;
+      this.message = `Crimson down · ${Math.ceil(target.respawnTimer)}s`;
+    }
+  }
+
+  private respawnDurationFor(deaths: number) {
+    const timeScaling = Math.floor(this.elapsed / 180);
+    return clamp(BASE_RESPAWN_SECONDS + Math.max(0, deaths - 1) * RESPAWN_TIME_PER_DEATH + timeScaling, BASE_RESPAWN_SECONDS, MAX_RESPAWN_SECONDS);
   }
 
   private resolveDeaths(dt: number) {
@@ -1455,6 +2016,10 @@ export class MobaScene extends Phaser.Scene {
         unit.shieldTimer = 0;
         unit.slowTimer = 0;
         unit.slowMultiplier = 1;
+        unit.rootTimer = 0;
+        unit.markTimer = 0;
+        unit.hasteTimer = 0;
+        unit.hasteMultiplier = 1;
         unit.alive = true;
         unit.action = "idle";
         unit.actionTimer = 0;
@@ -1463,7 +2028,8 @@ export class MobaScene extends Phaser.Scene {
         unit.targetBuildingId = undefined;
         unit.targetPoint = undefined;
         unit.attackMovePoint = undefined;
-        unit.respawnTimer = 8;
+        unit.respawnTimer = 0;
+        this.message = unit.id === "player" ? "Astra respawned" : "Crimson respawned";
       }
     }
     this.units = this.units.filter((unit) => unit.kind === "hero" || unit.alive || unit.actionTimer > 0);
@@ -1506,6 +2072,10 @@ export class MobaScene extends Phaser.Scene {
   private buyItem(itemId: keyof typeof ITEM_CATALOG) {
     const item = ITEM_CATALOG[itemId];
     const player = this.getPlayer();
+    if (!player.alive) {
+      this.message = "Cannot shop while dead";
+      return false;
+    }
     if (this.purchasedItems.has(itemId)) {
       this.message = "Item already owned";
       return false;
@@ -1529,6 +2099,83 @@ export class MobaScene extends Phaser.Scene {
     this.purchasedItems.add(itemId);
     this.message = `Purchased ${itemId.split("_").join(" ")}`;
     return true;
+  }
+
+  private itemSlotAction(itemId: ItemId) {
+    if (this.purchasedItems.has(itemId)) return this.useItem(itemId);
+    return this.buyItem(itemId);
+  }
+
+  private useItemSlot(slot: number) {
+    const itemId = ACTIVE_ITEM_IDS.find((id) => ITEM_CATALOG[id].slot === slot);
+    if (!itemId) {
+      this.message = "Empty item slot";
+      return false;
+    }
+    if (!this.purchasedItems.has(itemId)) {
+      this.message = `Slot ${slot} item not owned`;
+      return false;
+    }
+    return this.useItem(itemId);
+  }
+
+  private useItem(itemId: ItemId) {
+    const player = this.getPlayer();
+    const item = ITEM_CATALOG[itemId];
+    if (item.activeKind === "none") {
+      this.message = "Passive item";
+      return false;
+    }
+    if (!this.purchasedItems.has(itemId)) {
+      this.message = "Item not owned";
+      return false;
+    }
+    if (!this.canStartPlayerAction(player)) return false;
+    if (this.itemCooldowns[itemId] > 0) {
+      this.message = "Item cooling down";
+      return false;
+    }
+    const used = this.resolveActiveItemEffect(item.activeKind, itemId, player);
+    if (!used) return false;
+    this.cancelRecall(player, "Recall interrupted");
+    this.itemCooldowns[itemId] = item.activeCooldown;
+    this.message = `${item.activeLabel} activated`;
+    return true;
+  }
+
+  private resolveActiveItemEffect(kind: ActiveItemKind, itemId: ItemId, player: Unit) {
+    if (kind === "mana") {
+      player.mana = Math.min(player.maxMana, player.mana + 160);
+      for (const skill of ["q", "w", "e"] as const) {
+        this.playerCooldowns[skill] = Math.max(0, this.playerCooldowns[skill] - 1.1);
+      }
+      this.spawnVfx("vfx-astra-w_shield_pulse", player.x, player.y - 6, 0.78);
+      return true;
+    }
+    if (kind === "shield") {
+      player.shield = Math.max(player.shield, 180);
+      player.shieldTimer = Math.max(player.shieldTimer, 3.2);
+      this.spawnVfx("vfx-astra-w_shield_pulse", player.x, player.y, 1);
+      return true;
+    }
+    if (kind === "haste") {
+      player.hasteMultiplier = Math.max(player.hasteMultiplier, 1.34);
+      player.hasteTimer = Math.max(player.hasteTimer, 3.4);
+      this.spawnVfx("vfx-astra-e_dash_trail", player.x + 20, player.y - 4, 0.92);
+      return true;
+    }
+    if (kind === "demolish") {
+      const building = this.findNearestAttackableBuilding(player, 250);
+      if (!building) {
+        this.message = "No structure in range";
+        return false;
+      }
+      this.applyBuildingDamage(building, 260);
+      this.spawnVfx("vfx-astra-q_slash_arc", building.x, building.y - 42, 1.05);
+      return true;
+    }
+    this.message = `${itemId} has no active`;
+    return false;
   }
 
   private syncViews() {
@@ -1557,8 +2204,9 @@ export class MobaScene extends Phaser.Scene {
     preview.clear();
     const player = this.getPlayer();
     if (!player.alive || this.result !== "playing") return;
+    const skill = this.activeAimSkill();
+    if (!skill) return;
     const dir = this.getPlayerAimDirection(player);
-    const skill = this.keys?.r.isDown ? "r" : this.keys?.e.isDown ? "e" : this.keys?.w.isDown ? "w" : "q";
     if (skill === "w") {
       preview.lineStyle(2, 0x8fe7ff, 0.34);
       preview.fillStyle(0x4aa8ff, 0.06);
@@ -1595,6 +2243,16 @@ export class MobaScene extends Phaser.Scene {
     preview.lineBetween(player.x, player.y, center.x, center.y);
   }
 
+  private activeAimSkill(): SkillKey | null {
+    if (this.pendingSkill) return this.pendingSkill;
+    if (!this.showRangeIndicators || !this.keys || this.isModalOpen()) return null;
+    if (this.keys.r.isDown) return "r";
+    if (this.keys.e.isDown) return "e";
+    if (this.keys.w.isDown) return "w";
+    if (this.keys.q.isDown) return "q";
+    return null;
+  }
+
   private drawTowerRanges() {
     const range = this.add.graphics().setDepth(-5);
     for (const building of this.buildings.filter((candidate) => candidate.type === "tower")) {
@@ -1615,7 +2273,7 @@ export class MobaScene extends Phaser.Scene {
     const action = this.visibleAction(unit);
     const animKey = this.animationKey(unit.assetId, action, unit.lastDirection);
     if (sprite.anims.currentAnim?.key !== animKey) sprite.play(animKey, true);
-    this.drawHealthBar(bar, unit.x, unit.y - 54 * UNIT_ASSETS[unit.assetId].scale, 58, unit.hp, unit.maxHp, unit.team, unit.shield);
+    this.drawHealthBar(bar, unit.x, unit.y - 54 * UNIT_ASSETS[unit.assetId].scale, 58, unit.hp, unit.maxHp, unit.team, unit.shield, this.unitEffects(unit));
   }
 
   private syncBuildingView(building: Building) {
@@ -1629,7 +2287,7 @@ export class MobaScene extends Phaser.Scene {
     this.drawHealthBar(bar, building.x, building.y - (building.type === "tower" ? 190 : 120), 120, building.hp, building.maxHp, building.team, 0);
   }
 
-  private drawHealthBar(graphics: Phaser.GameObjects.Graphics, x: number, y: number, width: number, hp: number, maxHp: number, team: Team, shield: number) {
+  private drawHealthBar(graphics: Phaser.GameObjects.Graphics, x: number, y: number, width: number, hp: number, maxHp: number, team: Team, shield: number, effects: string[] = []) {
     const percent = maxHp > 0 ? clamp(hp / maxHp, 0, 1) : 0;
     graphics.clear();
     graphics.fillStyle(0x0b0d10, 0.82);
@@ -1639,6 +2297,14 @@ export class MobaScene extends Phaser.Scene {
     if (shield > 0) {
       graphics.fillStyle(0x67d9ff, 0.85);
       graphics.fillRoundedRect(x - width / 2 + 1, y - 5, Math.min(width - 2, shield / 2), 3, 2);
+    }
+    if (effects.includes("marked")) {
+      graphics.fillStyle(0xffd76a, 0.95);
+      graphics.fillRoundedRect(x - width / 2 + 1, y + 10, width - 2, 3, 2);
+    }
+    if (effects.includes("rooted")) {
+      graphics.fillStyle(0x90f4ff, 0.92);
+      graphics.fillRoundedRect(x - width / 2 + 1, y + 15, width - 2, 3, 2);
     }
   }
 
@@ -1698,13 +2364,18 @@ export class MobaScene extends Phaser.Scene {
       lastDirection: team === "azure" ? "north-east" : "south-west",
       slowTimer: 0,
       slowMultiplier: 1,
+      rootTimer: 0,
+      markTimer: 0,
+      hasteTimer: 0,
+      hasteMultiplier: 1,
       shieldTimer: 0,
       recallTimer: 0,
       recallDuration: RECALL_DURATION,
       skillLevels: { ...DEFAULT_SKILL_LEVELS },
       skillPoints: 0,
       alive: true,
-      respawnTimer: 8,
+      respawnTimer: 0,
+      respawnDuration: BASE_RESPAWN_SECONDS,
     };
   }
 
@@ -1740,6 +2411,10 @@ export class MobaScene extends Phaser.Scene {
       lastDirection: team === "azure" ? "north-east" : "south-west",
       slowTimer: 0,
       slowMultiplier: 1,
+      rootTimer: 0,
+      markTimer: 0,
+      hasteTimer: 0,
+      hasteMultiplier: 1,
       shieldTimer: 0,
       recallTimer: 0,
       recallDuration: 0,
@@ -1747,6 +2422,7 @@ export class MobaScene extends Phaser.Scene {
       skillPoints: 0,
       alive: true,
       respawnTimer: 0,
+      respawnDuration: 0,
     };
   }
 
@@ -1781,7 +2457,11 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private moveUnit(unit: Unit, dx: number, dy: number, speed: number, dt: number) {
-    const adjustedSpeed = speed * unit.slowMultiplier;
+    if (unit.rootTimer > 0) {
+      if (unit.actionTimer <= 0) unit.action = "idle";
+      return;
+    }
+    const adjustedSpeed = speed * unit.slowMultiplier * unit.hasteMultiplier;
     unit.x = clamp(unit.x + dx * adjustedSpeed * dt, 72, WORLD_WIDTH - 72);
     unit.y = clamp(unit.y + dy * adjustedSpeed * dt, 80, WORLD_HEIGHT - 76);
     unit.lastDirection = directionFromVector(dx, dy);
@@ -1832,6 +2512,16 @@ export class MobaScene extends Phaser.Scene {
     if (!unit.alive) return "death";
     if (unit.actionTimer > 0) return unit.action;
     return unit.action === "move" ? "move" : "idle";
+  }
+
+  private unitEffects(unit: Unit) {
+    const effects: string[] = [];
+    if (unit.markTimer > 0) effects.push("marked");
+    if (unit.rootTimer > 0) effects.push("rooted");
+    if (unit.slowTimer > 0) effects.push("slowed");
+    if (unit.shield > 0) effects.push("shielded");
+    if (unit.hasteTimer > 0) effects.push("hasted");
+    return effects;
   }
 
   private spawnVfx(animationKey: string, x: number, y: number, scale: number) {
@@ -1939,6 +2629,117 @@ export class MobaScene extends Phaser.Scene {
     return `${buildingId}-${state}`;
   }
 
+  private shopItemSnapshots(player: Unit): ShopItemSnapshot[] {
+    const available = player.alive && this.isPlayerInShop();
+    return Object.entries(ITEM_CATALOG).map(([id, item]) => ({
+      id,
+      name: item.name,
+      cost: item.cost,
+      stats: item.stats,
+      activeLabel: item.activeLabel,
+      slot: item.slot,
+      cooldown: Number(this.itemCooldowns[id as ItemId].toFixed(1)),
+      canUse: this.canUseItem(id as ItemId, player),
+      owned: this.purchasedItems.has(id),
+      affordable: player.gold >= item.cost,
+      available,
+    }));
+  }
+
+  private itemSlotSnapshots(player: Unit): ItemSlotSnapshot[] {
+    return ACTIVE_ITEM_IDS.map((id) => {
+      const item = ITEM_CATALOG[id];
+      return {
+        id,
+        name: item.name,
+        activeLabel: item.activeLabel,
+        slot: item.slot,
+        cooldown: Number(this.itemCooldowns[id].toFixed(1)),
+        canUse: this.canUseItem(id, player),
+        owned: this.purchasedItems.has(id),
+      };
+    });
+  }
+
+  private canUseItem(itemId: ItemId, player = this.getPlayer()) {
+    const item = ITEM_CATALOG[itemId];
+    return (
+      this.result === "playing" &&
+      player.alive &&
+      !this.isModalOpen() &&
+      !this.isPlayerCastingLocked(player) &&
+      this.purchasedItems.has(itemId) &&
+      item.activeKind !== "none" &&
+      this.itemCooldowns[itemId] <= 0
+    );
+  }
+
+  private scoreboardRows(player: Unit): ScoreboardRowSnapshot[] {
+    const enemy = this.units.find((unit) => unit.id === "enemy_hero");
+    return [
+      {
+        id: player.id,
+        team: player.team,
+        name: "Astra Vanguard",
+        level: player.level,
+        kills: this.playerHeroKills,
+        deaths: this.playerDeaths,
+        gold: player.gold,
+        lastHits: this.playerLastHits,
+        items: [...this.purchasedItems],
+        alive: player.alive,
+        respawnTimer: player.alive ? 0 : Math.max(0, Math.ceil(player.respawnTimer)),
+      },
+      {
+        id: enemy?.id ?? "enemy_hero",
+        team: "crimson",
+        name: "Crimson Duelist",
+        level: enemy?.level ?? 1,
+        kills: this.enemyHeroKills,
+        deaths: this.enemyDeaths,
+        gold: this.enemyGold,
+        lastHits: this.enemyLastHits,
+        items: [],
+        alive: enemy?.alive ?? false,
+        respawnTimer: enemy?.alive ? 0 : Math.max(0, Math.ceil(enemy?.respawnTimer ?? 0)),
+      },
+    ];
+  }
+
+  private matchSummary(player: Unit): MatchSummarySnapshot | null {
+    if (this.result === "playing") return null;
+    const enemy = this.units.find((unit) => unit.id === "enemy_hero");
+    const azureTower = this.getBuilding("azure_outer_tower");
+    const crimsonTower = this.getBuilding("crimson_outer_tower");
+    const azureCore = this.getBuilding("azure_core");
+    const crimsonCore = this.getBuilding("crimson_core");
+    return {
+      duration: Math.round(this.elapsed),
+      result: this.result,
+      player: {
+        kills: this.playerHeroKills,
+        deaths: this.playerDeaths,
+        level: player.level,
+        lastHits: this.playerLastHits,
+        gold: player.gold,
+        items: [...this.purchasedItems],
+      },
+      enemy: {
+        kills: this.enemyHeroKills,
+        deaths: this.enemyDeaths,
+        level: enemy?.level ?? 1,
+        lastHits: this.enemyLastHits,
+        gold: this.enemyGold,
+      },
+      objectives: {
+        azureTowerDestroyed: azureTower.hp <= 0,
+        crimsonTowerDestroyed: crimsonTower.hp <= 0,
+        azureCoreHp: Math.round(azureCore.hp),
+        crimsonCoreHp: Math.round(crimsonCore.hp),
+      },
+    };
+  }
+
   private snapshot(): GameSnapshot {
     const player = this.getPlayer();
     return {
@@ -1948,6 +2749,8 @@ export class MobaScene extends Phaser.Scene {
       score: {
         azureKills: this.azureKills,
         crimsonKills: this.crimsonKills,
+        azureHeroKills: this.playerHeroKills,
+        crimsonHeroKills: this.enemyHeroKills,
       },
       player: {
         hp: Math.round(player.hp),
@@ -1961,11 +2764,14 @@ export class MobaScene extends Phaser.Scene {
         xp: Math.round(player.xp),
         gold: player.gold,
         lastHits: this.playerLastHits,
+        deaths: this.playerDeaths,
         skillPoints: player.skillPoints,
         recallProgress: player.recallTimer > 0 && player.recallDuration > 0 ? Number(((player.recallDuration - player.recallTimer) / player.recallDuration).toFixed(2)) : 0,
         recalling: player.recallTimer > 0,
+        deathTimer: player.alive ? 0 : Math.max(0, Number(player.respawnTimer.toFixed(1))),
+        respawnProgress: player.alive || player.respawnDuration <= 0 ? 0 : Number(((player.respawnDuration - player.respawnTimer) / player.respawnDuration).toFixed(2)),
         items: [...this.purchasedItems],
-        shopAvailable: this.isPlayerInShop(),
+        shopAvailable: player.alive && this.isPlayerInShop(),
         x: Math.round(player.x),
         y: Math.round(player.y),
         alive: player.alive,
@@ -1982,9 +2788,35 @@ export class MobaScene extends Phaser.Scene {
         e: this.skillSnapshot(player, "e"),
         r: this.skillSnapshot(player, "r"),
       },
+      casting: {
+        locked: this.isPlayerCastingLocked(player),
+        activeSkill: this.isPlayerCastingLocked(player) ? this.activeCastSkill : null,
+        lockout: this.isPlayerCastingLocked(player) ? Number(player.actionTimer.toFixed(2)) : 0,
+        queuedSkill: this.queuedSkill,
+        queuedExpiresIn: this.queuedSkill ? Number(this.queuedSkillTimer.toFixed(2)) : 0,
+      },
       lane: {
         waveNumber: this.waveNumber,
         nextSiegeWave: this.waveNumber + (this.waveNumber % 3 === 0 ? 3 : 3 - (this.waveNumber % 3)),
+      },
+      shop: {
+        open: this.shopOpen,
+        available: player.alive && this.isPlayerInShop(),
+        items: this.shopItemSnapshots(player),
+      },
+      itemSlots: this.itemSlotSnapshots(player),
+      settings: {
+        open: this.settingsOpen,
+        quickCast: this.quickCast,
+        showRangeIndicators: this.showRangeIndicators,
+      },
+      controls: {
+        blocked: Boolean(this.inputBlockedReason(player)),
+        reason: this.inputBlockedReason(player),
+      },
+      scoreboard: {
+        open: this.scoreboardOpen,
+        rows: this.scoreboardRows(player),
       },
       enemyAi: {
         state: this.enemyAiState,
@@ -1992,9 +2824,12 @@ export class MobaScene extends Phaser.Scene {
         gold: this.enemyGold,
         xp: this.enemyXp,
         lastHits: this.enemyLastHits,
+        deaths: this.enemyDeaths,
       },
       aimPreview: {
-        active: Boolean(player.alive && this.aimPreview && this.result === "playing"),
+        active: Boolean(player.alive && this.aimPreview && this.result === "playing" && this.activeAimSkill()),
+        skill: this.activeAimSkill(),
+        mode: this.pendingSkill ? "normal" : this.activeAimSkill() ? (this.quickCast ? "hold" : "normal") : "off",
         x: Math.round(this.pointerWorld.x),
         y: Math.round(this.pointerWorld.y),
       },
@@ -2016,10 +2851,12 @@ export class MobaScene extends Phaser.Scene {
           maxHp: unit.maxHp,
           x: Math.round(unit.x),
           y: Math.round(unit.y),
+          effects: this.unitEffects(unit),
         })),
       activeVfx: this.vfx.length,
       nextWaveIn: Number(Math.max(0, this.waveTimer).toFixed(1)),
       message: this.message,
+      matchSummary: this.matchSummary(player),
     };
   }
 }

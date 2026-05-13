@@ -12,6 +12,9 @@ const cooldownText = (seconds: number) => (seconds > 0 ? seconds.toFixed(1) : ""
 
 const icon = (src: string, label: string) => `<img src="${src}" alt="${label}" />`;
 
+let lastShopSignature = "";
+let lastScoreboardSignature = "";
+
 export const initHud = () => {
   const root = document.querySelector("#hud-root");
   if (!root) throw new Error("HUD root is missing");
@@ -44,6 +47,8 @@ export const initHud = () => {
       <div data-building-list></div>
     </section>
 
+    <button class="settings-button" data-settings-toggle title="Settings">Esc</button>
+
     <section class="minimap" aria-label="Minimap">
       <div class="minimap-lane"></div>
       <div data-minimap-dots></div>
@@ -65,15 +70,54 @@ export const initHud = () => {
     </section>
 
     <section class="item-dock" aria-label="Items">
+      <button class="shop-button" data-shop-toggle title="Shop">${icon(UI_ICON_URLS.status.shop, "Shop")}<span>Shop</span></button>
       ${Object.entries(UI_ICON_URLS.items)
-        .map(([name, src]) => `<button class="item-slot" data-item="${name}" title="${name}">${icon(src, name)}</button>`)
+        .map(([name, src]) => `<button class="item-slot" data-item="${name}" title="${name}">${icon(src, name)}<span data-item-key="${name}"></span><em data-item-cooldown="${name}"></em></button>`)
         .join("")}
+    </section>
+
+    <section class="shop-panel" data-shop-panel hidden aria-label="Base shop">
+      <div class="panel-header">
+        <strong>Base Shop</strong>
+        <button class="panel-close" data-shop-close aria-label="Close shop">x</button>
+      </div>
+      <div class="shop-status" data-shop-status></div>
+      <div class="shop-grid" data-shop-items></div>
+    </section>
+
+    <section class="scoreboard-panel" data-scoreboard-panel hidden aria-label="Scoreboard">
+      <div class="panel-header">
+        <strong>Scoreboard</strong>
+        <button class="panel-close" data-scoreboard-close aria-label="Close scoreboard">x</button>
+      </div>
+      <div class="scoreboard-table" data-scoreboard-rows></div>
+    </section>
+
+    <section class="settings-panel" data-settings-panel hidden aria-label="Settings">
+      <div class="panel-header">
+        <strong>Settings</strong>
+        <button class="panel-close" data-settings-close aria-label="Close settings">x</button>
+      </div>
+      <div class="settings-list">
+        <button class="setting-toggle" data-setting="quickCast"><span>Quick Cast</span><strong data-setting-value="quickCast"></strong></button>
+        <button class="setting-toggle" data-setting="rangeIndicators"><span>Range Indicators</span><strong data-setting-value="rangeIndicators"></strong></button>
+        <div class="setting-row"><span>Shop</span><strong>P</strong></div>
+        <div class="setting-row"><span>Item Actives</span><strong>1-4</strong></div>
+      </div>
+    </section>
+
+    <section class="death-overlay" data-death-overlay hidden aria-label="Respawn status">
+      <strong>Respawning</strong>
+      <span data-death-countdown></span>
+      <em data-death-blocked></em>
+      <div class="death-bar"><i data-death-progress></i></div>
     </section>
 
     <section class="status-chip" data-message>Lane phase</section>
     <section class="result-banner" data-result hidden>
       <strong data-result-title></strong>
       <span data-result-subtitle></span>
+      <div class="result-summary" data-result-summary></div>
     </section>
   `;
 
@@ -81,7 +125,43 @@ export const initHud = () => {
     const element = event.target instanceof Element ? event.target : null;
     const item = element?.closest<HTMLButtonElement>("[data-item]");
     if (item?.dataset.item) {
-      window.miniLolDebug?.buyItem(item.dataset.item as Parameters<NonNullable<typeof window.miniLolDebug>["buyItem"]>[0]);
+      window.miniLolDebug?.itemSlotAction(item.dataset.item as Parameters<NonNullable<typeof window.miniLolDebug>["itemSlotAction"]>[0]);
+      return;
+    }
+    const shopBuy = element?.closest<HTMLButtonElement>("[data-shop-buy]");
+    if (shopBuy?.dataset.shopBuy) {
+      window.miniLolDebug?.buyItem(shopBuy.dataset.shopBuy as Parameters<NonNullable<typeof window.miniLolDebug>["buyItem"]>[0]);
+      return;
+    }
+    if (element?.closest("[data-shop-toggle]")) {
+      window.miniLolDebug?.toggleShop();
+      return;
+    }
+    if (element?.closest("[data-shop-close]")) {
+      window.miniLolDebug?.setShopOpen(false);
+      return;
+    }
+    if (element?.closest("[data-scoreboard-close]")) {
+      window.miniLolDebug?.setScoreboardOpen(false);
+      return;
+    }
+    if (element?.closest("[data-settings-toggle]")) {
+      window.miniLolDebug?.toggleSettings();
+      return;
+    }
+    if (element?.closest("[data-settings-close]")) {
+      window.miniLolDebug?.setSettingsOpen(false);
+      return;
+    }
+    const setting = element?.closest<HTMLButtonElement>("[data-setting]");
+    if (setting?.dataset.setting === "quickCast") {
+      const enabled = window.miniLolDebug?.snapshot().settings.quickCast ?? true;
+      window.miniLolDebug?.setQuickCast(!enabled);
+      return;
+    }
+    if (setting?.dataset.setting === "rangeIndicators") {
+      const enabled = window.miniLolDebug?.snapshot().settings.showRangeIndicators ?? true;
+      window.miniLolDebug?.setRangeIndicators(!enabled);
       return;
     }
     const upgrade = element?.closest<HTMLButtonElement>("[data-upgrade]");
@@ -116,7 +196,12 @@ export const updateHud = (snapshot: GameSnapshot) => {
   query<HTMLElement>("[data-last-hits]").textContent = String(snapshot.player.lastHits);
   query<HTMLElement>("[data-skill-points]").textContent = String(snapshot.player.skillPoints);
   query<HTMLElement>("[data-wave]").textContent = String(snapshot.lane.waveNumber);
-  query<HTMLElement>("[data-message]").textContent = `${snapshot.message} · AI ${snapshot.enemyAi.state}`;
+  const castState = snapshot.casting.queuedSkill
+    ? ` · ${snapshot.casting.queuedSkill.toUpperCase()} queued`
+    : snapshot.casting.locked && snapshot.casting.activeSkill
+      ? ` · Casting ${snapshot.casting.activeSkill.toUpperCase()}`
+      : "";
+  query<HTMLElement>("[data-message]").textContent = `${snapshot.message}${castState} · AI ${snapshot.enemyAi.state}`;
   const recallWrap = query<HTMLElement>("[data-recall-wrap]");
   recallWrap.hidden = !snapshot.player.recalling;
   query<HTMLElement>("[data-recall-bar]").style.width = `${Math.round(snapshot.player.recallProgress * 100)}%`;
@@ -131,16 +216,23 @@ export const updateHud = (snapshot: GameSnapshot) => {
     button.classList.toggle("cooling", cooldown > 0);
     button.classList.toggle("locked", !snapshot.skills[skill].canCast && snapshot.skills[skill].level <= 0);
     button.classList.toggle("upgradeable", snapshot.skills[skill].canUpgrade);
+    button.classList.toggle("queued", snapshot.skills[skill].queued);
+    button.disabled = !snapshot.player.alive || (snapshot.skills[skill].level <= 0 && !snapshot.skills[skill].canUpgrade);
     upgradeButton.hidden = !snapshot.skills[skill].canUpgrade;
     upgradeButton.disabled = !snapshot.skills[skill].canUpgrade;
   }
 
   const recallButton = query<HTMLButtonElement>("[data-recall]");
   recallButton.classList.toggle("channeling", snapshot.player.recalling);
+  recallButton.disabled = !snapshot.player.alive;
 
   renderBuildings(snapshot.buildings);
   renderMinimap(snapshot.units, snapshot.buildings);
   renderItems(snapshot);
+  renderShop(snapshot);
+  renderScoreboard(snapshot);
+  renderSettings(snapshot);
+  renderDeath(snapshot);
   renderResult(snapshot);
 };
 
@@ -196,12 +288,118 @@ const renderMinimap = (units: UnitSnapshot[], buildings: BuildingSnapshot[]) => 
 };
 
 const renderItems = (snapshot: GameSnapshot) => {
+  const shopItems = new Map(snapshot.shop.items.map((item) => [item.id, item]));
+  const activeItems = new Map(snapshot.itemSlots.map((item) => [item.id, item]));
+  const shopButton = query<HTMLButtonElement>("[data-shop-toggle]");
+  shopButton.classList.toggle("available", snapshot.shop.available);
+  shopButton.classList.toggle("open", snapshot.shop.open);
+  shopButton.disabled = !snapshot.player.alive || snapshot.settings.open;
+  query<HTMLButtonElement>("[data-settings-toggle]").classList.toggle("open", snapshot.settings.open);
   for (const button of document.querySelectorAll<HTMLButtonElement>("[data-item]")) {
     const itemId = button.dataset.item ?? "";
+    const item = shopItems.get(itemId);
+    const activeItem = activeItems.get(itemId);
     const purchased = snapshot.player.items.includes(itemId);
+    const cooldown = activeItem?.cooldown ?? item?.cooldown ?? 0;
     button.classList.toggle("purchased", purchased);
-    button.disabled = purchased || !snapshot.player.shopAvailable;
+    button.classList.toggle("active-ready", Boolean(purchased && activeItem?.canUse));
+    button.classList.toggle("cooling", cooldown > 0);
+    button.classList.toggle("active-item", Boolean(activeItem));
+    button.disabled = purchased
+      ? !activeItem?.canUse
+      : !snapshot.player.shopAvailable || !item?.affordable || !snapshot.player.alive || snapshot.settings.open || snapshot.scoreboard.open;
+    const key = button.querySelector<HTMLElement>("[data-item-key]");
+    if (key) key.textContent = activeItem?.slot ? String(activeItem.slot) : "";
+    const overlay = button.querySelector<HTMLElement>("[data-item-cooldown]");
+    if (overlay) overlay.textContent = cooldown > 0 ? cooldown.toFixed(1) : "";
   }
+};
+
+const renderShop = (snapshot: GameSnapshot) => {
+  const panel = query<HTMLElement>("[data-shop-panel]");
+  panel.hidden = !snapshot.shop.open;
+  if (!snapshot.shop.open) {
+    lastShopSignature = "";
+    return;
+  }
+
+  query<HTMLElement>("[data-shop-status]").textContent = snapshot.shop.available ? `${snapshot.player.gold}g available` : "Return to base";
+  const signature = JSON.stringify({
+    gold: snapshot.player.gold,
+    available: snapshot.shop.available,
+    items: snapshot.shop.items,
+  });
+  if (signature === lastShopSignature) return;
+  lastShopSignature = signature;
+  query<HTMLElement>("[data-shop-items]").innerHTML = snapshot.shop.items
+    .map((item) => {
+      const src = UI_ICON_URLS.items[item.id as keyof typeof UI_ICON_URLS.items];
+      const disabled = item.owned || !item.available || !item.affordable;
+      const state = item.owned ? "Owned" : item.affordable ? `${item.cost}g` : `Need ${item.cost - snapshot.player.gold}g`;
+      return `
+        <article class="shop-item ${item.owned ? "owned" : ""} ${!item.affordable ? "locked" : ""}">
+          ${icon(src, item.name)}
+          <div>
+            <strong>${item.name}</strong>
+            <span>${item.stats}${item.activeLabel ? ` · ${item.activeLabel} [${item.slot}]` : ""}</span>
+          </div>
+          <button data-shop-buy="${item.id}" ${disabled ? "disabled" : ""}>${state}</button>
+        </article>
+      `;
+    })
+    .join("");
+};
+
+const renderScoreboard = (snapshot: GameSnapshot) => {
+  const panel = query<HTMLElement>("[data-scoreboard-panel]");
+  panel.hidden = !snapshot.scoreboard.open;
+  if (!snapshot.scoreboard.open) {
+    lastScoreboardSignature = "";
+    return;
+  }
+
+  const signature = JSON.stringify(snapshot.scoreboard.rows);
+  if (signature === lastScoreboardSignature) return;
+  lastScoreboardSignature = signature;
+  query<HTMLElement>("[data-scoreboard-rows]").innerHTML = snapshot.scoreboard.rows
+    .map((row) => {
+      const itemIcons = row.items.length
+        ? row.items
+            .map((itemId) => {
+              const src = UI_ICON_URLS.items[itemId as keyof typeof UI_ICON_URLS.items];
+              return `<img src="${src}" alt="${itemId}" />`;
+            })
+            .join("")
+        : `<span class="empty-items">Empty</span>`;
+      return `
+        <div class="scoreboard-row ${row.team}">
+          <strong>${row.name}</strong>
+          <span>Lv ${row.level}</span>
+          <span>${row.kills} / ${row.deaths}</span>
+          <span>${row.lastHits} CS</span>
+          <span>${row.gold}g</span>
+          <span class="row-state">${row.alive ? "Alive" : `${row.respawnTimer}s`}</span>
+          <div class="row-items">${itemIcons}</div>
+        </div>
+      `;
+    })
+    .join("");
+};
+
+const renderSettings = (snapshot: GameSnapshot) => {
+  const panel = query<HTMLElement>("[data-settings-panel]");
+  panel.hidden = !snapshot.settings.open;
+  query<HTMLElement>('[data-setting-value="quickCast"]').textContent = snapshot.settings.quickCast ? "On" : "Off";
+  query<HTMLElement>('[data-setting-value="rangeIndicators"]').textContent = snapshot.settings.showRangeIndicators ? "On" : "Off";
+};
+
+const renderDeath = (snapshot: GameSnapshot) => {
+  const overlay = query<HTMLElement>("[data-death-overlay]");
+  overlay.hidden = snapshot.player.alive;
+  if (snapshot.player.alive) return;
+  query<HTMLElement>("[data-death-countdown]").textContent = `${snapshot.player.deathTimer.toFixed(1)}s`;
+  query<HTMLElement>("[data-death-blocked]").textContent = snapshot.controls.reason;
+  query<HTMLElement>("[data-death-progress]").style.width = `${Math.round(snapshot.player.respawnProgress * 100)}%`;
 };
 
 const minimapPosition = (id: string) => {
@@ -223,4 +421,14 @@ const renderResult = (snapshot: GameSnapshot) => {
   banner.hidden = false;
   query<HTMLElement>("[data-result-title]").textContent = snapshot.mode === "victory" ? "Victory" : "Defeat";
   query<HTMLElement>("[data-result-subtitle]").textContent = snapshot.message;
+  const summary = snapshot.matchSummary;
+  query<HTMLElement>("[data-result-summary]").innerHTML = summary
+    ? `
+      <span>${formatTime(summary.duration)}</span>
+      <span>KDA ${summary.player.kills} / ${summary.player.deaths}</span>
+      <span>${summary.player.lastHits} CS</span>
+      <span>${summary.player.items.length} Items</span>
+      <span>Enemy ${summary.enemy.kills} / ${summary.enemy.deaths}</span>
+    `
+    : "";
 };

@@ -41,6 +41,43 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 - `npm run build` passes after completion round 3.
 - Completion round 3 Playwright assertions pass for recall HUD click, skill upgrade click, independent siege ids, and enemy AI last-hit gold/XP/CS.
 - Develop-web-game smoke playtest passes after completion round 3.
+- Continued completion round 4 for shop and match feedback completeness.
+- Added a base-only shop panel with item costs, stat text, owned state, affordability state, and clickable buy buttons.
+- Added stable shop rendering so HUD buttons are not detached by per-frame DOM refreshes during player clicks.
+- Added a shop toggle button to the item dock while preserving quick-buy item slots.
+- Added Tab/debug-controlled scoreboard data and HUD panel for both heroes with level, K/D, CS, gold, alive/respawn state, and player items.
+- Added player and enemy hero death counters, hero kill counters, death timer exposure, respawn progress, death overlay, and respawn-at-base restoration.
+- Added match summary data and result banner chips for duration, KDA, CS, item count, and enemy K/D.
+- Added debug hooks for shop open state, scoreboard open state, player gold, and forced player death.
+- Added a data favicon to avoid favicon 404 console noise in browser QA.
+- `npm run build` passes after completion round 4.
+- Completion round 4 Playwright assertions pass for shop UI purchases, unaffordable item rejection, scoreboard rows, player death/respawn, and victory match summary.
+- Develop-web-game smoke playtest passes after completion round 4, with no browser console errors beyond the Phaser startup log.
+- Continued completion round 5 for LoL-inspired casting, settings, active items, and input lockout feedback.
+- Added Quick Cast versus Normal Cast behavior: Quick Cast fires immediately, Normal Cast enters a pending aim state with range preview and click-confirm/cancel behavior.
+- Adjusted aim indicators to behave more like spell indicators: they render for pending casts or held ability keys, instead of permanently drawing the default Q preview.
+- Added `Esc` settings panel with Quick Cast and range-indicator toggles, plus visible reminders for `P` shop and `1-4` active item slots.
+- Added `P` as a base-shop shortcut; `Esc` now closes pending casts, shop, and settings in predictable order.
+- Added active item slots and cooldown tracking for Focus Crystal, Guard Shield, Haste Talisman, and Siege Hammer.
+- Added active item effects: mana/cooldown refund, shield, haste burst, and structure damage.
+- Blocked active item usage during ability cast time, and exposed input lockout reasons such as `Casting`, `Shop open`, and `Respawning`.
+- Death now closes settings and pending casts as well as the shop; dead players cannot cast, use active items, or open the shop.
+- Extended `GameSnapshot` with active item slot state, settings state, control block reason, and richer aim-preview state.
+- `npm run build` passes after completion round 5.
+- Completion round 5 Playwright assertions pass for Esc settings, P shop, Normal Cast confirmation, active item cooldowns/effects, cast-time item lockout, and death input lockout.
+- Develop-web-game smoke playtest passes after completion round 5, with no browser console errors beyond the Phaser startup log.
+- Continued a LoL-inspired skill-feel pass focused on ability release and combat feedback, while keeping all hero names, VFX, UI, and numeric tuning original.
+- Added a short skill input buffer: pressing another skill during a cast lockout now stores the next valid skill for a limited window and exposes the queued skill in `GameSnapshot.casting` and the HUD button state.
+- Added per-unit combat effects in snapshots: marked, rooted, slowed, shielded, and hasted.
+- Added Q/W mark setup and E/R mark consumption with bonus damage and small cooldown refunds, giving Astra a readable combo loop instead of isolated one-off skills.
+- Added R root on hit while preserving existing knockback, creating clearer crowd-control payoff for the ultimate.
+- Added root-aware movement blocking and E dash prevention while rooted.
+- Added health-bar effect strips for marked and rooted targets, plus HUD cast/queue messages.
+- Added test-only debug hooks for deterministic skill assertions: cooldown reset, status cleanup, and pointer-world targeting.
+- `npm run build` passes after the skill-feel pass.
+- Skill-feel Playwright assertions pass for Q mark, E cast buffering, marked E bonus feedback, R root, and `render_game_to_text` casting/effects state.
+- Completion round 5 regression assertions still pass after the skill state-machine changes.
+- Develop-web-game smoke playtest passes after the skill-feel pass.
 
 ## Verification
 
@@ -53,3 +90,10 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 - `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/completion-round-2-smoke`
 - `playtest-artifacts/completion-round-3/report.json`
 - `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/completion-round-3-smoke`
+- `playtest-artifacts/completion-round-4/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/completion-round-4-smoke`
+- `playtest-artifacts/completion-round-5/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/completion-round-5-smoke`
+- `playtest-artifacts/skill-feel-pass/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/skill-feel-smoke`
+- `playtest-artifacts/completion-round-5/report.json`
