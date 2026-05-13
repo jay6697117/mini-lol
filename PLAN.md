@@ -1,732 +1,407 @@
-# Mini LoL 2.5D MOBA Prototype Plan
+# Mini LoL 更新计划
 
-## 0. 文档目标
+## 0. 文档状态
 
-本计划用于定义一款原创 2.5D 等距斜俯视角 MOBA 原型的游戏内容、玩法闭环、视觉方向、资源规格与版本目标。
+更新时间：2026-05-13
 
-参考图提供的是方向感，而不是可复制素材。项目必须保持原创：英雄、兵种、建筑、UI、技能图标、地图资源、音效命名与数值设定都不得直接复刻现有商业 MOBA 游戏资产。
+本文件是基于当前仓库实现、Phaser 资料、DeepWiki/Context7 查询结果，以及英雄联盟核心玩法资料整理出的下一轮更新计划。目标不是复制英雄联盟的商业内容、数值或资产，而是参考其可验证的 MOBA 机制结构，继续推进 `mini-lol` 的原创单线 2.5D MOBA 原型。
 
-核心目标是先做出一个可玩的中路对线原型：玩家操控一名蓝方英雄，与红方英雄和兵线在单线地图上对抗，通过补刀、经验、升级、技能、装备、防御塔与基地摧毁形成完整胜负闭环。
+本次计划只定义后续优化与重构路线，不要求一次性实现全部内容。
 
----
+## 1. 直接结论
 
-## 1. 玩家的目标
+当前游戏已经具备可玩的单线 MOBA 闭环：英雄移动、普攻、技能、补刀、经验、装备、回城、兵线、防御塔、基地核心、敌方 AI、HUD、胜负结算和 Playwright 调试钩子都已经存在。
 
-### 1.1 单局最终目标
+下一阶段最值得做的不是继续堆新功能，而是先做两件事：
 
-玩家的最终目标是摧毁敌方基地核心。
+1. 把玩法规则从 `src/game/MobaScene.ts` 中拆出，形成可测试、可调参、可复用的 simulation 层。
+2. 继续补强 LoL-like 对线决策链：兵线管理、防御塔仇恨、补刀反馈、回城时机、装备成长、AI 对线压力。
 
-单局从双方基地各自周期性刷兵开始。玩家需要通过对线压制、补刀获得金币、击杀小兵和敌方英雄获取经验、升级技能、购买装备、推掉敌方防御塔，最终推进到敌方基地并摧毁核心建筑。
+推荐先执行 “系统边界重构 + 兵线/防御塔机制深化” 这条路线。原因是审计基线中的 `MobaScene.ts` 已经达到 2879 行，本轮 Phase 1 继续拆分后仍有 2291 行，并且仍承担 Phaser Scene lifecycle、asset loading、render sync、input、combat、economy、shop 和 debug hooks。继续直接加功能会让后续调参、测试和移动端适配成本快速上升。
 
-### 1.2 中短期目标
+## 2. 本次调研依据
 
-玩家在一局内的目标分为多个层级：
+### 2.1 外部玩法参考
 
-| 层级 | 目标 | 设计意图 |
-| --- | --- | --- |
-| 10 秒级 | 移动、走位、普攻、释放技能、躲避技能 | 建立即时操作反馈 |
-| 30 秒级 | 补刀、消耗敌方英雄、控制兵线位置 | 建立对线决策 |
-| 1 分钟级 | 升级、技能加点、回城补给、购买装备 | 建立成长节奏 |
-| 3 分钟级 | 推掉外塔、扩大经济差、逼退敌方英雄 | 建立战略推进 |
-| 5 分钟级 | 摧毁基地核心或被反推 | 建立明确胜负 |
-
-### 1.3 玩家体验关键词
-
-- 清晰：单位轮廓、阵营颜色、血条、技能范围和伤害反馈必须一眼可读。
-- 有压迫感：防御塔、兵线和英雄技能要让玩家持续做位置选择。
-- 有成长感：等级、装备和技能升级要明显改变输出、生存或机动能力。
-- 有操作空间：补刀、走 A、技能命中、塔下拉扯都应该被玩家感知。
-
----
-
-## 2. 核心玩法
-
-### 2.1 游戏视角与地图结构
-
-游戏采用 2.5D 等距斜俯视角。摄像机固定在斜上方，地图表现出纵深和透视感，但角色和多数动态单位使用多方向 2D 精灵图。
-
-MVP 地图为单线对称地图：
-
-| 区域 | 内容 |
+| 来源 | 本计划采用的信息 |
 | --- | --- |
-| 蓝方基地 | 蓝方基地核心、回血购买区域、蓝方兵线出生点 |
-| 蓝方防御塔 | 一座外塔，保护蓝方半场 |
-| 中路兵线 | 石板道路、草地边缘、轻微弯曲的推进路径 |
-| 红方防御塔 | 一座外塔，保护红方半场 |
-| 红方基地 | 红方基地核心、红方兵线出生点 |
+| Riot 官方 How to Play | League 的胜利目标是摧毁敌方 Nexus；基地包含 Nexus、Fountain、Shop；推进路径受到 turret/inhibitor 阻挡；英雄通过经验、金币、技能和物品成长；技能映射到 Q/W/E/R。 |
+| Leaguepedia Minions and Towers | Minion 是沿 lane 前进和自动攻击的 AI 单位；last-hit 给予金币，附近死亡给予经验；wave 由 melee、caster、siege/super 等单位组成；turret 具有防守推进节奏、目标优先级和建筑可攻击顺序。 |
+| MOBAFire Last Hitting | 补刀是 laning 的核心技能；玩家需要读懂攻击动画、伤害潜力和塔下补刀节奏。 |
+| MOBAFire Turret | Turret 会攻击敌方单位；敌方英雄伤害己方英雄时会切换仇恨；失去当前目标后再按优先级选择新目标。 |
 
-地图需要支持深度排序。单位越靠屏幕下方越应该显示在前方，避免角色穿插建筑时破坏空间感。
+### 2.2 MCP 与框架参考
 
-### 2.2 英雄系统
-
-MVP 先实现两名原创英雄。
-
-| 英雄 | 阵营 | 定位 | 武器 | 核心气质 |
-| --- | --- | --- | --- | --- |
-| Astra Vanguard | 蓝方 | 近战战士 | 能量长剑 | 冷色、银蓝铠甲、蓝色披风、清晰剑光 |
-| Crimson Duelist | 红方 | 近战战士 | 双刃长枪 | 暖色、赤黑轻甲、红色披风、尖锐攻击轮廓 |
-
-英雄基础属性：
-
-| 属性 | MVP 初始值 | 说明 |
+| 工具 | 查询对象 | 结论 |
 | --- | --- | --- |
-| Level | 1 | 最高 6 级 |
-| Health | 1250 | 生命值 |
-| Mana | 560 | 技能资源 |
-| Attack Damage | 112 | 普攻伤害 |
-| Armor | 55 | 物理减伤 |
-| Move Speed | 260 | 地图单位速度 |
-| Attack Range | 90 | 近战攻击距离 |
-| Attack Cooldown | 0.9s | 普攻间隔 |
+| Context7 | `/phaserjs/phaser/v3_90_0` | Phaser Scene 的 `preload/create/update`、Loader、AnimationManager、InputPlugin、CameraManager 是当前架构的正确基础，但不应让 Scene 成为全部玩法状态的唯一所有者。 |
+| DeepWiki | `phaserjs/phaser` | Phaser Scene 本身封装 display list、update loop、camera、input、loader；维护性更好的做法是让 Scene 编排 renderer/input，把 gameplay rules、AI、combat、economy 和 debug state 拆成模块或并行 Scene。 |
+| 本地代码 | `src/game/MobaScene.ts`、`src/ui/hud.ts`、`src/game/assets.ts`、`src/game/types.ts`、`progress.md` | 当前已有大量可用功能，但核心规则和渲染同步过度集中，HUD 也通过字符串模板和 `window.miniLolDebug` 与 Scene 强耦合。 |
+| `.codex/skills/game-character-sprites` | 本地 sprite 生产 skill | 后续角色、小兵等固定 cell 2D 精灵图必须走该 skill，按 64x64 默认或明确指定尺寸，输出 run manifest、clean sheet、metadata、contact sheet、validation JSON 和 GIF/WebP 预览。 |
+| `.codex/skills/codex-gateway-imagegen` | 本地生图 gateway skill | 后续概念图、单张 raster 参考图、sprite 源图或编辑图必须走该 skill，通过 gateway 生成并保存到当前工作区，不把最终资产只留在临时目录。 |
 
-### 2.3 技能系统
+### 2.3 资产生产约束
 
-每个英雄拥有 3 个普通技能和 1 个终极技能。MVP 可以先实现蓝方英雄的完整可玩技能，红方英雄使用 AI 和简化技能。
+后续所有新增美术资产按以下规则执行：
 
-| 技能 | 类型 | 效果 | 升级收益 |
-| --- | --- | --- | --- |
-| Q: Arc Slash | 方向型斩击 | 对前方扇形区域造成伤害 | 伤害提高，冷却降低 |
-| W: Guard Pulse | 防御型增益 | 获得短暂护盾并减速周围敌人 | 护盾提高，减速提高 |
-| E: Blade Dash | 位移型技能 | 向目标方向短突进并造成小额伤害 | 距离提高，冷却降低 |
-| R: Azure Breaker | 终极技能 | 大范围剑气冲击，击退并造成高伤害 | 只有 6 级解锁 |
+1. 角色、英雄、小兵、带动作的单位精灵图：使用 `.codex/skills/game-character-sprites`。
+2. 概念图、静态参考图、单张图像生成或图像编辑：使用 `.codex/skills/codex-gateway-imagegen`。
+3. 生成资产必须进入项目目录，并保留 source、manifest、metadata、QA 和 preview，不能只提交最终 PNG。
+4. 角色类 sprite 默认优先 64x64；若明确需要 32/64/128 多尺寸，必须分别生成 native 输出，不能用单张图简单缩放冒充。
+5. 所有美术命名和视觉设定继续保持原创，不复制 LoL 角色、图标、地图或商业素材。
 
-技能规则：
+## 3. 当前实现快照
 
-- 技能必须有明确前摇、命中、后摇。
-- 技能释放期间可以短暂锁定朝向。
-- 技能命中需要浮动伤害数字和受击闪白。
-- 施法动画与 VFX 分离，避免把大型特效直接塞进角色精灵图导致可读性下降。
+### 3.1 技术栈
 
-### 2.4 普攻与补刀
-
-普攻是对线节奏的核心。
-
-规则：
-
-- 玩家右键或点击敌方单位后进入攻击状态。
-- 目标进入攻击范围后播放普攻动画。
-- 普攻在命中帧结算伤害，而不是动画开始时结算。
-- 如果小兵由玩家英雄造成最后一击，玩家获得金币。
-- 如果小兵自然死亡或被友方小兵击杀，玩家只获得附近经验，不获得金币。
-
-补刀收益：
-
-| 单位 | Gold | XP |
-| --- | --- | --- |
-| Melee Minion | 21 | 58 |
-| Caster Minion | 14 | 29 |
-| Siege Minion | 60 | 92 |
-| Enemy Hero | 300 | 220 |
-
-### 2.5 兵线推进
-
-双方基地按固定间隔刷出小兵。MVP 使用单路兵线。
-
-兵线规则：
-
-- 每 25 秒刷新一波兵。
-- 每波包含 3 个近战小兵和 3 个远程小兵。
-- 每第 3 波额外刷新 1 个攻城小兵。
-- 小兵沿路径点前进，优先攻击最近敌方小兵。
-- 如果范围内没有敌方小兵，则攻击敌方英雄。
-- 如果没有可攻击单位，则继续沿兵线推进。
-- 小兵进入防御塔范围时会被防御塔攻击。
-
-兵线设计目标：
-
-- 让玩家可以通过击杀速度影响兵线位置。
-- 让塔下补刀成为一个明显的操作挑战。
-- 让推线、控线和回城时机成为有意义的选择。
-
-### 2.6 经验、等级与技能升级
-
-英雄通过附近敌方单位死亡获得经验。
-
-等级规则：
-
-| Level | Required XP | 解锁 |
-| --- | --- | --- |
-| 1 | 0 | Q、W、E 可选其一 |
-| 2 | 280 | 第二个普通技能 |
-| 3 | 660 | 第三个普通技能 |
-| 4 | 1140 | 普通技能升级 |
-| 5 | 1720 | 普通技能升级 |
-| 6 | 2400 | R 终极技能 |
-
-升级反馈：
-
-- 角色上方出现短促升级光效。
-- 技能按钮出现可升级提示。
-- 玩家可以点击技能旁的升级按钮分配技能点。
-- 升级会提高基础生命、攻击力和技能强度。
-
-### 2.7 装备系统
-
-MVP 装备系统保持简单，但必须有明确成长收益。
-
-装备槽位：
-
-- 4 个主动装备槽位。
-- 1 个鞋子槽位。
-- 1 个饰品槽位。
-
-MVP 装备：
-
-| 装备 | Cost | 效果 |
-| --- | --- | --- |
-| Iron Sword | 350 | +18 Attack Damage |
-| Swift Boots | 300 | +35 Move Speed |
-| Guard Plate | 450 | +22 Armor |
-| Mana Crystal | 400 | +180 Mana |
-| Duelist Charm | 700 | +12 Attack Damage, +8% Cooldown Reduction |
-
-购买规则：
-
-- 玩家处于己方基地购买区域内才可购买装备。
-- 金币不足时按钮置灰。
-- 装备属性立即生效。
-- MVP 不实现复杂合成树，后续版本再扩展。
-
-### 2.8 防御塔系统
-
-防御塔是地图推进的关键节奏点。
-
-防御塔规则：
-
-- 防御塔拥有较高生命值和明显阵营色。
-- 防御塔攻击范围需要在选中或靠近时显示。
-- 防御塔优先攻击进入范围的敌方小兵。
-- 如果敌方英雄攻击己方英雄，防御塔会切换仇恨攻击该英雄。
-- 防御塔攻击带有飞行弹体或激光束，命中反馈要明显。
-
-防御塔属性：
-
-| 属性 | 值 |
+| 项目 | 当前状态 |
 | --- | --- |
-| Health | 3000 |
-| Attack Damage | 190 |
-| Attack Interval | 1.0s |
-| Range | 520 |
-| Armor | 80 |
+| Runtime | Phaser `3.90.0` |
+| Build | Vite `8.0.12` + TypeScript `6.0.3` |
+| Entry | `src/main.ts` 创建 Phaser game，并初始化 DOM HUD |
+| Core Scene | `src/game/MobaScene.ts`，审计基线 2879 行，本轮 Phase 1 继续拆分后 2291 行 |
+| HUD | `src/ui/hud.ts`，434 行 |
+| Asset manifest | `src/game/assets.ts`，集中管理 generated sprite、building、VFX、UI icon URL |
+| Snapshot contract | `src/game/types.ts`，提供 `GameSnapshot`、unit/building/shop/scoreboard/result 状态 |
+| Verification history | `progress.md` 记录多轮 `npm run build`、runtime assertions 和 browser smoke playtest |
 
-### 2.9 AI 对线英雄
+### 3.2 已实现的高价值玩法
 
-红方英雄 MVP 使用规则型 AI，不需要复杂机器学习。
-
-AI 状态：
-
-| 状态 | 行为 |
+| 系统 | 当前能力 |
 | --- | --- |
-| Laning | 跟随兵线，尝试补刀和消耗 |
-| Harass | 玩家进入技能范围时释放 Q |
-| Retreat | 血量低于 35% 时撤回塔下 |
-| All In | 玩家血量低于 25% 且 AI 血量安全时尝试击杀 |
-| Recall | 血量低且远离战斗时回城恢复 |
+| 单局目标 | 摧毁敌方 core 胜利，己方 core 被摧毁失败 |
+| 英雄 | 玩家英雄 Astra Vanguard 与敌方 AI 英雄 Crimson Duelist |
+| 输入 | 键盘移动、点击目标、attack move、Q/W/E/R、B 回城、P 商店、Tab 计分板、Esc 设置 |
+| 技能 | 蓝方 Q/W/E/R，有 mana、cooldown、rank、aim preview、cast lockout、input buffer、mark/consume combo |
+| 普攻 | 有追击到攻击距离、attack windup、延迟结算、last-hit gold |
+| 兵线 | 每 25 秒刷 3 melee + 3 caster，每第 3 波追加 siege |
+| 经济成长 | last-hit gold、nearby XP、level、skill point、shop item、active item |
+| 防御塔 | tower range、tower fire、tower-gated core damage、hero aggro 初版 |
+| 回城/基地 | recall channel、移动/伤害打断、基地回血回蓝、shop area |
+| AI | Laning、Harass、Retreat、All In、Recall 状态与 last-hit economy |
+| HUD | 血量、法力、等级、金币、CS、技能、装备、商店、设置、计分板、死亡倒计时、结果面板、小地图 |
+| Test hooks | `window.advanceTime`、`window.render_game_to_text`、`window.miniLolDebug` |
 
-AI 不需要完美，但需要让玩家感受到对线压力。
+## 4. 关键问题审计
 
----
+### 4.1 P0：`MobaScene` 已经成为 God Object
 
-## 3. 操作方法
+证据：
 
-### 3.1 PC 操作
+- Scene lifecycle、game loop 和渲染初始化集中在 `MobaScene.create/update/step`。
+- 同一文件同时包含 input、AI、combat、skill、economy、shop、death/respawn、view sync、debug hooks、snapshot。
+- 当前 `step` 每帧顺序调用十几个系统，但这些系统没有独立状态边界。
 
-| 输入 | 行为 |
+风险：
+
+- 新增 jungle、brush、fog、更多英雄或移动端输入时，会持续扩大单文件复杂度。
+- 单元测试只能通过 Scene/debug hooks 间接验证规则，难以纯逻辑测试。
+- 平衡性调参必须改 TypeScript 常量，无法做配置快照、难度档位或回放对比。
+
+建议：
+
+1. 新建 `src/game/simulation/`，把 `Unit`、`Building`、combat event、economy、skill config、wave config、tower targeting、AI decision 拆出去。
+2. 让 Phaser Scene 只负责 asset loading、view creation、input adapter、camera、VFX、HUD snapshot bridge。
+3. 保留 `GameSnapshot` 作为 UI/test 契约，但让它由 simulation state 生成，而不是由 Scene 私有字段拼装。
+
+### 4.2 P0：数值配置没有形成稳定配置层
+
+证据：
+
+- `WORLD_WIDTH`、`WAVE_INTERVAL`、`LEVEL_XP_REQUIREMENTS`、`SKILL_CONFIG`、`ITEM_CATALOG`、tower/minion/hero stats 都直接写在 `MobaScene.ts`。
+- 当前配置既用于玩法逻辑，也用于 HUD 和 debug state。
+
+风险：
+
+- 无法快速做 Easy/Normal/Hard 难度。
+- 无法做“LoL-like 机制，不复制数值”的独立平衡表。
+- 每次调参都增加回归风险。
+
+建议：
+
+1. 拆出 `src/game/data/game-config.ts`，包含 world、lane、wave、hero、minion、building、skill、item、ai、economy。
+2. 用 `as const satisfies` 约束配置结构，避免 item active、skill rank、asset id 拼错。
+3. 后续再考虑 JSON 化；当前先保持 TypeScript 配置，便于类型推导和重构。
+
+### 4.3 P1：防御塔机制还不够形成高压决策
+
+当前已实现：
+
+- 塔会攻击范围内敌人。
+- 英雄攻击己方英雄时能触发初版 tower hero aggro。
+- core 受 outer tower gating 保护。
+
+与 LoL-like 参考的差距：
+
+- 目标优先级过粗，目前基本是有 aggro 则打英雄，否则先找任意 minion，再找英雄。
+- 缺少 siege/minion/champion 的明确优先级。
+- 缺少连续攻击同一英雄的 ramping threat。
+- 缺少 “无兵线时拆塔效率降低” 的推进约束。
+- tower range 当前是常驻显示，缺少靠近/选中/危险态差异。
+
+建议：
+
+1. 基础 tower system 已先提取到 `src/game/simulation/towers.ts`，后续继续把优先级细化为 `forcedHeroAggro -> siege -> melee -> caster -> champion`。
+2. 增加 champion ramping damage 或 danger stack，让越塔成为高风险选择。
+3. 给 building damage 增加 `hasAlliedMinionNearby` 修正，减少无兵线硬拆。
+4. HUD/场景中增加 tower danger indicator：玩家进入敌塔且无己方 minion 时明显提示。
+
+### 4.4 P1：兵线系统还不能支撑 wave management
+
+当前已实现：
+
+- 固定间隔刷线。
+- 每波 melee/caster，第 3 波 siege。
+- 小兵自动寻找敌方单位或建筑。
+- last-hit gold 和附近 XP 已分离。
+
+与 LoL-like 对线策略的差距：
+
+- lane path 是单个目标点，不是真正的 waypoint path。
+- 小兵没有 aggro memory、call-for-help、重新归线逻辑。
+- 兵线强弱只取决于当前存活单位，没有 slow push、freeze、crash 的可观察状态。
+- 塔下补刀没有专门调优，玩家较难学习“塔打几下再补”的节奏。
+
+建议：
+
+1. 增加 `LanePath` 和 per-unit lane progress。
+2. 增加 minion target policy：enemy minion 优先、被英雄攻击时短暂 call-for-help、脱战后回归 lane。
+3. 在 snapshot 中暴露 `laneState`：`neutral`、`slowPushAzure`、`slowPushCrimson`、`crashingAzure`、`crashingCrimson`。
+4. 给塔下补刀做明确教学反馈：低血 minion 高亮、击杀窗口提示、CS missed 提示。
+
+### 4.5 P1：HUD 与 gameplay 交互边界过硬耦合
+
+证据：
+
+- `hud.ts` 通过 `root.innerHTML` 初始化大量模板。
+- UI click handler 直接调用 `window.miniLolDebug`。
+- shop、scoreboard、result 部分使用 `innerHTML` 重建动态内容。
+
+风险：
+
+- 当前数据主要来自本地枚举和 snapshot，风险可控；但一旦加入玩家名、外部配置、存档或联网，就会变成 XSS 和状态错位风险。
+- UI 无法独立测试 action dispatch，只能依赖全局 debug 对象。
+- 后续移动端 HUD 会继续扩大这个文件。
+
+建议：
+
+1. 引入 `GameCommand` dispatcher，例如 `castSkill`、`buyItem`、`toggleShop`、`setSetting`。
+2. HUD 只发送 command，不直接依赖 `window.miniLolDebug`。
+3. 将 shop/scoreboard/result 行渲染改为 DOM builder 或小组件函数，避免拼接潜在外部字符串。
+4. 保留 DOM HUD overlay，不把文本型 UI 塞进 canvas；这是当前正确方向。
+
+### 4.6 P1：AI 有状态名，但缺少可解释的决策模型
+
+当前 AI 已经能 laning、harass、retreat、all-in、recall，并会尝试 last-hit。
+
+主要差距：
+
+- 没有 threat score、tower danger、wave state、gold spend desire。
+- recall 判断主要靠血量与距离，不会因为 wave crash、金币够买关键装备、敌方死亡而主动回补。
+- AI 技能是单点 harass，缺少和玩家类似的技能组合。
+
+建议：
+
+1. 提取 `enemy-ai.ts`，把状态机拆成 `sense -> score -> decide -> act`。
+2. 增加 AI 输入因子：health ratio、mana ratio、wave state、tower danger、item breakpoint、player cooldown window。
+3. 增加 AI 可调参数：aggression、lastHitStrictness、recallDiscipline、towerRespect。
+4. 给 AI 决策写 snapshot trace，方便 playtest 中看到它为什么 retreat 或 all-in。
+
+### 4.7 P2：缺少视野、草丛和地图信息战
+
+当前地图是完全可见的单线战场，小地图显示单位和建筑。
+
+这对 MVP 可以接受，但下一阶段如果要更像 MOBA，需要最低限度的信息层次：
+
+1. 先不做完整 fog of war。
+2. 先做 brush/ambush zone，占位规则为：进入草丛时非近距离敌方单位不显示攻击意图。
+3. 小地图先支持 “visible/unknown” 状态，而不是全量精确点位。
+4. 后续再考虑 ward、neutral objective 和 jungle。
+
+### 4.8 P2：装备与经济还缺少 build choice
+
+当前装备都是一次性购买，部分带 active item。
+
+建议：
+
+1. 保留 MVP 无合成树，但增加互斥路线：damage、survivability、haste、siege。
+2. 给 enemy AI 也增加基础购买逻辑，否则玩家经济优势缺少对手反馈。
+3. 增加 item stat recalculation，避免购买时直接累加导致卖出、重置、难度修正困难。
+
+## 5. 更新路线图
+
+### Phase 1：系统边界重构
+
+目标：不改变玩法表现，先降低架构风险。
+
+修改范围：
+
+| 文件/目录 | 动作 |
 | --- | --- |
-| Right Click | 移动到地面位置，或攻击目标单位 |
-| Left Click | 选择单位或 UI 按钮 |
-| A + Left Click | 攻击移动 |
-| Q / W / E / R | 释放技能 |
-| Ctrl + Q/W/E/R | 升级对应技能 |
-| B | 回城 |
-| 1 / 2 / 3 / 4 | 使用装备 |
-| Space | 镜头回到玩家英雄 |
-| Tab | 显示计分面板 |
-| Esc | 打开设置菜单 |
-
-### 3.2 移动端操作
-
-参考图中的移动端 MOBA 布局，但 UI 需要原创。
-
-| 区域 | 控件 |
-| --- | --- |
-| 左下 | 虚拟摇杆 |
-| 右下 | 普攻按钮、Q/W/E/R 技能按钮、召回按钮 |
-| 底部中间 | 生命、法力、装备栏、金币 |
-| 右上 | 设置、计分、快捷信号 |
-| 右下角 | 小地图 |
-
-移动端优先级：
-
-- 普攻按钮最大，放在右下最容易触达的位置。
-- 核心技能围绕普攻按钮排布。
-- 终极技能尺寸略大于普通技能。
-- 技能冷却用径向遮罩和秒数同时表示。
-- 小地图不遮挡核心操作区域。
-
-### 3.3 目标选择与施法
-
-输入规则：
-
-- 点击地面时移动。
-- 点击敌方单位时攻击或追击。
-- 技能默认朝当前鼠标方向或摇杆瞄准方向释放。
-- 方向型技能需要显示预瞄准指示器。
-- 范围技能需要显示圆形或扇形范围。
-- 施法失败必须有反馈，例如超出距离、法力不足或冷却中。
-
----
-
-## 4. 胜利条件与失败条件
-
-### 4.1 胜利条件
-
-玩家摧毁红方基地核心即胜利。
-
-基地核心只有在红方外塔被摧毁后才可受到伤害。这样可以保证推塔是必须路径，而不是绕过防御塔直取基地。
-
-### 4.2 失败条件
-
-蓝方基地核心被摧毁即失败。
-
-如果玩家死亡，不会立即失败。玩家会进入复活倒计时，并在基地复活。随着游戏时间推进，复活时间增加。
-
-### 4.3 平局与超时处理
-
-MVP 单局目标时长为 6 到 10 分钟。
-
-如果 12 分钟仍未分出胜负，进入决胜推进：
-
-- 双方小兵生命和攻击提高 30%。
-- 防御塔护甲降低 20%。
-- 英雄击杀奖励提高 25%。
-
-这可以避免原型测试时单局拖得过长。
-
----
-
-## 5. 难度与进度
-
-### 5.1 难度曲线
-
-MVP 难度来自三个系统：
-
-| 来源 | 初期 | 中期 | 后期 |
-| --- | --- | --- | --- |
-| 兵线 | 学习补刀 | 控制兵线位置 | 快速清线推塔 |
-| 敌方英雄 | 少量消耗 | 主动换血 | 尝试击杀 |
-| 防御塔 | 提供安全区 | 惩罚越塔 | 阻止直接推进 |
-
-### 5.2 玩家成长节奏
-
-期望节奏：
-
-- 0:00 到 1:00：熟悉移动、普攻、第一波补刀。
-- 1:00 到 2:30：升到 2 到 3 级，解锁基础技能组合。
-- 2:30 到 4:30：第一次回城购买装备，开始尝试击杀或推塔。
-- 4:30 到 7:00：到达 6 级，使用终极技能创造推进机会。
-- 7:00 之后：摧毁防御塔并推进基地。
-
-### 5.3 难度档位
-
-| 档位 | AI 行为 | 资源倍率 | 适用场景 |
-| --- | --- | --- | --- |
-| Easy | AI 反应慢，不主动越塔 | 玩家金币 +20% | 新手测试 |
-| Normal | AI 正常补刀和消耗 | 无倍率 | 默认体验 |
-| Hard | AI 更积极换血和回城补给 | AI 经验 +10% | 熟练玩家 |
-
-### 5.4 可调参数
-
-为了快速调试，以下数值必须集中配置：
-
-- 小兵刷新间隔。
-- 每波小兵数量。
-- 英雄基础属性。
-- 技能伤害、冷却、消耗。
-- 防御塔攻击范围和伤害。
-- 经验表和金币奖励。
-- AI 激进程度。
-
----
-
-## 6. 视觉方向
-
-### 6.1 总体美术风格
-
-视觉方向为原创 2.5D 奇幻竞技场。
-
-关键特征：
-
-- 斜俯视角，接近等距构图，但允许轻微透视。
-- 场景有明确前后层次：地砖、草丛、墙体、塔、角色阴影分层清晰。
-- 角色为 2D 多方向精灵图，放置在 2.5D 地图中。
-- 颜色和轮廓清晰，蓝方与红方阵营色强区分。
-- 角色体型略微夸张，头肩和武器轮廓要在 64px 尺寸下可读。
-- 特效使用高饱和色，但不能遮挡角色动作和血条。
-
-### 6.2 摄像机与空间感
-
-摄像机规范：
-
-| 项目 | 目标 |
-| --- | --- |
-| Camera Angle | 35 到 45 度斜俯 |
-| Projection | Orthographic-like 2.5D |
-| Unit Anchor | 脚底中心点 |
-| Depth Sort | 按世界 Y 坐标排序 |
-| Shadow | 椭圆软阴影，独立于角色精灵 |
-| Tile Shape | 等距菱形或斜透视石板 |
-
-地图纵深表现：
-
-- 道路边缘使用草地、石墙和高低差制造层次。
-- 高草、墙体、塔座可遮挡角色下半身，但不能遮挡血条。
-- 远离主路的背景降低对比度，避免抢主玩法信息。
-- 防御塔高度明显高于英雄和小兵。
-
-### 6.3 角色精灵图规格
-
-所有动态角色使用 8 方向 sprite sheets。
-
-方向顺序：
-
-| Index | Direction | 说明 |
-| --- | --- | --- |
-| 0 | south | 面向屏幕下方 |
-| 1 | south-east | 面向右下 |
-| 2 | east | 面向右侧 |
-| 3 | north-east | 面向右上 |
-| 4 | north | 背向镜头 |
-| 5 | north-west | 面向左上 |
-| 6 | west | 面向左侧 |
-| 7 | south-west | 面向左下 |
-
-角色动作规格：
-
-| Action | Frames | 用途 |
-| --- | --- | --- |
-| idle | 6 | 待机呼吸、披风轻摆 |
-| move | 6 | 移动循环 |
-| basic_attack | 6 | 普攻，含命中帧 |
-| cast | 6 | 技能施法通用动作 |
-| hit | 4 | 受击反馈 |
-| death | 8 | 死亡倒地，不循环 |
-
-默认单元格尺寸：
-
-| 资源类型 | Cell Size | 说明 |
-| --- | --- | --- |
-| Hero | 96x96 | 英雄需要更清晰轮廓和武器动作 |
-| Minion | 64x64 | 小兵简化细节 |
-| Projectile | 64x64 | 弹体和小型技能特效 |
-| Large VFX | 128x128 | 终极技能、塔攻击爆点 |
-| UI Icon | 128x128 source, displayed smaller | 技能和装备图标 |
-
-如果后续使用 `game-character-sprites` skill 批量生产角色，优先产出 64x64 兼容版本；英雄可再补 96x96 或 128x128 高精版本。所有精灵图必须保持透明背景，并提供 contact sheet 与 GIF/WebP 预览。
-
-### 6.4 角色原创设定
-
-#### Astra Vanguard
-
-蓝方玩家英雄。
-
-视觉要点：
-
-- 深蓝披风。
-- 银白铠甲。
-- 蓝色能量长剑。
-- 肩甲和剑光形成清晰三角轮廓。
-- 动作沉稳，攻击轨迹带蓝色弧光。
-
-动画重点：
-
-- `idle`：披风轻摆，剑尖轻微发光。
-- `move`：披风滞后，剑保持低位。
-- `basic_attack`：明显蓄力、斩击、收招。
-- `cast`：剑举起，蓝色能量聚集。
-- `hit`：身体后仰，护甲闪白。
-- `death`：剑落地，角色跪倒后倒下。
-
-#### Crimson Duelist
-
-红方 AI 英雄。
-
-视觉要点：
-
-- 赤黑轻甲。
-- 长枪或双刃枪。
-- 红色披风。
-- 头盔或肩部有尖锐轮廓。
-- 动作更快、更具侵略性。
-
-动画重点：
-
-- `idle`：枪尖轻晃，披风摆动。
-- `move`：短步快速推进。
-- `basic_attack`：刺击或横扫。
-- `cast`：枪刃亮红，前方能量线。
-- `hit`：短促后退。
-- `death`：武器脱手，侧向倒地。
-
-### 6.5 小兵原创设定
-
-蓝方与红方小兵共享结构，但颜色和头盔轮廓不同。
-
-| 类型 | 蓝方主题 | 红方主题 | 角色职责 |
-| --- | --- | --- | --- |
-| Melee Minion | 蓝布甲、短剑、小圆盾 | 红布甲、短斧、小尖盾 | 前排承伤 |
-| Caster Minion | 蓝色法杖、轻甲 | 红色法杖、轻甲 | 远程输出 |
-| Siege Minion | 蓝色小型攻城炮 | 红色小型攻城炮 | 推塔压力 |
-
-小兵动作：
-
-| Action | Frames | 说明 |
-| --- | --- | --- |
-| idle | 4 | 可填充到 6 帧 |
-| move | 6 | 行军循环 |
-| basic_attack | 6 | 近战挥砍或远程施法 |
-| hit | 4 | 受击 |
-| death | 6 | 倒地或破碎 |
-
-### 6.6 建筑与场景资源
-
-建筑不需要完整 8 方向动画，但需要匹配 2.5D 斜俯视角。
-
-| 资源 | 尺寸建议 | 状态 |
-| --- | --- | --- |
-| Blue Outer Tower | 256x384 | idle, attack, destroyed |
-| Red Outer Tower | 256x384 | idle, attack, destroyed |
-| Blue Core | 256x256 | idle, damaged, destroyed |
-| Red Core | 256x256 | idle, damaged, destroyed |
-| Lane Tiles | 256x128 tile set | normal, cracked, edge |
-| Grass Tiles | 256x128 tile set | low grass, tall grass, edge |
-| Wall Props | variable | intact, broken |
-
-建筑视觉规则：
-
-- 蓝方使用蓝水晶、银白石材、冷色能量。
-- 红方使用红水晶、黑铁石材、暖色能量。
-- 建筑底座需要能嵌入地面，不应像贴纸浮在地图上。
-- 防御塔攻击状态需要明显蓄光和弹体/光束。
-
-### 6.7 UI 方向
-
-UI 参考移动端 MOBA 的信息层级，但必须原创。
-
-UI 原则：
-
-- 中央战场保持干净。
-- 血条和等级信息紧贴单位上方。
-- 技能按钮使用圆形或切角圆形，避免直接复制参考图样式。
-- 技能图标使用原创蓝色剑气、护盾、冲刺、爆发主题。
-- 装备图标保持金属、皮革、水晶等材质区分。
-- 阵营比分、计时器和资源条保持高对比。
-
-核心 UI 资源：
-
-| 资源 | 数量 | 说明 |
-| --- | --- | --- |
-| Hero Portrait | 2 | 蓝方玩家、红方对手 |
-| Skill Icons | 8 | 每名英雄 4 个 |
-| Item Icons | 6 | MVP 装备 |
-| Minimap Icons | 8+ | 英雄、小兵、塔、核心 |
-| Health Bar Styles | 3 | 英雄、小兵、防御塔 |
-| Damage Numbers | 4 styles | normal, crit, heal, xp |
-
-### 6.8 特效方向
-
-VFX 要清晰、短促、可读。
-
-| VFX | 颜色 | 用途 |
-| --- | --- | --- |
-| Blue Slash Arc | 蓝白 | Astra 普攻和 Q |
-| Blue Shield Pulse | 青蓝 | Astra W |
-| Dash Trail | 蓝色残影 | Astra E |
-| Ultimate Shockwave | 蓝白高亮 | Astra R |
-| Red Spear Trace | 红橙 | Crimson 普攻和 Q |
-| Tower Beam Blue | 蓝白 | 蓝方塔攻击 |
-| Tower Beam Red | 红橙 | 红方塔攻击 |
-| Hit Spark | 黄白 | 普通命中 |
-
----
-
-## 7. 版本目标
-
-### 7.1 V0.1 Vertical Slice
-
-目标：做出一局可以开始、推进、胜利或失败的单线 MOBA 原型。
-
-必须包含：
-
-- 2.5D 单线地图。
-- 蓝方玩家英雄 Astra Vanguard。
-- 红方 AI 英雄 Crimson Duelist。
-- 蓝/红双方近战和远程小兵。
-- 小兵自动刷线、寻路、攻击。
-- 玩家移动、普攻、4 个技能。
-- 补刀金币、经验、等级、技能升级。
-- 简化装备商店。
-- 双方外塔和基地核心。
-- 胜利/失败结算。
-- 基础 UI：血条、蓝条、技能按钮、装备栏、金币、等级、小地图。
+| `src/game/simulation/types.ts` | 新建 simulation state 类型，承载 Unit、Building、GameMode、CombatEvent |
+| `src/game/data/game-config.ts` | 新建集中数值配置 |
+| `src/game/simulation/towers.ts` | 从 Scene 中迁出 tower aggro、targeting 和 tower attack intent |
+| `src/game/simulation/snapshot.ts` | 从 simulation state 生成 `GameSnapshot` |
+| `src/game/MobaScene.ts` | 保留 Phaser lifecycle、renderer/input bridge，逐步删除规则所有权 |
+| `src/game/types.ts` | 保留 UI/test-facing snapshot contract |
 
 验收标准：
 
-- 玩家可以从开局玩到摧毁敌方基地核心。
-- 至少能通过补刀购买 2 件装备。
-- 至少能升到 6 级并释放终极技能。
-- 防御塔能正确保护己方区域。
-- 兵线能自然推进并威胁建筑。
+- `npm run build` 通过。
+- 现有 `playtest-artifacts/completion-round-5/report.json` 对应的断言能力仍可重跑并通过。
+- `MobaScene.ts` 行数下降到 1800 行以下。
+- 纯 simulation 函数至少覆盖：damage resolution、XP/gold reward、skill attempt failure、building vulnerability。
 
-### 7.2 V0.2 Combat Feel Pass
+### Phase 2：兵线与防御塔深化
 
-目标：提升战斗手感和反馈。
+目标：让对线从“单位互打”升级为“玩家可以理解和利用兵线/塔节奏”。
 
-内容：
+修改内容：
 
-- 完整普攻命中帧。
-- 技能预警范围。
-- 受击闪白、伤害数字、击杀提示。
-- 攻击移动。
-- AI 更合理的撤退和消耗。
-- 音效占位。
-- 更多 VFX 打磨。
+1. 增加 lane waypoint 与 lane progress。
+2. 增加 minion aggro memory 和 call-for-help。
+3. 增加 tower target priority。
+4. 增加 champion tower ramping threat。
+5. 增加无己方 minion 附近时的 structure damage penalty。
+6. 增加 lane state snapshot 与 HUD status chip。
 
 验收标准：
 
-- 普攻和技能结算与动画帧一致。
-- 玩家能明确判断技能是否命中。
-- 死亡、升级、购买装备都有清楚反馈。
+- 玩家攻击塔下敌方英雄时，敌塔切换攻击玩家。
+- 敌方英雄离开塔范围或死亡后，塔重新按优先级选择目标。
+- siege minion 比 melee/caster 更优先承受塔火力。
+- 无兵线拆塔明显更慢。
+- lane state 能在 debug snapshot 中稳定出现。
 
-### 7.3 V0.3 Asset Completeness Pass
+### Phase 3：补刀与成长反馈
 
-目标：补齐原创美术资源。
+目标：强化 LoL-like laning 的核心学习点。
 
-内容：
+修改内容：
 
-- 英雄 8 方向完整动作精灵图。
-- 小兵 8 方向完整动作精灵图。
-- 防御塔、基地、地形、草丛、墙体资源。
-- UI 图标、头像、装备图标。
-- 技能 VFX sprite sheets。
-- 所有资源命名、元数据和预览整理。
+1. 低血敌方 minion 增加 last-hit window 高亮。
+2. 增加 missed CS 反馈，但不要刷屏。
+3. 补刀金币、经验、升级、技能点、装备购买形成连续 HUD 动效。
+4. 调整 tower damage to minion，使塔下补刀出现稳定节奏。
+5. 增加 simple post-game economy summary：CS、missed CS、gold spent、tower damage。
 
 验收标准：
 
-- 不再依赖临时代码绘制角色。
-- 每个角色动作都有对应 sprite sheet。
-- 所有动画有透明背景和预览文件。
-- 视觉风格统一为 2.5D 斜俯视角。
+- 玩家能通过视觉提示判断哪个 minion 可补。
+- 塔下 melee/caster/siege 有可学习的补刀节奏。
+- Playwright 断言能验证 last-hit gold、missed CS、level up、purchase 后 stats 改变。
 
-### 7.4 V0.4 Systems Pass
+### Phase 4：AI 对线升级
 
-目标：扩展 MOBA 系统深度。
+目标：让 Crimson Duelist 更像对线对手，而不是移动靶。
 
-内容：
+修改内容：
 
-- 装备合成树。
-- 英雄死亡复活时间曲线。
-- 防御塔仇恨规则完善。
-- 草丛视野规则。
-- 小地图战争迷雾占位。
-- 回城和基地回血。
-- 更多 AI 行为。
+1. 拆出 AI decision module。
+2. 增加 threat score 和 wave state 感知。
+3. 增加 item breakpoint recall。
+4. 增加基本 skill combo：harass、mark、all-in。
+5. 增加 AI decision trace 到 snapshot。
 
-### 7.5 V1.0 Prototype Complete
+验收标准：
 
-目标：形成可反复试玩、可调参数、可展示的原创 2.5D MOBA 原型。
+- AI 在低血、被塔威胁、wave 不利时撤退。
+- AI 在玩家低血、关键技能冷却可用时尝试 all-in。
+- AI 在攒够装备钱且 wave 状态安全时回城。
+- AI 行为可通过 snapshot trace 解释。
 
-内容：
+### Phase 5：HUD 输入边界与安全整理
 
-- 完整单线对局。
-- 稳定胜负逻辑。
-- 资源风格统一。
-- 完整主菜单、设置、结算界面。
-- 可配置数值表。
-- 可录屏展示的视觉完成度。
+目标：让 DOM HUD 成为稳定 UI 层，而不是 debug hook 的直接客户端。
 
----
+修改内容：
 
-## 8. 后续精灵图生产清单
+1. 新增 `GameCommand` 类型与 command dispatcher。
+2. HUD click handler 发送 command，Scene/simulation 处理 command。
+3. shop/scoreboard/result 改成安全 DOM builder 或明确的 trusted renderer。
+4. 为移动端 HUD 预留 command/action map，不直接绑定键盘语义。
 
-本节用于指导后续使用 `game-character-sprites` skill 生成资产。
+验收标准：
 
-### 8.1 第一批必须生成的角色精灵图
+- 删除 HUD 对 `window.miniLolDebug` 的生产路径依赖。
+- debug hooks 只用于测试和开发控制。
+- `innerHTML` 只保留静态 trusted template，动态列表不用字符串拼接外部值。
+- 所有 HUD 操作仍能被 Playwright 调用验证。
 
-| Asset ID | Unit | Cell | Directions | Actions |
-| --- | --- | --- | --- | --- |
-| astra_vanguard | Blue Hero | 64x64 first, 96x96 optional | 8 | idle, move, basic_attack, cast, hit, death |
-| crimson_duelist | Red Hero | 64x64 first, 96x96 optional | 8 | idle, move, basic_attack, cast, hit, death |
-| azure_melee_minion | Blue Melee Minion | 64x64 | 8 | idle, move, basic_attack, hit, death |
-| crimson_melee_minion | Red Melee Minion | 64x64 | 8 | idle, move, basic_attack, hit, death |
-| azure_caster_minion | Blue Caster Minion | 64x64 | 8 | idle, move, basic_attack, hit, death |
-| crimson_caster_minion | Red Caster Minion | 64x64 | 8 | idle, move, basic_attack, hit, death |
+### Phase 6：地图信息层与目标扩展
 
-### 8.2 第二批资产
+目标：增加 MOBA 纵深，但不破坏单线 MVP。
 
-| Asset ID | Type | Output |
+建议顺序：
+
+1. Brush zone，占位隐藏/显形规则。
+2. 小地图 visible/unknown 状态。
+3. Neutral camp 占位，用于练习 objective timing。
+4. Inhibitor/super minion 简化机制。
+5. 可选 jungle side lane，不急于做三路地图。
+
+验收标准：
+
+- 玩家能因为 brush 和 minimap 信息做位置决策。
+- 摧毁 inhibitor 后，该路后续 wave 追加 super minion。
+- 目标扩展不会让单局时长失控。
+
+### Phase 7：资产生产流水线固化
+
+目标：把后续美术资产生产变成可追溯、可校验、可复用的项目流水线。
+
+修改内容：
+
+1. 为 `assets/sprites/characters/`、`assets/sprites/minions/`、`assets/sprites/effects/`、`assets/sprites/ui/` 建立统一 manifest 约定。
+2. 使用 `.codex/skills/game-character-sprites` 生成或修正角色、小兵动作精灵图。
+3. 使用 `.codex/skills/codex-gateway-imagegen` 生成概念图、参考图和静态 raster asset。
+4. 把每次生成的 source、prompt、manifest、validation、preview 放入对应资产目录。
+5. 在 `src/game/assets.ts` 只引用稳定 manifest key，不直接散落临时生成路径。
+
+验收标准：
+
+- 每个新增 sprite run 都有 `run-manifest.json`。
+- 每个动作 sheet 都有 clean PNG、metadata、contact sheet、validation JSON 和 GIF/WebP 预览。
+- 新增 raster 图像都能追溯到 gateway 输出路径和项目内落位路径。
+- `npm run build` 能正常打包所有新增资产。
+
+## 6. 推荐执行顺序
+
+| 优先级 | 任务 | 理由 |
 | --- | --- | --- |
-| azure_outer_tower | Building | idle, attack, destroyed |
-| crimson_outer_tower | Building | idle, attack, destroyed |
-| azure_core | Building | idle, damaged, destroyed |
-| crimson_core | Building | idle, damaged, destroyed |
-| astra_skill_vfx | VFX | Q, W, E, R sheets |
-| crimson_skill_vfx | VFX | Q and basic attack sheets |
-| moba_ui_icons | UI | skills, items, minimap, status |
+| 1 | Phase 1 系统边界重构 | 先降低 God Object 风险，后续所有机制都会更好测 |
+| 2 | Phase 2 兵线与防御塔深化 | 最接近 LoL 对线核心，也直接提升可玩性 |
+| 3 | Phase 3 补刀与成长反馈 | 让玩家理解自己为什么领先或落后 |
+| 4 | Phase 4 AI 对线升级 | 当前 AI 已可用，但缺少策略解释和经济回补 |
+| 5 | Phase 5 HUD 输入边界 | 为移动端和安全性清债 |
+| 6 | Phase 6 地图信息层 | 价值高，但应等核心单线体验稳定后再扩 |
+| 7 | Phase 7 资产生产流水线固化 | 确保后续美术生成可追溯、可校验、可重复 |
 
-### 8.3 文件命名建议
+## 7. 建议新增测试矩阵
 
-资源路径建议：
+| 测试类别 | 覆盖点 |
+| --- | --- |
+| Pure simulation unit tests | damage、shield、mark consume、cooldown refund、XP/gold、respawn duration、building vulnerability |
+| Tower behavior assertions | hero aggro、target reset、siege priority、no-minion tower damage penalty |
+| Lane behavior assertions | wave spawn、lane state、minion aggro memory、return-to-lane |
+| Economy assertions | last-hit gold、nearby XP、missed CS、item stat recalculation、AI purchase |
+| HUD command assertions | cast、upgrade、buy、use item、toggle settings、scoreboard、recall |
+| Browser smoke | nonblank canvas、HUD not overlapping、shop/scoreboard/death/result visible states |
 
-- `assets/sprites/characters/astra_vanguard/`
-- `assets/sprites/characters/crimson_duelist/`
-- `assets/sprites/minions/azure/`
-- `assets/sprites/minions/crimson/`
-- `assets/sprites/buildings/azure/`
-- `assets/sprites/buildings/crimson/`
-- `assets/sprites/effects/`
-- `assets/sprites/ui/`
+## 8. 近期不建议做的事
 
-精灵图命名建议：
+1. 不建议立刻做完整三路地图。当前单线系统边界还没拆清，三路会把状态复杂度放大。
+2. 不建议立刻复制 LoL 具体英雄、技能名、图标、数值或地图资产。项目应保持原创。
+3. 不建议先做复杂装备合成树。当前更缺的是 item stat recalculation 和 AI 经济反馈。
+4. 不建议把 HUD 全塞进 canvas。DOM HUD 对文字、设置、商店、计分板更合适。
+5. 不建议删除现有 Playwright/debug hooks。应该先改造成明确的 dev/test adapter。
+6. 不建议绕过 `.codex/skills/game-character-sprites` 直接手工拼角色 sprite sheet。
+7. 不建议绕过 `.codex/skills/codex-gateway-imagegen` 把生图结果只保存在临时目录或聊天输出中。
 
-- `idle-sheet-clean.png`
-- `move-sheet-clean.png`
-- `basic_attack-sheet-clean.png`
-- `cast-sheet-clean.png`
-- `hit-sheet-clean.png`
-- `death-sheet-clean.png`
-- `metadata.json`
-- `visual-review.json`
+## 9. 外部链接
 
-### 8.4 资产验收标准
-
-每个角色精灵图必须满足：
-
-- 8 方向齐全。
-- 每个动作帧数符合规格。
-- 背景透明。
-- 角色不会被裁切。
-- 阵营颜色明确。
-- 动画有可读运动差异，不能只是静态帧抖动。
-- contact sheet 可审阅。
-- GIF 或 WebP 预览可播放。
-- 视觉上符合 2.5D 斜俯视角。
-- 不直接复制参考图或任何现有商业游戏素材。
-
----
-
-## 9. 当前实现优先级
-
-推荐执行顺序：
-
-1. 先实现 2.5D 地图渲染、单位深度排序和基础移动。
-2. 生成 Astra Vanguard 的 `idle`、`move`、`basic_attack` 8 方向精灵图。
-3. 接入玩家移动、普攻和血条。
-4. 生成蓝/红近战小兵和远程小兵的移动、攻击、死亡动画。
-5. 实现兵线推进、补刀、经验和金币。
-6. 接入防御塔和基地核心。
-7. 生成 Crimson Duelist，并实现简化 AI 对线。
-8. 接入技能、装备、升级和胜负结算。
-9. 补齐 UI、VFX、音效和视觉打磨。
-
-这样可以尽早验证核心玩法闭环，同时避免一开始就在大量美术资源上投入后才发现系统不可玩。
+- Riot 官方玩法入门：https://www.leagueoflegends.com/en-us/how-to-play/
+- Leaguepedia Minions and Towers：https://lol.fandom.com/wiki/New_To_League/Gameplay/Minions_and_Towers
+- MOBAFire Last Hitting：https://www.mobafire.com/league-of-legends/wiki/game-mechanics/last-hitting
+- MOBAFire Turret：https://www.mobafire.com/league-of-legends/wiki/maps/turret
+- Phaser repository：https://github.com/phaserjs/phaser

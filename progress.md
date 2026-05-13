@@ -78,6 +78,39 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 - Skill-feel Playwright assertions pass for Q mark, E cast buffering, marked E bonus feedback, R root, and `render_game_to_text` casting/effects state.
 - Completion round 5 regression assertions still pass after the skill state-machine changes.
 - Develop-web-game smoke playtest passes after the skill-feel pass.
+- 根据 `PLAN.md` 开始 Phase 1 系统边界重构。
+- 在 `PLAN.md` 中补充资产生产约束：角色/小兵等动作精灵图使用 `.codex/skills/game-character-sprites`，概念图/静态 raster 生图使用 `.codex/skills/codex-gateway-imagegen`。
+- 新增 `src/game/data/game-config.ts`，集中迁出 world、lane、wave、respawn、skill、item、economy 等核心配置。
+- 新增 `src/game/simulation/types.ts`，迁出 `Point`、`Unit`、`Building`、damage event 和 hit effect 类型。
+- 新增 `src/game/simulation/rules.ts`，迁出 `clamp`、`distance`、`normalize`、`directionFromVector`、`maxSkillLevel`、`skillCooldown`、`respawnDurationFor` 等无 Phaser 依赖规则函数。
+- 新增 `src/game/simulation/factories.ts`，迁出 hero、minion、building 初始实体创建逻辑。
+- 更新 `src/game/MobaScene.ts`，改为从 data/simulation 模块导入配置、类型和规则函数，保留 Scene 的 Phaser lifecycle、renderer/input/HUD bridge 责任。
+- `MobaScene.ts` 从 2879 行逐步降到 2291 行；Phase 1 尚未完成到计划中的 1800 行目标，下一步应继续拆 combat resolution、AI trace 或 command dispatcher。
+- 更新 `src/game/assets.ts`，导出 `BuildingAssetId` 供 simulation 类型使用。
+- `npm run build` passes after the Phase 1 config/type/rules extraction.
+- `git diff --check -- PLAN.md src/game/MobaScene.ts src/game/assets.ts src/game/data/game-config.ts src/game/simulation/types.ts src/game/simulation/rules.ts` passes.
+- Develop-web-game smoke playtest passes after the Phase 1 extraction: `playtest-artifacts/phase-1-config-refactor-smoke` contains nonblank gameplay screenshots and `render_game_to_text` states for active combat/respawn.
+- `npm run build` passes after extracting simulation factories.
+- Develop-web-game smoke playtest passes after factory extraction: `playtest-artifacts/phase-1-factory-refactor-smoke` contains nonblank screenshots and JSON states with active combat, level-up, tower fire, and intact building state.
+- 新增 `src/game/simulation/objectives.ts`，迁出 building vulnerability、nearest attackable building、tower target selection 和 building render state 规则，为 Phase 2 防御塔深化做准备。
+- `npm run build` passes after extracting objective/tower rules.
+- Develop-web-game smoke playtest passes after objective rule extraction: `playtest-artifacts/phase-1-objectives-refactor-smoke` contains nonblank screenshots and JSON states with tower attack/building state intact.
+- 新增 `src/game/simulation/enemy-ai.ts`，迁出 enemy hero decision 和 last-hit candidate selection；`MobaScene.updateEnemyHeroAI` 现在只负责调用决策、执行移动/攻击/回城/骚扰动作。
+- `PLAN.md` was updated after Phase 1 config, type, rule, factory, objective, and enemy AI extraction; later snapshot extraction lowered the Scene size again.
+- `git diff --check` passes for the current Phase 1 refactor diff.
+- `npm run build` passes after extracting enemy AI.
+- Develop-web-game smoke playtest passes after enemy AI extraction: `playtest-artifacts/phase-1-enemy-ai-refactor-smoke` contains nonblank screenshots and JSON states with enemy AI retreat/death state, active lane combat, and intact building state.
+- 新增 `src/game/simulation/snapshot.ts`，迁出 `GameSnapshot` assembly、shop/item slot snapshots、scoreboard rows、match summary、input block reason 和 unit effect labels；`MobaScene.snapshot` 现在只负责收集当前 Scene 状态并调用 `createGameSnapshot`.
+- `PLAN.md` was updated after snapshot extraction; later tower targeting extraction lowered the Scene size again.
+- `git diff --check` passes after snapshot extraction.
+- `npm run build` passes after extracting snapshot assembly.
+- Develop-web-game smoke playtest passes after snapshot extraction: `playtest-artifacts/phase-1-snapshot-refactor-smoke` contains nonblank screenshots and JSON states with shop items, active item slots, scoreboard rows, enemy AI state, active lane combat, and intact building state.
+- 新增 `src/game/simulation/towers.ts`，迁出 tower aggro ticking、tower hero aggro registration、tower target selection、tower attack intents 和 tower damage event draft creation。
+- `MobaScene.updateBuildings` 现在只调用 `resolveTowerAttacks`，给 tower attack intent 分配事件 id 并入队；`MobaScene.registerTowerHeroAggro` 只转发 Scene 状态到 tower rule。
+- `PLAN.md` current snapshot now reflects the latest `MobaScene.ts` size: 2291 lines after tower targeting extraction.
+- `git diff --check` passes after tower targeting extraction.
+- `npm run build` passes after extracting tower targeting.
+- Develop-web-game smoke playtest passes after tower targeting extraction: `playtest-artifacts/phase-1-tower-targeting-refactor-smoke` contains nonblank screenshots and JSON states with tower fire message, active lane combat, enemy AI state, and intact building state.
 
 ## Verification
 
@@ -97,3 +130,17 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 - `playtest-artifacts/skill-feel-pass/report.json`
 - `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/skill-feel-smoke`
 - `playtest-artifacts/completion-round-5/report.json`
+- `git diff --check -- PLAN.md src/game/MobaScene.ts src/game/assets.ts src/game/data/game-config.ts src/game/simulation/types.ts src/game/simulation/rules.ts`
+- `npm run build`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-config-refactor-smoke`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-factory-refactor-smoke`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-objectives-refactor-smoke`
+- `git diff --check`
+- `npm run build`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-enemy-ai-refactor-smoke`
+- `git diff --check`
+- `npm run build`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-snapshot-refactor-smoke`
+- `git diff --check`
+- `npm run build`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-tower-targeting-refactor-smoke`

@@ -176,6 +176,8 @@ export const BUILDING_ASSETS = {
   },
 } as const;
 
+export type BuildingAssetId = keyof typeof BUILDING_ASSETS;
+
 export const VFX_ASSETS = {
   astra_skill_vfx: {
     url: assetUrl("assets/sprites/effects/astra_skill_vfx/final/astra_skill_vfx-atlas.png"),

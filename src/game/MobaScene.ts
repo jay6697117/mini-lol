@@ -8,126 +8,46 @@ import {
   UNIT_ASSETS,
   VFX_ASSETS,
 } from "./assets";
-import type { BuildingSnapshot, EnemyAiState, GameResult, GameSnapshot, ItemSlotSnapshot, MatchSummarySnapshot, ScoreboardRowSnapshot, ShopItemSnapshot, SkillKey, UnitKind, UnitSnapshot } from "./types";
+import {
+  ACTIVE_ITEM_IDS,
+  AZURE_BASE,
+  BASE_HEALTH_REGEN_PER_SECOND,
+  BASE_MANA_REGEN_PER_SECOND,
+  BASE_REGEN_RADIUS,
+  BASIC_ATTACK_WINDUP,
+  CAST_QUEUE_WINDOW,
+  CRIMSON_BASE,
+  ENEMY_START,
+  GOLD_REWARDS,
+  ITEM_CATALOG,
+  type ActiveItemKind,
+  type ItemId,
+  LANE_END,
+  LANE_START,
+  LEVEL_XP_REQUIREMENTS,
+  MINION_ATTACK_WINDUP,
+  PLAYER_START,
+  PLAYER_XP_SHARE_RANGE,
+  SKILL_CONFIG,
+  WAVE_INTERVAL,
+  WORLD_HEIGHT,
+  WORLD_WIDTH,
+  XP_REWARDS,
+} from "./data/game-config";
+import { decideEnemyHeroAction, findLastHitCandidate as findEnemyLastHitCandidate } from "./simulation/enemy-ai";
+import { createBuilding, createHero, createMinion } from "./simulation/factories";
+import { buildingState, findNearestAttackableBuilding as findNearestAttackableBuildingRule, isBuildingVulnerable } from "./simulation/objectives";
+import { clamp, directionFromVector, distance, maxSkillLevel as configuredMaxSkillLevel, normalize, respawnDurationFor as configuredRespawnDurationFor, skillCooldown as configuredSkillCooldown } from "./simulation/rules";
+import { createGameSnapshot, playerInputBlockedReason, unitEffectLabels } from "./simulation/snapshot";
+import { createTowerDamageEvent, registerTowerHeroAggro as registerTowerHeroAggroRule, resolveTowerAttacks, tickTowerAggro } from "./simulation/towers";
+import type { Building, DamageHitEffects, PendingDamageEvent, Point, TowerAggroState, Unit } from "./simulation/types";
+import type { EnemyAiState, GameResult, GameSnapshot, SkillKey, UnitKind } from "./types";
 import { updateHud } from "../ui/hud";
-
-interface Point {
-  x: number;
-  y: number;
-}
-
-interface Unit {
-  id: string;
-  assetId: string;
-  team: Team;
-  kind: UnitKind;
-  x: number;
-  y: number;
-  hp: number;
-  maxHp: number;
-  mana: number;
-  maxMana: number;
-  shield: number;
-  level: number;
-  xp: number;
-  gold: number;
-  speed: number;
-  radius: number;
-  attackRange: number;
-  attackDamage: number;
-  buildingDamageMultiplier: number;
-  attackCooldown: number;
-  cooldownReduction: number;
-  attackTimer: number;
-  action: UnitAction;
-  actionTimer: number;
-  lastDirection: Direction;
-  slowTimer: number;
-  slowMultiplier: number;
-  rootTimer: number;
-  markTimer: number;
-  hasteTimer: number;
-  hasteMultiplier: number;
-  shieldTimer: number;
-  recallTimer: number;
-  recallDuration: number;
-  skillLevels: Record<SkillKey, number>;
-  skillPoints: number;
-  targetUnitId?: string;
-  targetBuildingId?: string;
-  targetPoint?: Point;
-  attackMovePoint?: Point;
-  alive: boolean;
-  respawnTimer: number;
-  respawnDuration: number;
-}
-
-interface Building {
-  id: string;
-  assetId: keyof typeof BUILDING_ASSETS;
-  team: Team;
-  type: "tower" | "core";
-  x: number;
-  y: number;
-  hp: number;
-  maxHp: number;
-  attackRange: number;
-  attackDamage: number;
-  attackCooldown: number;
-  attackTimer: number;
-  attackFlash: number;
-  radius: number;
-}
 
 interface VfxInstance {
   id: string;
   sprite: Phaser.GameObjects.Sprite;
   ttl: number;
-}
-
-interface SlowEffect {
-  multiplier: number;
-  duration: number;
-}
-
-interface DamageHitEffects {
-  slow?: SlowEffect;
-  knockback?: number;
-  root?: number;
-  mark?: number;
-  consumeMarkBonus?: number;
-  cooldownRefund?: Partial<Record<SkillKey, number>>;
-}
-
-interface PendingDamageEvent {
-  id: string;
-  triggerAt: number;
-  sourceTeam: Team;
-  sourceId?: string;
-  kind: "unit" | "building" | "circle" | "cone";
-  targetId?: string;
-  buildingId?: string;
-  center?: Point;
-  origin?: Point;
-  direction?: Point;
-  radius?: number;
-  range?: number;
-  halfAngleDeg?: number;
-  damage: number;
-  buildingDamageMultiplier: number;
-  cancelIfSourceDead: boolean;
-  slow?: SlowEffect;
-  knockback?: number;
-  root?: number;
-  mark?: number;
-  consumeMarkBonus?: number;
-  cooldownRefund?: Partial<Record<SkillKey, number>>;
-  vfx?: {
-    key: string;
-    x: number;
-    y: number;
-    scale: number;
-  };
 }
 
 type KeyMap = Record<
@@ -178,112 +98,6 @@ declare global {
   }
 }
 
-const WORLD_WIDTH = 1600;
-const WORLD_HEIGHT = 900;
-const WAVE_INTERVAL = 25;
-const RECALL_DURATION = 4;
-const BASE_RESPAWN_SECONDS = 8;
-const RESPAWN_TIME_PER_DEATH = 2;
-const MAX_RESPAWN_SECONDS = 22;
-const BASE_REGEN_RADIUS = 390;
-const BASE_HEALTH_REGEN_PER_SECOND = 0.16;
-const BASE_MANA_REGEN_PER_SECOND = 0.2;
-const LANE_START: Point = { x: 205, y: 690 };
-const LANE_END: Point = { x: 1395, y: 220 };
-const PLAYER_START: Point = { x: 485, y: 565 };
-const ENEMY_START: Point = { x: 1085, y: 355 };
-const AZURE_BASE: Point = { x: 175, y: 705 };
-const CRIMSON_BASE: Point = { x: 1420, y: 205 };
-const PLAYER_COOLDOWNS = { q: 3.6, w: 8, e: 6, r: 24 };
-const LEVEL_XP_REQUIREMENTS = [0, 280, 660, 1140, 1720, 2400];
-const PLAYER_XP_SHARE_RANGE = 560;
-const BASIC_ATTACK_WINDUP = 0.28;
-const MINION_ATTACK_WINDUP = 0.34;
-const TOWER_ATTACK_WINDUP = 0.2;
-const TOWER_HERO_AGGRO_SECONDS = 3.2;
-const CAST_QUEUE_WINDOW = 0.75;
-const DEFAULT_SKILL_LEVELS: Record<SkillKey, number> = { q: 1, w: 1, e: 1, r: 0 };
-const SKILL_CONFIG = {
-  q: {
-    mana: 45,
-    cooldown: [0, 4.4, 4.0, 3.6, 3.2],
-    damage: [0, 92, 128, 164, 200],
-    range: 205,
-    halfAngleDeg: 36,
-    hitDelay: 0.18,
-    markDuration: 3.2,
-  },
-  w: {
-    mana: 55,
-    cooldown: [0, 9.2, 8.4, 7.6, 6.8],
-    shield: [0, 115, 155, 195, 235],
-    pulseDamage: [0, 28, 42, 56, 70],
-    radius: 136,
-    hitDelay: 0.14,
-    slowMultiplier: 0.68,
-    slowDuration: 1.6,
-    markDuration: 2.2,
-  },
-  e: {
-    mana: 50,
-    cooldown: [0, 7.0, 6.4, 5.8, 5.2],
-    damage: [0, 74, 104, 134, 164],
-    markBonus: [0, 40, 52, 64, 76],
-    dashX: [0, 165, 182, 199, 216],
-    dashY: [0, 112, 124, 136, 148],
-    radius: 96,
-    markRefund: { q: 1.1, e: 0.75 },
-  },
-  r: {
-    mana: 100,
-    cooldown: [0, 28, 24],
-    damage: [0, 235, 315],
-    markBonus: [0, 72, 104],
-    range: 340,
-    halfAngleDeg: 44,
-    hitDelay: 0.24,
-    knockback: 70,
-    rootDuration: 0.75,
-    markRefund: { q: 1.45, w: 0.8 },
-  },
-} as const;
-const ITEM_CATALOG = {
-  bronze_sword: { name: "Bronze Sword", cost: 350, stats: "+18 Attack Damage", activeLabel: null, slot: null, activeKind: "none", activeCooldown: 0, attackDamage: 18, moveSpeed: 0, maxHp: 0, maxMana: 0, cooldownReduction: 0 },
-  plated_boots: { name: "Plated Boots", cost: 300, stats: "+35 Move Speed", activeLabel: null, slot: null, activeKind: "none", activeCooldown: 0, attackDamage: 0, moveSpeed: 35, maxHp: 0, maxMana: 0, cooldownReduction: 0 },
-  focus_crystal: { name: "Focus Crystal", cost: 400, stats: "+180 Mana", activeLabel: "Clarity", slot: 1, activeKind: "mana", activeCooldown: 32, attackDamage: 0, moveSpeed: 0, maxHp: 0, maxMana: 180, cooldownReduction: 0 },
-  guard_shield: { name: "Guard Shield", cost: 450, stats: "+140 Health", activeLabel: "Barrier", slot: 2, activeKind: "shield", activeCooldown: 42, attackDamage: 0, moveSpeed: 0, maxHp: 140, maxMana: 0, cooldownReduction: 0 },
-  haste_talisman: { name: "Haste Talisman", cost: 700, stats: "+12 Attack, +12 Move, +8% Haste", activeLabel: "Tempo", slot: 3, activeKind: "haste", activeCooldown: 38, attackDamage: 12, moveSpeed: 12, maxHp: 0, maxMana: 0, cooldownReduction: 0.08 },
-  siege_hammer: { name: "Siege Hammer", cost: 900, stats: "+28 Attack Damage", activeLabel: "Demolish", slot: 4, activeKind: "demolish", activeCooldown: 48, attackDamage: 28, moveSpeed: 0, maxHp: 0, maxMana: 0, cooldownReduction: 0 },
-} as const;
-type ItemId = keyof typeof ITEM_CATALOG;
-type ActiveItemKind = (typeof ITEM_CATALOG)[ItemId]["activeKind"];
-const ACTIVE_ITEM_IDS = Object.entries(ITEM_CATALOG)
-  .filter(([, item]) => item.activeKind !== "none")
-  .sort(([, a], [, b]) => (a.slot ?? 0) - (b.slot ?? 0))
-  .map(([id]) => id as ItemId);
-const GOLD_REWARDS = { melee: 21, caster: 14, siege: 60, hero: 300 } as const;
-const XP_REWARDS = { melee: 58, caster: 29, siege: 92, hero: 220 } as const;
-
-const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
-const distance = (a: Point, b: Point) => Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
-const normalize = (x: number, y: number) => {
-  const length = Math.hypot(x, y);
-  return length > 0.0001 ? { x: x / length, y: y / length } : { x: 0, y: 0 };
-};
-
-const directionFromVector = (dx: number, dy: number): Direction => {
-  if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return "south";
-  const angle = Phaser.Math.RadToDeg(Math.atan2(dy, dx));
-  if (angle >= 67.5 && angle < 112.5) return "south";
-  if (angle >= 22.5 && angle < 67.5) return "south-east";
-  if (angle >= -22.5 && angle < 22.5) return "east";
-  if (angle >= -67.5 && angle < -22.5) return "north-east";
-  if (angle >= -112.5 && angle < -67.5) return "north";
-  if (angle >= -157.5 && angle < -112.5) return "north-west";
-  if (angle >= 157.5 || angle < -157.5) return "west";
-  return "south-west";
-};
-
 export class MobaScene extends Phaser.Scene {
   private keys?: KeyMap;
   private units: Unit[] = [];
@@ -305,7 +119,7 @@ export class MobaScene extends Phaser.Scene {
     siege_hammer: 0,
   };
   private purchasedItems = new Set<string>();
-  private towerHeroAggro: Partial<Record<Team, { targetId: string; ttl: number }>> = {};
+  private towerHeroAggro: TowerAggroState = {};
   private pointerWorld: Point = { ...ENEMY_START };
   private pendingSkill: SkillKey | null = null;
   private queuedSkill: SkillKey | null = null;
@@ -875,13 +689,7 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private updateTowerAggro(dt: number) {
-    for (const team of ["azure", "crimson"] as const) {
-      const aggro = this.towerHeroAggro[team];
-      if (!aggro) continue;
-      aggro.ttl -= dt;
-      const target = this.units.find((unit) => unit.id === aggro.targetId);
-      if (aggro.ttl <= 0 || !target?.alive) delete this.towerHeroAggro[team];
-    }
+    tickTowerAggro(this.towerHeroAggro, this.units, dt);
   }
 
   private updateBaseRecovery(dt: number) {
@@ -943,13 +751,14 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private inputBlockedReason(player = this.getPlayer()) {
-    if (this.result !== "playing") return "Match ended";
-    if (!player.alive) return "Respawning";
-    if (this.settingsOpen) return "Settings open";
-    if (this.shopOpen) return "Shop open";
-    if (this.scoreboardOpen) return "Scoreboard open";
-    if (this.isPlayerCastingLocked(player)) return "Casting";
-    return "";
+    return playerInputBlockedReason({
+      result: this.result,
+      player,
+      shopOpen: this.shopOpen,
+      scoreboardOpen: this.scoreboardOpen,
+      settingsOpen: this.settingsOpen,
+      playerCastingLocked: this.isPlayerCastingLocked(player),
+    });
   }
 
   private handleEscapeKey() {
@@ -1118,7 +927,7 @@ export class MobaScene extends Phaser.Scene {
 
     if (player.targetBuildingId) {
       const building = this.buildings.find((candidate) => candidate.id === player.targetBuildingId && candidate.hp > 0);
-      if (!building || !this.isBuildingVulnerable(building)) {
+      if (!building || !isBuildingVulnerable(building, this.buildings)) {
         player.targetBuildingId = undefined;
         return false;
       }
@@ -1151,7 +960,7 @@ export class MobaScene extends Phaser.Scene {
 
   private pickEnemyBuilding(point: Point, team: Team) {
     return this.buildings
-      .filter((building) => building.hp > 0 && building.team !== team && this.isBuildingVulnerable(building) && distance(building, point) <= building.radius + 42)
+      .filter((building) => building.hp > 0 && building.team !== team && isBuildingVulnerable(building, this.buildings) && distance(building, point) <= building.radius + 42)
       .sort((a, b) => distance(a, point) - distance(b, point))[0];
   }
 
@@ -1224,62 +1033,32 @@ export class MobaScene extends Phaser.Scene {
     if (!enemy || !enemy.alive) return;
     const player = this.getPlayer();
     this.enemySkillCooldown = Math.max(0, this.enemySkillCooldown - dt);
-    const gap = distance(enemy, player);
 
-    if (enemy.recallTimer > 0) {
-      this.enemyAiState = "Recall";
+    const decision = decideEnemyHeroAction({
+      enemy,
+      player,
+      enemySkillCooldown: this.enemySkillCooldown,
+      canSafelyRecall: !this.findNearestEnemyUnit(enemy, 260),
+      lastHitTarget: findEnemyLastHitCandidate(enemy, this.units),
+    });
+    this.enemyAiState = decision.state;
+
+    if (decision.kind === "recalling") return;
+    if (decision.kind === "startRecall") {
+      this.startRecall(enemy);
       return;
     }
-
-    if (enemy.hp / enemy.maxHp < 0.25 && gap > 460 && this.startRecall(enemy)) {
-      this.enemyAiState = "Recall";
-      return;
-    }
-
-    if (enemy.hp / enemy.maxHp < 0.35) {
-      this.enemyAiState = "Retreat";
-      const retreatPoint = distance(enemy, CRIMSON_BASE) < 160 ? CRIMSON_BASE : { x: 1210, y: 315 };
-      const dir = normalize(retreatPoint.x - enemy.x, retreatPoint.y - enemy.y);
-      this.moveUnit(enemy, dir.x, dir.y, enemy.speed * 0.85, dt);
-      return;
-    }
-
-    if (player.alive && player.hp / player.maxHp < 0.25 && enemy.hp / enemy.maxHp > 0.48) {
-      this.enemyAiState = "All In";
-      if (gap < enemy.attackRange + player.radius) this.tryUnitAttack(enemy, false, player);
-      else {
-        const dir = normalize(player.x - enemy.x, player.y - enemy.y);
-        this.moveUnit(enemy, dir.x, dir.y, enemy.speed * 0.9, dt);
-      }
-      return;
-    }
-
-    if (player.alive && gap < 310 && this.enemySkillCooldown <= 0 && enemy.hp / enemy.maxHp > 0.42) {
-      this.enemyAiState = "Harass";
+    if (decision.kind === "harass") {
       this.castEnemyHarass(enemy, player);
       return;
     }
-
-    const lastHitTarget = this.findLastHitCandidate(enemy);
-    if (lastHitTarget) {
-      this.enemyAiState = "Laning";
-      const targetGap = distance(enemy, lastHitTarget) - enemy.radius - lastHitTarget.radius;
-      if (targetGap <= enemy.attackRange + 18) this.tryUnitAttack(enemy, false, lastHitTarget);
-      else {
-        const dir = normalize(lastHitTarget.x - enemy.x, lastHitTarget.y - enemy.y);
-        this.moveUnit(enemy, dir.x, dir.y, enemy.speed * 0.65, dt);
-      }
+    if (decision.kind === "attackUnit") {
+      this.tryUnitAttack(enemy, false, decision.target);
       return;
     }
 
-    this.enemyAiState = "Laning";
-    if (gap < enemy.attackRange + player.radius && player.alive) {
-      this.tryUnitAttack(enemy, false);
-      return;
-    }
-    const target = gap < 360 ? player : this.getLaneGoal(enemy.team);
-    const dir = normalize(target.x - enemy.x, target.y - enemy.y);
-    this.moveUnit(enemy, dir.x, dir.y, enemy.speed * 0.72, dt);
+    const dir = normalize(decision.target.x - enemy.x, decision.target.y - enemy.y);
+    this.moveUnit(enemy, dir.x, dir.y, enemy.speed * decision.speedMultiplier, dt);
   }
 
   private castEnemyHarass(enemy: Unit, player: Unit) {
@@ -1311,14 +1090,6 @@ export class MobaScene extends Phaser.Scene {
     this.message = "Crimson harass";
   }
 
-  private findLastHitCandidate(source: Unit) {
-    return this.units
-      .filter((unit) => unit.alive && unit.team !== source.team && unit.kind !== "hero")
-      .map((unit) => ({ unit, gap: distance(source, unit) - source.radius - unit.radius }))
-      .filter(({ unit, gap }) => gap <= source.attackRange + 110 && unit.hp <= source.attackDamage + 20)
-      .sort((a, b) => a.unit.hp - b.unit.hp || a.gap - b.gap)[0]?.unit;
-  }
-
   private updateUnitAI(dt: number) {
     for (const unit of this.units) {
       if (!unit.alive || unit.kind === "hero") {
@@ -1344,32 +1115,15 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private updateBuildings(dt: number) {
-    for (const building of this.buildings) {
-      building.attackTimer = Math.max(0, building.attackTimer - dt);
-      building.attackFlash = Math.max(0, building.attackFlash - dt);
-      if (building.type !== "tower" || building.hp <= 0 || building.attackTimer > 0) continue;
-      const target = this.findTowerTarget(building);
-      if (!target) continue;
-      building.attackTimer = building.attackCooldown;
-      building.attackFlash = 0.32;
-      this.queueDamageEvent({
-        id: `tower_${building.id}_${this.sequence += 1}`,
-        triggerAt: this.elapsed + TOWER_ATTACK_WINDUP,
-        sourceTeam: building.team,
-        sourceId: building.id,
-        kind: "unit",
-        targetId: target.id,
-        damage: building.attackDamage,
-        buildingDamageMultiplier: 0,
-        cancelIfSourceDead: true,
-        vfx: {
-          key: building.team === "azure" ? "vfx-astra-r_shockwave" : "vfx-crimson-q_spear_thrust",
-          x: target.x,
-          y: target.y - 12,
-          scale: 0.95,
-        },
-      });
-      this.message = `${building.team === "azure" ? "Azure" : "Crimson"} tower fired`;
+    const towerAttacks = resolveTowerAttacks({
+      buildings: this.buildings,
+      units: this.units,
+      towerHeroAggro: this.towerHeroAggro,
+      dt,
+    });
+    for (const attack of towerAttacks) {
+      this.queueDamageEvent(createTowerDamageEvent(attack, `tower_${attack.towerId}_${this.sequence += 1}`, this.elapsed));
+      this.message = attack.message;
     }
   }
 
@@ -1693,32 +1447,11 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private maxSkillLevel(skill: SkillKey) {
-    return skill === "r" ? 2 : 4;
+    return configuredMaxSkillLevel(skill);
   }
 
   private skillCooldown(player: Unit, skill: SkillKey) {
-    const level = this.skillLevel(player, skill);
-    const cooldowns = SKILL_CONFIG[skill].cooldown as readonly number[];
-    const base = cooldowns[level] ?? PLAYER_COOLDOWNS[skill];
-    return Number((base * (1 - player.cooldownReduction)).toFixed(2));
-  }
-
-  private skillSnapshot(player: Unit, skill: SkillKey) {
-    const level = this.skillLevel(player, skill);
-    const canAttempt = this.canAttemptSkillSilently(player, skill);
-    const locked = this.isPlayerCastingLocked(player);
-    return {
-      level,
-      canCast:
-        this.result === "playing" &&
-        player.alive &&
-        !this.isModalOpen() &&
-        !locked &&
-        canAttempt,
-      canQueue: this.result === "playing" && player.alive && !this.isModalOpen() && locked && canAttempt,
-      queued: this.queuedSkill === skill,
-      canUpgrade: player.skillPoints > 0 && level < this.maxSkillLevel(skill) && (skill !== "r" || player.level >= 6),
-    };
+    return configuredSkillCooldown(player, skill);
   }
 
   private getPlayerAimDirection(player: Unit, aim = this.pointerWorld) {
@@ -1798,12 +1531,13 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private registerTowerHeroAggro(target: Unit, sourceId?: string) {
-    if (target.kind !== "hero" || !sourceId) return;
-    const source = this.units.find((unit) => unit.id === sourceId);
-    if (!source || source.kind !== "hero" || source.team === target.team || !source.alive) return;
-    const alliedTower = target.team === "azure" ? this.getBuilding("azure_outer_tower") : this.getBuilding("crimson_outer_tower");
-    if (alliedTower.hp <= 0 || distance(source, alliedTower) > alliedTower.attackRange) return;
-    this.towerHeroAggro[target.team] = { targetId: source.id, ttl: TOWER_HERO_AGGRO_SECONDS };
+    registerTowerHeroAggroRule({
+      target,
+      sourceId,
+      units: this.units,
+      buildings: this.buildings,
+      towerHeroAggro: this.towerHeroAggro,
+    });
   }
 
   private applyAbilityDamageToUnit(target: Unit, baseDamage: number, sourceTeam: Team, sourceId?: string, effects: DamageHitEffects = {}) {
@@ -1878,7 +1612,7 @@ export class MobaScene extends Phaser.Scene {
     }
     for (const building of this.buildings) {
       if (building.team === sourceTeam || building.hp <= 0 || distance(building, center) > radius + building.radius) continue;
-      if (!this.isBuildingVulnerable(building)) continue;
+      if (!isBuildingVulnerable(building, this.buildings)) continue;
       this.applyBuildingDamage(building, damage * buildingDamageMultiplier);
     }
   }
@@ -1909,7 +1643,7 @@ export class MobaScene extends Phaser.Scene {
       if (knockback && unit.alive) this.knockbackUnit(unit, origin, knockback);
     }
     for (const building of this.buildings) {
-      if (building.team === sourceTeam || building.hp <= 0 || !this.isBuildingVulnerable(building)) continue;
+      if (building.team === sourceTeam || building.hp <= 0 || !isBuildingVulnerable(building, this.buildings)) continue;
       const rel = { x: building.x - origin.x, y: building.y - origin.y };
       const forward = rel.x * dir.x + rel.y * dir.y;
       if (forward < -building.radius || forward > range + building.radius) continue;
@@ -1939,7 +1673,7 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private applyBuildingDamage(building: Building, amount: number) {
-    if (building.hp <= 0 || !this.isBuildingVulnerable(building)) return;
+    if (building.hp <= 0 || !isBuildingVulnerable(building, this.buildings)) return;
     building.hp = Math.max(0, building.hp - amount);
     this.flashBuilding(building);
     this.showDamageNumber(building.x, building.y - 118, Math.round(amount), building.team === "azure" ? "crimson" : "azure");
@@ -1998,8 +1732,7 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private respawnDurationFor(deaths: number) {
-    const timeScaling = Math.floor(this.elapsed / 180);
-    return clamp(BASE_RESPAWN_SECONDS + Math.max(0, deaths - 1) * RESPAWN_TIME_PER_DEATH + timeScaling, BASE_RESPAWN_SECONDS, MAX_RESPAWN_SECONDS);
+    return configuredRespawnDurationFor(deaths, this.elapsed);
   }
 
   private resolveDeaths(dt: number) {
@@ -2273,14 +2006,14 @@ export class MobaScene extends Phaser.Scene {
     const action = this.visibleAction(unit);
     const animKey = this.animationKey(unit.assetId, action, unit.lastDirection);
     if (sprite.anims.currentAnim?.key !== animKey) sprite.play(animKey, true);
-    this.drawHealthBar(bar, unit.x, unit.y - 54 * UNIT_ASSETS[unit.assetId].scale, 58, unit.hp, unit.maxHp, unit.team, unit.shield, this.unitEffects(unit));
+    this.drawHealthBar(bar, unit.x, unit.y - 54 * UNIT_ASSETS[unit.assetId].scale, 58, unit.hp, unit.maxHp, unit.team, unit.shield, unitEffectLabels(unit));
   }
 
   private syncBuildingView(building: Building) {
     const sprite = this.buildingSprites.get(building.id);
     const bar = this.buildingBars.get(building.id);
     if (!sprite || !bar) return;
-    const state = this.buildingState(building);
+    const state = buildingState(building);
     sprite.setTexture(this.buildingTextureKey(building.assetId, state));
     sprite.setPosition(building.x, building.y);
     sprite.setDepth(building.y - 40);
@@ -2336,114 +2069,16 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private makeHero(id: string, assetId: string, team: Team, x: number, y: number): Unit {
-    return {
-      id,
-      assetId,
-      team,
-      kind: "hero",
-      x,
-      y,
-      hp: team === "azure" ? 1250 : 1180,
-      maxHp: team === "azure" ? 1250 : 1180,
-      mana: 560,
-      maxMana: 560,
-      shield: 0,
-      level: 1,
-      xp: 0,
-      gold: team === "azure" ? 842 : 0,
-      speed: 205,
-      radius: 32,
-      attackRange: 92,
-      attackDamage: team === "azure" ? 112 : 106,
-      buildingDamageMultiplier: 1,
-      attackCooldown: 0.95,
-      cooldownReduction: 0,
-      attackTimer: 0,
-      action: "idle",
-      actionTimer: 0,
-      lastDirection: team === "azure" ? "north-east" : "south-west",
-      slowTimer: 0,
-      slowMultiplier: 1,
-      rootTimer: 0,
-      markTimer: 0,
-      hasteTimer: 0,
-      hasteMultiplier: 1,
-      shieldTimer: 0,
-      recallTimer: 0,
-      recallDuration: RECALL_DURATION,
-      skillLevels: { ...DEFAULT_SKILL_LEVELS },
-      skillPoints: 0,
-      alive: true,
-      respawnTimer: 0,
-      respawnDuration: BASE_RESPAWN_SECONDS,
-    };
+    return createHero(id, assetId, team, x, y);
   }
 
   private makeMinion(assetId: string, team: Team, kind: Exclude<UnitKind, "hero">, x: number, y: number): Unit {
     this.sequence += 1;
-    const caster = kind === "caster";
-    const siege = kind === "siege";
-    return {
-      id: `${assetId}_${this.sequence}`,
-      assetId,
-      team,
-      kind,
-      x,
-      y,
-      hp: siege ? 720 : caster ? 250 : 320,
-      maxHp: siege ? 720 : caster ? 250 : 320,
-      mana: 0,
-      maxMana: 0,
-      shield: 0,
-      level: 1,
-      xp: 0,
-      gold: 0,
-      speed: siege ? 58 : caster ? 72 : 84,
-      radius: siege ? 28 : 20,
-      attackRange: siege ? 175 : caster ? 145 : 54,
-      attackDamage: siege ? 58 : caster ? 34 : 42,
-      buildingDamageMultiplier: siege ? 2.25 : 1,
-      attackCooldown: siege ? 1.55 : caster ? 1.35 : 1.05,
-      cooldownReduction: 0,
-      attackTimer: Phaser.Math.FloatBetween(0, 0.35),
-      action: "move",
-      actionTimer: 0,
-      lastDirection: team === "azure" ? "north-east" : "south-west",
-      slowTimer: 0,
-      slowMultiplier: 1,
-      rootTimer: 0,
-      markTimer: 0,
-      hasteTimer: 0,
-      hasteMultiplier: 1,
-      shieldTimer: 0,
-      recallTimer: 0,
-      recallDuration: 0,
-      skillLevels: { q: 0, w: 0, e: 0, r: 0 },
-      skillPoints: 0,
-      alive: true,
-      respawnTimer: 0,
-      respawnDuration: 0,
-    };
+    return createMinion(`${assetId}_${this.sequence}`, assetId, team, kind, x, y, Phaser.Math.FloatBetween(0, 0.35));
   }
 
   private makeBuilding(id: string, assetId: keyof typeof BUILDING_ASSETS, team: Team, type: "tower" | "core", x: number, y: number): Building {
-    const tower = type === "tower";
-    return {
-      id,
-      assetId,
-      team,
-      type,
-      x,
-      y,
-      hp: tower ? 3000 : 4200,
-      maxHp: tower ? 3000 : 4200,
-      attackRange: tower ? 520 : 0,
-      attackDamage: tower ? 190 : 0,
-      attackCooldown: 1,
-      attackTimer: 0,
-      attackFlash: 0,
-      radius: tower ? 72 : 104,
-    };
+    return createBuilding(id, assetId, team, type, x, y);
   }
 
   private createUnitView(unit: Unit) {
@@ -2477,51 +2112,13 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private findNearestAttackableBuilding(source: Unit, range: number) {
-    return this.buildings
-      .filter((building) => building.team !== source.team && building.hp > 0 && this.isBuildingVulnerable(building))
-      .map((building) => ({ building, gap: distance(source, building) - building.radius - source.radius }))
-      .filter(({ gap }) => gap <= range)
-      .sort((a, b) => a.gap - b.gap)[0]?.building;
-  }
-
-  private findTowerTarget(tower: Building) {
-    const aggro = this.towerHeroAggro[tower.team];
-    if (aggro) {
-      const heroTarget = this.units.find((unit) => unit.id === aggro.targetId && unit.alive && distance(unit, tower) <= tower.attackRange);
-      if (heroTarget) return heroTarget;
-      delete this.towerHeroAggro[tower.team];
-    }
-    const enemies = this.units.filter((unit) => unit.alive && unit.team !== tower.team && distance(unit, tower) <= tower.attackRange);
-    const minion = enemies.find((unit) => unit.kind !== "hero");
-    return minion ?? enemies[0];
-  }
-
-  private isBuildingVulnerable(building: Building) {
-    if (building.type === "tower") return true;
-    const blockingTower = building.team === "azure" ? this.getBuilding("azure_outer_tower") : this.getBuilding("crimson_outer_tower");
-    return blockingTower.hp <= 0;
-  }
-
-  private buildingState(building: Building): string {
-    if (building.hp <= 0) return "destroyed";
-    if (building.type === "tower") return building.attackFlash > 0 ? "attack" : "idle";
-    return building.hp < building.maxHp * 0.55 ? "damaged" : "idle";
+    return findNearestAttackableBuildingRule(source, this.buildings, range);
   }
 
   private visibleAction(unit: Unit): UnitAction {
     if (!unit.alive) return "death";
     if (unit.actionTimer > 0) return unit.action;
     return unit.action === "move" ? "move" : "idle";
-  }
-
-  private unitEffects(unit: Unit) {
-    const effects: string[] = [];
-    if (unit.markTimer > 0) effects.push("marked");
-    if (unit.rootTimer > 0) effects.push("rooted");
-    if (unit.slowTimer > 0) effects.push("slowed");
-    if (unit.shield > 0) effects.push("shielded");
-    if (unit.hasteTimer > 0) effects.push("hasted");
-    return effects;
   }
 
   private spawnVfx(animationKey: string, x: number, y: number, scale: number) {
@@ -2629,235 +2226,50 @@ export class MobaScene extends Phaser.Scene {
     return `${buildingId}-${state}`;
   }
 
-  private shopItemSnapshots(player: Unit): ShopItemSnapshot[] {
-    const available = player.alive && this.isPlayerInShop();
-    return Object.entries(ITEM_CATALOG).map(([id, item]) => ({
-      id,
-      name: item.name,
-      cost: item.cost,
-      stats: item.stats,
-      activeLabel: item.activeLabel,
-      slot: item.slot,
-      cooldown: Number(this.itemCooldowns[id as ItemId].toFixed(1)),
-      canUse: this.canUseItem(id as ItemId, player),
-      owned: this.purchasedItems.has(id),
-      affordable: player.gold >= item.cost,
-      available,
-    }));
-  }
-
-  private itemSlotSnapshots(player: Unit): ItemSlotSnapshot[] {
-    return ACTIVE_ITEM_IDS.map((id) => {
-      const item = ITEM_CATALOG[id];
-      return {
-        id,
-        name: item.name,
-        activeLabel: item.activeLabel,
-        slot: item.slot,
-        cooldown: Number(this.itemCooldowns[id].toFixed(1)),
-        canUse: this.canUseItem(id, player),
-        owned: this.purchasedItems.has(id),
-      };
-    });
-  }
-
-  private canUseItem(itemId: ItemId, player = this.getPlayer()) {
-    const item = ITEM_CATALOG[itemId];
-    return (
-      this.result === "playing" &&
-      player.alive &&
-      !this.isModalOpen() &&
-      !this.isPlayerCastingLocked(player) &&
-      this.purchasedItems.has(itemId) &&
-      item.activeKind !== "none" &&
-      this.itemCooldowns[itemId] <= 0
-    );
-  }
-
-  private scoreboardRows(player: Unit): ScoreboardRowSnapshot[] {
-    const enemy = this.units.find((unit) => unit.id === "enemy_hero");
-    return [
-      {
-        id: player.id,
-        team: player.team,
-        name: "Astra Vanguard",
-        level: player.level,
-        kills: this.playerHeroKills,
-        deaths: this.playerDeaths,
-        gold: player.gold,
-        lastHits: this.playerLastHits,
-        items: [...this.purchasedItems],
-        alive: player.alive,
-        respawnTimer: player.alive ? 0 : Math.max(0, Math.ceil(player.respawnTimer)),
-      },
-      {
-        id: enemy?.id ?? "enemy_hero",
-        team: "crimson",
-        name: "Crimson Duelist",
-        level: enemy?.level ?? 1,
-        kills: this.enemyHeroKills,
-        deaths: this.enemyDeaths,
-        gold: this.enemyGold,
-        lastHits: this.enemyLastHits,
-        items: [],
-        alive: enemy?.alive ?? false,
-        respawnTimer: enemy?.alive ? 0 : Math.max(0, Math.ceil(enemy?.respawnTimer ?? 0)),
-      },
-    ];
-  }
-
-  private matchSummary(player: Unit): MatchSummarySnapshot | null {
-    if (this.result === "playing") return null;
-    const enemy = this.units.find((unit) => unit.id === "enemy_hero");
-    const azureTower = this.getBuilding("azure_outer_tower");
-    const crimsonTower = this.getBuilding("crimson_outer_tower");
-    const azureCore = this.getBuilding("azure_core");
-    const crimsonCore = this.getBuilding("crimson_core");
-    return {
-      duration: Math.round(this.elapsed),
-      result: this.result,
-      player: {
-        kills: this.playerHeroKills,
-        deaths: this.playerDeaths,
-        level: player.level,
-        lastHits: this.playerLastHits,
-        gold: player.gold,
-        items: [...this.purchasedItems],
-      },
-      enemy: {
-        kills: this.enemyHeroKills,
-        deaths: this.enemyDeaths,
-        level: enemy?.level ?? 1,
-        lastHits: this.enemyLastHits,
-        gold: this.enemyGold,
-      },
-      objectives: {
-        azureTowerDestroyed: azureTower.hp <= 0,
-        crimsonTowerDestroyed: crimsonTower.hp <= 0,
-        azureCoreHp: Math.round(azureCore.hp),
-        crimsonCoreHp: Math.round(crimsonCore.hp),
-      },
-    };
-  }
-
   private snapshot(): GameSnapshot {
     const player = this.getPlayer();
-    return {
-      coordinateSystem: "world pixels, origin top-left, x right, y down; lane runs from azure lower-left to crimson upper-right",
-      mode: this.result,
-      time: Number(this.elapsed.toFixed(2)),
-      score: {
-        azureKills: this.azureKills,
-        crimsonKills: this.crimsonKills,
-        azureHeroKills: this.playerHeroKills,
-        crimsonHeroKills: this.enemyHeroKills,
-      },
-      player: {
-        hp: Math.round(player.hp),
-        maxHp: player.maxHp,
-        shield: Math.round(player.shield),
-        mana: Math.round(player.mana),
-        maxMana: player.maxMana,
-        attackDamage: Math.round(player.attackDamage),
-        cooldownReduction: Number(player.cooldownReduction.toFixed(2)),
-        level: player.level,
-        xp: Math.round(player.xp),
-        gold: player.gold,
-        lastHits: this.playerLastHits,
-        deaths: this.playerDeaths,
-        skillPoints: player.skillPoints,
-        recallProgress: player.recallTimer > 0 && player.recallDuration > 0 ? Number(((player.recallDuration - player.recallTimer) / player.recallDuration).toFixed(2)) : 0,
-        recalling: player.recallTimer > 0,
-        deathTimer: player.alive ? 0 : Math.max(0, Number(player.respawnTimer.toFixed(1))),
-        respawnProgress: player.alive || player.respawnDuration <= 0 ? 0 : Number(((player.respawnDuration - player.respawnTimer) / player.respawnDuration).toFixed(2)),
-        items: [...this.purchasedItems],
-        shopAvailable: player.alive && this.isPlayerInShop(),
-        x: Math.round(player.x),
-        y: Math.round(player.y),
-        alive: player.alive,
-      },
-      cooldowns: {
-        q: Number(this.playerCooldowns.q.toFixed(1)),
-        w: Number(this.playerCooldowns.w.toFixed(1)),
-        e: Number(this.playerCooldowns.e.toFixed(1)),
-        r: Number(this.playerCooldowns.r.toFixed(1)),
-      },
-      skills: {
-        q: this.skillSnapshot(player, "q"),
-        w: this.skillSnapshot(player, "w"),
-        e: this.skillSnapshot(player, "e"),
-        r: this.skillSnapshot(player, "r"),
-      },
-      casting: {
-        locked: this.isPlayerCastingLocked(player),
-        activeSkill: this.isPlayerCastingLocked(player) ? this.activeCastSkill : null,
-        lockout: this.isPlayerCastingLocked(player) ? Number(player.actionTimer.toFixed(2)) : 0,
-        queuedSkill: this.queuedSkill,
-        queuedExpiresIn: this.queuedSkill ? Number(this.queuedSkillTimer.toFixed(2)) : 0,
-      },
-      lane: {
-        waveNumber: this.waveNumber,
-        nextSiegeWave: this.waveNumber + (this.waveNumber % 3 === 0 ? 3 : 3 - (this.waveNumber % 3)),
-      },
-      shop: {
-        open: this.shopOpen,
-        available: player.alive && this.isPlayerInShop(),
-        items: this.shopItemSnapshots(player),
-      },
-      itemSlots: this.itemSlotSnapshots(player),
-      settings: {
-        open: this.settingsOpen,
-        quickCast: this.quickCast,
-        showRangeIndicators: this.showRangeIndicators,
-      },
-      controls: {
-        blocked: Boolean(this.inputBlockedReason(player)),
-        reason: this.inputBlockedReason(player),
-      },
-      scoreboard: {
-        open: this.scoreboardOpen,
-        rows: this.scoreboardRows(player),
-      },
-      enemyAi: {
-        state: this.enemyAiState,
-        skillCooldown: Number(this.enemySkillCooldown.toFixed(1)),
-        gold: this.enemyGold,
-        xp: this.enemyXp,
-        lastHits: this.enemyLastHits,
-        deaths: this.enemyDeaths,
-      },
-      aimPreview: {
-        active: Boolean(player.alive && this.aimPreview && this.result === "playing" && this.activeAimSkill()),
-        skill: this.activeAimSkill(),
-        mode: this.pendingSkill ? "normal" : this.activeAimSkill() ? (this.quickCast ? "hold" : "normal") : "off",
-        x: Math.round(this.pointerWorld.x),
-        y: Math.round(this.pointerWorld.y),
-      },
-      buildings: this.buildings.map((building): BuildingSnapshot => ({
-        id: building.id,
-        team: building.team,
-        type: building.type,
-        hp: Math.round(building.hp),
-        maxHp: building.maxHp,
-        state: this.buildingState(building) as BuildingSnapshot["state"],
-      })),
-      units: this.units
-        .filter((unit) => unit.alive)
-        .map((unit): UnitSnapshot => ({
-          id: unit.id,
-          team: unit.team,
-          kind: unit.kind,
-          hp: Math.round(unit.hp),
-          maxHp: unit.maxHp,
-          x: Math.round(unit.x),
-          y: Math.round(unit.y),
-          effects: this.unitEffects(unit),
-        })),
+    const activeAimSkill = this.activeAimSkill();
+    return createGameSnapshot({
+      result: this.result,
+      elapsed: this.elapsed,
+      azureKills: this.azureKills,
+      crimsonKills: this.crimsonKills,
+      playerHeroKills: this.playerHeroKills,
+      enemyHeroKills: this.enemyHeroKills,
+      playerLastHits: this.playerLastHits,
+      enemyLastHits: this.enemyLastHits,
+      playerDeaths: this.playerDeaths,
+      enemyDeaths: this.enemyDeaths,
+      enemyGold: this.enemyGold,
+      enemyXp: this.enemyXp,
+      enemySkillCooldown: this.enemySkillCooldown,
+      enemyAiState: this.enemyAiState,
+      player,
+      playerCooldowns: this.playerCooldowns,
+      itemCooldowns: this.itemCooldowns,
+      purchasedItems: this.purchasedItems,
+      waveNumber: this.waveNumber,
+      waveTimer: this.waveTimer,
+      shopOpen: this.shopOpen,
+      shopAvailable: player.alive && this.isPlayerInShop(),
+      scoreboardOpen: this.scoreboardOpen,
+      settingsOpen: this.settingsOpen,
+      quickCast: this.quickCast,
+      showRangeIndicators: this.showRangeIndicators,
+      queuedSkill: this.queuedSkill,
+      queuedSkillTimer: this.queuedSkillTimer,
+      pendingSkill: this.pendingSkill,
+      activeCastSkill: this.activeCastSkill,
+      activeAimSkill,
+      aimPreviewVisible: Boolean(player.alive && this.aimPreview && this.result === "playing" && activeAimSkill),
+      pointerWorld: this.pointerWorld,
+      playerCastingLocked: this.isPlayerCastingLocked(player),
+      buildings: this.buildings,
+      units: this.units,
       activeVfx: this.vfx.length,
-      nextWaveIn: Number(Math.max(0, this.waveTimer).toFixed(1)),
       message: this.message,
-      matchSummary: this.matchSummary(player),
-    };
+      canAttemptSkill: (skill) => this.canAttemptSkillSilently(player, skill),
+    });
   }
 }
 
