@@ -497,7 +497,9 @@ const recommendedShopItemId = (snapshot: GameSnapshot) => {
   if (snapshot.player.items.length === 0) return "bronze_sword";
   if (!snapshot.player.items.includes("plated_boots")) return "plated_boots";
   if (snapshot.player.hp / snapshot.player.maxHp < 0.45 && !snapshot.player.items.includes("guard_shield")) return "guard_shield";
+  if (snapshot.player.hp / snapshot.player.maxHp < 0.55 && !snapshot.player.items.includes("vitality_core")) return "vitality_core";
   if (snapshot.player.mana / snapshot.player.maxMana < 0.35 && !snapshot.player.items.includes("focus_crystal")) return "focus_crystal";
+  if (snapshot.player.mana / snapshot.player.maxMana < 0.55 && !snapshot.player.items.includes("rift_lens")) return "rift_lens";
   if (!snapshot.player.items.includes("haste_talisman")) return "haste_talisman";
   if (!snapshot.player.items.includes("siege_hammer")) return "siege_hammer";
   return null;

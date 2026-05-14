@@ -885,3 +885,12 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 - 加入 first-run 可玩性 pass：早期新手提示、无兵线塔下危险提示、死亡后引导、商店推荐购买标记。
 - 加入简化 inhibitor/super minion 终局机制：外塔后才开放 inhibitor，inhibitor 后才开放 core；敌方 inhibitor 被摧毁后，本方下一波生成 super minion。
 - 已验证：`npm run test:mvp`、`completion-round-4/assertions.mjs`、`completion-round-5/assertions.mjs`、`web_game_playwright_client.js` smoke、`git diff --check`。
+
+## 2026-05-14 LoL-like MVP 美术资产接入
+
+- 使用 `codex-gateway-imagegen` 生成并编辑 `assets/maps/single_lane_rift/final/single-lane-rift-background.png`，`src/game/MobaScene.ts` 已改为加载该地图背景，不再使用程序化色块地面作为主地图。
+- 使用 `codex-gateway-imagegen` 生成 `azure_inhibitor` / `crimson_inhibitor` 源图，并通过 `scripts/build-moba-art-assets.py` 生成透明状态图、atlas、metadata、contact sheet 和 validation；运行时 inhibitor 不再复用 core asset。
+- 使用 `game-character-sprites` 输出结构为 `azure_super_minion` / `crimson_super_minion` 生成专用 64px、8方向、5动作 sprite package，manifest validation 均为 `ok: true`；super wave 已改用 dedicated super minion asset。
+- 地图已包含 brush、jungle edge、river 和 neutral pit visual；新增 `src/game/simulation/map-zones.ts`，snapshot 会给草丛内单位加 `brush` effect，Enemy AI 在玩家远距离藏入草丛时触发 `player_hidden_in_brush` gate。
+- P2 小范围扩展：新增 `Rift Lens` 与 `Vitality Core` 两条装备路线和 gateway-generated item icons；扩展 `crimson_skill_vfx` 到 Q/W/E/R rows。
+- 已验证：`npm run build`、`node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`、`npm run test:mvp`、`web_game_playwright_client.js` smoke，并检查 `playtest-artifacts/moba-art-pass-smoke/shot-2.png` 与 `playtest-artifacts/mvp/mvp-state.png`。

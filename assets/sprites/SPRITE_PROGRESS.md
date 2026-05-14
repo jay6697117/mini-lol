@@ -142,3 +142,11 @@ First-pass sprite production is complete for the PLAN.md character, minion, buil
 - `assets/sprites/minions/crimson/crimson_siege_minion/run` 已补齐 `idle`、`move`、`basic_attack`、`hit`、`death` 的 `game-character-sprites` QA/preview/visual-review 产物。
 - 两套 siege minion 的 `run-manifest.json` 均已补充 reference、scope、generation、strips、visual_review 字段，并通过 manifest validation。
 - 新增/更新的 QA 目录包含 validation JSON、motion audit、contact sheet、transparent/checker previews、per-action visual review 与 complete manifest validation。
+
+## 2026-05-14 LoL-like MVP Asset Additions
+
+- `assets/maps/single_lane_rift` 新增 gateway-generated 单线 MOBA 地图背景、manifest 与 visual review，运行时已接入。
+- `assets/sprites/buildings/azure/azure_inhibitor` 与 `assets/sprites/buildings/crimson/crimson_inhibitor` 新增 dedicated inhibitor 静态状态资产：`idle`、`damaged`、`destroyed`、atlas、metadata、contact sheet、validation。
+- `assets/sprites/minions/azure/azure_super_minion/run` 与 `assets/sprites/minions/crimson/crimson_super_minion/run` 新增 dedicated super minion 动作包：64px、8 directions、`idle/move/basic_attack/hit/death`、frames、metadata、validation、motion audit、previews、visual review、manifest validation。
+- `assets/sprites/ui/moba_ui_icons` 新增 gateway-generated `rift_lens` 与 `vitality_core` item icons，并重建 item icon atlas/contact sheet。
+- `assets/sprites/effects/crimson_skill_vfx` 扩展为 Q/W/E/R rows，补齐敌方完整技能 VFX row contract。
