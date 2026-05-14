@@ -1,0 +1,21 @@
+{
+  "asset_id": "crimson_super_minion",
+  "source_asset_id": "crimson_siege_minion",
+  "action": "basic_attack",
+  "cell_size": 64,
+  "columns": 6,
+  "rows": 8,
+  "directions": [
+    "south",
+    "south-east",
+    "east",
+    "north-east",
+    "north",
+    "north-west",
+    "west",
+    "south-west"
+  ],
+  "frames_per_direction": 6,
+  "generation_method": "game_character_sprites_derived_from_existing_imagegen_siege_source",
+  "final_sheet": "assets/sprites/minions/crimson/crimson_super_minion/run/64/final/basic_attack-sheet-clean.png"
+}

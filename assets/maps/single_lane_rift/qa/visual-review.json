@@ -1,0 +1,11 @@
+{
+  "accepted": true,
+  "checks": {
+    "readable_lane": true,
+    "no_runtime_building_duplicates": true,
+    "brush_visuals": true,
+    "river_or_neutral_pit_visual": true,
+    "no_text_or_logos": true
+  },
+  "reviewer_notes": "Background is accepted for the MVP map pass; Phaser-owned buildings remain the only tall interactive structures."
+}

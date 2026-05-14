@@ -1,0 +1,579 @@
+{
+  "ok": true,
+  "file": "/Users/zhangjinhui/Desktop/mini-lol/assets/sprites/minions/azure/azure_super_minion/run/64/final/hit-sheet-clean.png",
+  "width": 256,
+  "height": 512,
+  "errors": [],
+  "warnings": [
+    "row south col 0: sprite touches edge (217 pixels)",
+    "row south col 1: sprite touches edge (223 pixels)",
+    "row south col 2: sprite touches edge (220 pixels)",
+    "row south col 3: sprite touches edge (216 pixels)",
+    "row south-east col 0: sprite touches edge (188 pixels)",
+    "row south-east col 1: sprite touches edge (204 pixels)",
+    "row south-east col 2: sprite touches edge (209 pixels)",
+    "row south-east col 3: sprite touches edge (187 pixels)",
+    "row east col 0: sprite touches edge (229 pixels)",
+    "row east col 1: sprite touches edge (223 pixels)",
+    "row east col 2: sprite touches edge (222 pixels)",
+    "row east col 3: sprite touches edge (121 pixels)",
+    "row north-east col 0: sprite touches edge (113 pixels)",
+    "row north-east col 1: sprite touches edge (233 pixels)",
+    "row north-east col 2: sprite touches edge (200 pixels)",
+    "row north-east col 3: sprite touches edge (237 pixels)",
+    "row north col 0: sprite touches edge (108 pixels)",
+    "row north col 1: sprite touches edge (218 pixels)",
+    "row north col 2: sprite touches edge (217 pixels)",
+    "row north col 3: sprite touches edge (108 pixels)",
+    "row north-west col 0: sprite touches edge (102 pixels)",
+    "row north-west col 1: sprite touches edge (187 pixels)",
+    "row north-west col 2: sprite touches edge (94 pixels)",
+    "row north-west col 3: sprite touches edge (102 pixels)",
+    "row west col 0: sprite touches edge (103 pixels)",
+    "row west col 1: sprite touches edge (106 pixels)",
+    "row west col 2: sprite touches edge (109 pixels)",
+    "row west col 3: sprite touches edge (104 pixels)",
+    "row south-west col 0: sprite touches edge (182 pixels)",
+    "row south-west col 1: sprite touches edge (201 pixels)",
+    "row south-west col 2: sprite touches edge (102 pixels)",
+    "row south-west col 3: sprite touches edge (185 pixels)"
+  ],
+  "rows": [
+    {
+      "row": 0,
+      "row_name": "south",
+      "cells": [
+        {
+          "row": 0,
+          "row_name": "south",
+          "column": 0,
+          "nontransparent_pixels": 3998,
+          "edge_pixels": 217,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 0,
+          "row_name": "south",
+          "column": 1,
+          "nontransparent_pixels": 4004,
+          "edge_pixels": 223,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 0,
+          "row_name": "south",
+          "column": 2,
+          "nontransparent_pixels": 3994,
+          "edge_pixels": 220,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 0,
+          "row_name": "south",
+          "column": 3,
+          "nontransparent_pixels": 3995,
+          "edge_pixels": 216,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        }
+      ],
+      "frame_diffs": [
+        0.16426,
+        0.16949,
+        0.13259
+      ]
+    },
+    {
+      "row": 1,
+      "row_name": "south-east",
+      "cells": [
+        {
+          "row": 1,
+          "row_name": "south-east",
+          "column": 0,
+          "nontransparent_pixels": 3651,
+          "edge_pixels": 188,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 1,
+          "row_name": "south-east",
+          "column": 1,
+          "nontransparent_pixels": 3822,
+          "edge_pixels": 204,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 1,
+          "row_name": "south-east",
+          "column": 2,
+          "nontransparent_pixels": 3993,
+          "edge_pixels": 209,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 1,
+          "row_name": "south-east",
+          "column": 3,
+          "nontransparent_pixels": 3646,
+          "edge_pixels": 187,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        }
+      ],
+      "frame_diffs": [
+        0.13867,
+        0.1785,
+        0.24115
+      ]
+    },
+    {
+      "row": 2,
+      "row_name": "east",
+      "cells": [
+        {
+          "row": 2,
+          "row_name": "east",
+          "column": 0,
+          "nontransparent_pixels": 4035,
+          "edge_pixels": 229,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 2,
+          "row_name": "east",
+          "column": 1,
+          "nontransparent_pixels": 4011,
+          "edge_pixels": 223,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 2,
+          "row_name": "east",
+          "column": 2,
+          "nontransparent_pixels": 4013,
+          "edge_pixels": 222,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 2,
+          "row_name": "east",
+          "column": 3,
+          "nontransparent_pixels": 3934,
+          "edge_pixels": 121,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            1,
+            0,
+            63,
+            64
+          ]
+        }
+      ],
+      "frame_diffs": [
+        0.16076,
+        0.10925,
+        0.15811
+      ]
+    },
+    {
+      "row": 3,
+      "row_name": "north-east",
+      "cells": [
+        {
+          "row": 3,
+          "row_name": "north-east",
+          "column": 0,
+          "nontransparent_pixels": 3686,
+          "edge_pixels": 113,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            3,
+            0,
+            61,
+            64
+          ]
+        },
+        {
+          "row": 3,
+          "row_name": "north-east",
+          "column": 1,
+          "nontransparent_pixels": 4022,
+          "edge_pixels": 233,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 3,
+          "row_name": "north-east",
+          "column": 2,
+          "nontransparent_pixels": 3820,
+          "edge_pixels": 200,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 3,
+          "row_name": "north-east",
+          "column": 3,
+          "nontransparent_pixels": 4073,
+          "edge_pixels": 237,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        }
+      ],
+      "frame_diffs": [
+        0.17122,
+        0.19093,
+        0.1699
+      ]
+    },
+    {
+      "row": 4,
+      "row_name": "north",
+      "cells": [
+        {
+          "row": 4,
+          "row_name": "north",
+          "column": 0,
+          "nontransparent_pixels": 3601,
+          "edge_pixels": 108,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            3,
+            0,
+            60,
+            64
+          ]
+        },
+        {
+          "row": 4,
+          "row_name": "north",
+          "column": 1,
+          "nontransparent_pixels": 3982,
+          "edge_pixels": 218,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 4,
+          "row_name": "north",
+          "column": 2,
+          "nontransparent_pixels": 4012,
+          "edge_pixels": 217,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 4,
+          "row_name": "north",
+          "column": 3,
+          "nontransparent_pixels": 3601,
+          "edge_pixels": 108,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            3,
+            0,
+            60,
+            64
+          ]
+        }
+      ],
+      "frame_diffs": [
+        0.15395,
+        0.11854,
+        0.16997
+      ]
+    },
+    {
+      "row": 5,
+      "row_name": "north-west",
+      "cells": [
+        {
+          "row": 5,
+          "row_name": "north-west",
+          "column": 0,
+          "nontransparent_pixels": 3501,
+          "edge_pixels": 102,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            4,
+            0,
+            60,
+            64
+          ]
+        },
+        {
+          "row": 5,
+          "row_name": "north-west",
+          "column": 1,
+          "nontransparent_pixels": 3797,
+          "edge_pixels": 187,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 5,
+          "row_name": "north-west",
+          "column": 2,
+          "nontransparent_pixels": 3425,
+          "edge_pixels": 94,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            4,
+            0,
+            60,
+            64
+          ]
+        },
+        {
+          "row": 5,
+          "row_name": "north-west",
+          "column": 3,
+          "nontransparent_pixels": 3503,
+          "edge_pixels": 102,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            4,
+            0,
+            60,
+            64
+          ]
+        }
+      ],
+      "frame_diffs": [
+        0.16747,
+        0.17615,
+        0.09649
+      ]
+    },
+    {
+      "row": 6,
+      "row_name": "west",
+      "cells": [
+        {
+          "row": 6,
+          "row_name": "west",
+          "column": 0,
+          "nontransparent_pixels": 3325,
+          "edge_pixels": 103,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            6,
+            0,
+            58,
+            64
+          ]
+        },
+        {
+          "row": 6,
+          "row_name": "west",
+          "column": 1,
+          "nontransparent_pixels": 3719,
+          "edge_pixels": 106,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            2,
+            0,
+            61,
+            64
+          ]
+        },
+        {
+          "row": 6,
+          "row_name": "west",
+          "column": 2,
+          "nontransparent_pixels": 3519,
+          "edge_pixels": 109,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            4,
+            0,
+            59,
+            64
+          ]
+        },
+        {
+          "row": 6,
+          "row_name": "west",
+          "column": 3,
+          "nontransparent_pixels": 3328,
+          "edge_pixels": 104,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            6,
+            0,
+            58,
+            64
+          ]
+        }
+      ],
+      "frame_diffs": [
+        0.16914,
+        0.15874,
+        0.14761
+      ]
+    },
+    {
+      "row": 7,
+      "row_name": "south-west",
+      "cells": [
+        {
+          "row": 7,
+          "row_name": "south-west",
+          "column": 0,
+          "nontransparent_pixels": 3597,
+          "edge_pixels": 182,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 7,
+          "row_name": "south-west",
+          "column": 1,
+          "nontransparent_pixels": 3748,
+          "edge_pixels": 201,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "row": 7,
+          "row_name": "south-west",
+          "column": 2,
+          "nontransparent_pixels": 3639,
+          "edge_pixels": 102,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            2,
+            0,
+            61,
+            64
+          ]
+        },
+        {
+          "row": 7,
+          "row_name": "south-west",
+          "column": 3,
+          "nontransparent_pixels": 3574,
+          "edge_pixels": 185,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        }
+      ],
+      "frame_diffs": [
+        0.1451,
+        0.25344,
+        0.26128
+      ]
+    }
+  ]
+}

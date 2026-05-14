@@ -1,0 +1,51 @@
+{
+  "asset_id": "azure_inhibitor",
+  "ok": true,
+  "states": [
+    {
+      "state": "idle",
+      "path": "assets/sprites/buildings/azure/azure_inhibitor/final/azure_inhibitor-idle.png",
+      "size": [
+        384,
+        384
+      ],
+      "content_bbox": [
+        49,
+        14,
+        334,
+        370
+      ],
+      "non_empty": true
+    },
+    {
+      "state": "damaged",
+      "path": "assets/sprites/buildings/azure/azure_inhibitor/final/azure_inhibitor-damaged.png",
+      "size": [
+        384,
+        384
+      ],
+      "content_bbox": [
+        49,
+        15,
+        335,
+        368
+      ],
+      "non_empty": true
+    },
+    {
+      "state": "destroyed",
+      "path": "assets/sprites/buildings/azure/azure_inhibitor/final/azure_inhibitor-destroyed.png",
+      "size": [
+        384,
+        384
+      ],
+      "content_bbox": [
+        41,
+        46,
+        343,
+        337
+      ],
+      "non_empty": true
+    }
+  ]
+}

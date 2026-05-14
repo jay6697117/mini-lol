@@ -1,0 +1,51 @@
+{
+  "asset_id": "crimson_inhibitor",
+  "ok": true,
+  "states": [
+    {
+      "state": "idle",
+      "path": "assets/sprites/buildings/crimson/crimson_inhibitor/final/crimson_inhibitor-idle.png",
+      "size": [
+        384,
+        384
+      ],
+      "content_bbox": [
+        48,
+        14,
+        335,
+        370
+      ],
+      "non_empty": true
+    },
+    {
+      "state": "damaged",
+      "path": "assets/sprites/buildings/crimson/crimson_inhibitor/final/crimson_inhibitor-damaged.png",
+      "size": [
+        384,
+        384
+      ],
+      "content_bbox": [
+        49,
+        32,
+        335,
+        352
+      ],
+      "non_empty": true
+    },
+    {
+      "state": "destroyed",
+      "path": "assets/sprites/buildings/crimson/crimson_inhibitor/final/crimson_inhibitor-destroyed.png",
+      "size": [
+        384,
+        384
+      ],
+      "content_bbox": [
+        38,
+        44,
+        345,
+        340
+      ],
+      "non_empty": true
+    }
+  ]
+}

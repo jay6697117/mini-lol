@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "asset_id": "single_lane_rift",
+  "generation_method": "codex_gateway_imagegen_edit",
+  "source": "assets/maps/single_lane_rift/source/single-lane-rift-source.png",
+  "background": "assets/maps/single_lane_rift/final/single-lane-rift-background.png",
+  "size": {
+    "width": 1536,
+    "height": 1024
+  },
+  "runtime_fit": "cover_world_without_distortion",
+  "features": [
+    "single diagonal lane",
+    "azure base",
+    "crimson base",
+    "brush patches",
+    "river edge",
+    "neutral pit visual"
+  ],
+  "accepted": true
+}

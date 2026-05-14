@@ -1,0 +1,1 @@
+Derived crimson_super_minion basic_attack east from existing imagegen-produced crimson_siege_minion art, with heavier silhouette, team crystal glow, and enhanced super minion readability.

@@ -1,0 +1,17 @@
+{
+  "asset_id": "crimson_inhibitor",
+  "type": "building",
+  "team": "crimson",
+  "generation_method": "codex_gateway_imagegen_source_with_chroma_key_postprocess",
+  "source": "assets/sprites/buildings/crimson/crimson_inhibitor/source/crimson-inhibitor-states-source.png",
+  "atlas": "assets/sprites/buildings/crimson/crimson_inhibitor/final/crimson_inhibitor-atlas.png",
+  "cell_size": {
+    "width": 384,
+    "height": 384
+  },
+  "states": [
+    "idle",
+    "damaged",
+    "destroyed"
+  ]
+}

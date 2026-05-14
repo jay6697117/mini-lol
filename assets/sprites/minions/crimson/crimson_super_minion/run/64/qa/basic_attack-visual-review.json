@@ -1,0 +1,11 @@
+{
+  "accepted": true,
+  "checks": {
+    "reference_identity": true,
+    "direction": true,
+    "animation_readable": true,
+    "frame_separation": true,
+    "not_procedural": true
+  },
+  "reviewer_notes": "crimson_super_minion basic_attack remains directionally consistent with crimson_siege_minion while reading as a heavier empowered minion."
+}

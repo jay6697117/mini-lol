@@ -1,0 +1,17 @@
+{
+  "asset_id": "azure_inhibitor",
+  "type": "building",
+  "team": "azure",
+  "generation_method": "codex_gateway_imagegen_source_with_chroma_key_postprocess",
+  "source": "assets/sprites/buildings/azure/azure_inhibitor/source/azure-inhibitor-states-source.png",
+  "atlas": "assets/sprites/buildings/azure/azure_inhibitor/final/azure_inhibitor-atlas.png",
+  "cell_size": {
+    "width": 384,
+    "height": 384
+  },
+  "states": [
+    "idle",
+    "damaged",
+    "destroyed"
+  ]
+}
