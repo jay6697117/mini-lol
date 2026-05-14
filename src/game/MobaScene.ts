@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { installMobaDebugApi, type MobaDebugAdapter } from "./debug-api";
 import {
   BUILDING_ASSETS,
   DIRECTIONS,
@@ -9,38 +10,42 @@ import {
   VFX_ASSETS,
 } from "./assets";
 import {
-  ACTIVE_ITEM_IDS,
-  AZURE_BASE,
-  BASE_HEALTH_REGEN_PER_SECOND,
-  BASE_MANA_REGEN_PER_SECOND,
-  BASE_REGEN_RADIUS,
   BASIC_ATTACK_WINDUP,
-  CAST_QUEUE_WINDOW,
-  CRIMSON_BASE,
   ENEMY_START,
-  GOLD_REWARDS,
   ITEM_CATALOG,
-  type ActiveItemKind,
   type ItemId,
   LANE_END,
   LANE_START,
-  LEVEL_XP_REQUIREMENTS,
   MINION_ATTACK_WINDUP,
   PLAYER_START,
   PLAYER_XP_SHARE_RANGE,
-  SKILL_CONFIG,
   WAVE_INTERVAL,
   WORLD_HEIGHT,
   WORLD_WIDTH,
-  XP_REWARDS,
 } from "./data/game-config";
-import { decideEnemyHeroAction, findLastHitCandidate as findEnemyLastHitCandidate } from "./simulation/enemy-ai";
+import { applyActiveItemEffect, resolveActiveItemUseApplication, resolveActiveItemUseGate } from "./simulation/active-items";
+import { applyBuildingDamageApplication, applyUnitDamageResolution, createBuildingAttackDamageEvent, createUnitAttackDamageEvent, drainDueDamageEvents, findNearestEnemyUnit as findNearestEnemyUnitRule, resolveAbilityDamagePlan, resolveAbilityPostDamageApplication, resolveAreaDamageApplication, resolvePendingDamageEventDispatch, type AreaDamageApplication } from "./simulation/combat";
+import { applyAttackBuildingCommand, applyAttackUnitCommand, applyMoveCommand, applyPlayerAttackCommandDecision, clearUnitCommands as clearUnitCommandsRule, resolvePlayerAttackCommand } from "./simulation/commands";
+import { tickItemCooldowns, tickSkillCooldowns } from "./simulation/cooldowns";
+import { createEnemyHeroDecisionInput, decideEnemyHeroAction, traceEnemyHeroDecision, type EnemyHeroDecisionTrace } from "./simulation/enemy-ai";
+import { applyPlayerExperienceGain, applyPlayerLastHitGold, enemyLastHitEconomyDelta, itemIdForActiveSlot, tryPurchaseCatalogItem } from "./simulation/economy";
 import { createBuilding, createHero, createMinion } from "./simulation/factories";
-import { buildingState, findNearestAttackableBuilding as findNearestAttackableBuildingRule, isBuildingVulnerable } from "./simulation/objectives";
-import { clamp, directionFromVector, distance, maxSkillLevel as configuredMaxSkillLevel, normalize, respawnDurationFor as configuredRespawnDurationFor, skillCooldown as configuredSkillCooldown } from "./simulation/rules";
+import { laneReturnTargetForUnit } from "./simulation/lane-path";
+import { shouldShowMissedCs } from "./simulation/last-hit";
+import { decideMinionAction } from "./simulation/minion-ai";
+import { callMinionAggroOnHeroDamage, tickMinionAggro } from "./simulation/minion-aggro";
+import { isAnyModalOpen, resolveEscapeKeyAction, resolveSettingsTransition, resolveShopAutoClose, resolveShopTransition, type ModalTransition } from "./simulation/modal-state";
+import { moveUnit } from "./simulation/movement";
+import { buildingState, findNearestAttackableBuilding as findNearestAttackableBuildingRule, structureDamageMultiplier } from "./simulation/objectives";
+import { applyPlayerSkillCastState, applyQueuedPlayerSkillState, createAimPreviewShape, createPlayerSkillCastDraft, playerSkillAttemptFailure, playerSkillLevel, resolveActiveAimSkill } from "./simulation/player-skills";
+import { collectPlayerInputTickActions, resolveAxisMovementDecision, resolveKeyboardDownAction, resolveKeyboardUpAction, resolvePlayerActionStartDecision, resolvePlayerInputBlockDecision, resolvePointerDownAction, resolveTargetPointMovementDecision } from "./simulation/player-input";
+import { resolveQueuedSkillTick } from "./simulation/queued-skill";
+import { clamp, directionFromVector, distance, maxSkillLevel as configuredMaxSkillLevel, normalize, respawnDurationFor as configuredRespawnDurationFor, skillCooldown as configuredSkillCooldown, vectorFromDirection } from "./simulation/rules";
 import { createGameSnapshot, playerInputBlockedReason, unitEffectLabels } from "./simulation/snapshot";
+import { pickEnemyBuildingAtPoint, pickEnemyUnitAtPoint } from "./simulation/target-picking";
 import { createTowerDamageEvent, registerTowerHeroAggro as registerTowerHeroAggroRule, resolveTowerAttacks, tickTowerAggro } from "./simulation/towers";
 import type { Building, DamageHitEffects, PendingDamageEvent, Point, TowerAggroState, Unit } from "./simulation/types";
+import { applyBaseRecovery, beginRecallChannel, prepareHeroDeathState, respawnHeroAt, tickRecallChannel, tickUnitStatusEffects, visibleUnitAction } from "./simulation/unit-lifecycle";
 import type { EnemyAiState, GameResult, GameSnapshot, SkillKey, UnitKind } from "./types";
 import { updateHud } from "../ui/hud";
 
@@ -50,53 +55,12 @@ interface VfxInstance {
   ttl: number;
 }
 
+const ENEMY_ITEM_ORDER: ItemId[] = ["bronze_sword", "plated_boots", "haste_talisman", "guard_shield", "siege_hammer"];
+
 type KeyMap = Record<
   "up" | "down" | "left" | "right" | "a" | "b" | "p" | "q" | "w" | "e" | "r" | "one" | "two" | "three" | "four" | "space" | "f" | "ctrl" | "tab" | "escape",
   Phaser.Input.Keyboard.Key
 >;
-
-declare global {
-  interface Window {
-    advanceTime?: (ms: number) => void;
-    render_game_to_text?: () => string;
-    miniLolDebug?: {
-      snapshot: () => GameSnapshot;
-      destroyEnemyTower: () => void;
-      damageEnemyCore: (damage?: number) => void;
-      damagePlayerCore: (damage?: number) => void;
-      levelPlayerTo6: () => void;
-      buyItem: (itemId: keyof typeof ITEM_CATALOG) => boolean;
-      itemSlotAction: (itemId: keyof typeof ITEM_CATALOG) => boolean;
-      useItem: (itemId: keyof typeof ITEM_CATALOG) => boolean;
-      useItemSlot: (slot: number) => boolean;
-      toggleShop: () => boolean;
-      setShopOpen: (open: boolean) => boolean;
-      toggleSettings: () => boolean;
-      setSettingsOpen: (open: boolean) => boolean;
-      setQuickCast: (enabled: boolean) => boolean;
-      setRangeIndicators: (enabled: boolean) => boolean;
-      setScoreboardOpen: (open: boolean) => boolean;
-      resetPlayerCooldowns: () => void;
-      clearStatusEffects: () => void;
-      activateSkill: (skill: SkillKey) => boolean;
-      castSkill: (skill: SkillKey) => boolean;
-      upgradeSkill: (skill: SkillKey) => boolean;
-      startRecall: () => boolean;
-      injurePlayer: (hp: number, mana?: number) => void;
-      injureEnemyHero: (hp: number) => void;
-      killPlayer: () => void;
-      setPlayerGold: (gold: number) => void;
-      forceWave: () => number;
-      setPlayerPosition: (x: number, y: number) => void;
-      setEnemyHeroPosition: (x: number, y: number) => void;
-      setPointerWorld: (x: number, y: number) => void;
-      spawnLastHitTarget: () => string;
-      spawnEnemyLastHitTarget: () => string;
-      triggerVictory: () => void;
-      triggerDefeat: () => void;
-    };
-  }
-}
 
 export class MobaScene extends Phaser.Scene {
   private keys?: KeyMap;
@@ -118,6 +82,14 @@ export class MobaScene extends Phaser.Scene {
     haste_talisman: 0,
     siege_hammer: 0,
   };
+  private enemyItemCooldowns: Record<ItemId, number> = {
+    bronze_sword: 0,
+    plated_boots: 0,
+    focus_crystal: 0,
+    guard_shield: 0,
+    haste_talisman: 0,
+    siege_hammer: 0,
+  };
   private purchasedItems = new Set<string>();
   private towerHeroAggro: TowerAggroState = {};
   private pointerWorld: Point = { ...ENEMY_START };
@@ -130,10 +102,19 @@ export class MobaScene extends Phaser.Scene {
   private quickCast = true;
   private showRangeIndicators = true;
   private enemyAiState: EnemyAiState = "Laning";
+  private enemyAiTrace: EnemyHeroDecisionTrace = {
+    intent: "Laning:spawn",
+    targetId: null,
+    targetX: null,
+    targetY: null,
+    speedMultiplier: null,
+    reason: null,
+  };
   private enemySkillCooldown = 1.8;
   private enemyGold = 0;
   private enemyXp = 0;
   private enemyLastHits = 0;
+  private enemyPurchasedItems = new Set<string>();
   private playerHeroKills = 0;
   private enemyHeroKills = 0;
   private playerDeaths = 0;
@@ -147,10 +128,11 @@ export class MobaScene extends Phaser.Scene {
   private azureKills = 0;
   private crimsonKills = 0;
   private playerLastHits = 0;
+  private playerCsStreak = 0;
+  private playerMissedCs = 0;
   private playerXpGained = 0;
   private message = "Lane phase";
   private sequence = 0;
-
   constructor() {
     super("MobaScene");
   }
@@ -219,6 +201,7 @@ export class MobaScene extends Phaser.Scene {
     this.updateStatusEffects(dt);
     this.updateQueuedSkill(dt);
     this.updateTowerAggro(dt);
+    this.updateMinionAggro(dt);
     this.updateBaseRecovery(dt);
     this.updateRecallChannels(dt);
     this.updateShopState();
@@ -316,10 +299,10 @@ export class MobaScene extends Phaser.Scene {
 
   private createBuildings() {
     this.buildings = [
-      this.makeBuilding("azure_outer_tower", "azure_outer_tower", "azure", "tower", 420, 600),
-      this.makeBuilding("crimson_outer_tower", "crimson_outer_tower", "crimson", "tower", 1180, 330),
-      this.makeBuilding("azure_core", "azure_core", "azure", "core", 175, 705),
-      this.makeBuilding("crimson_core", "crimson_core", "crimson", "core", 1420, 205),
+      createBuilding("azure_outer_tower", "azure_outer_tower", "azure", "tower", 420, 600),
+      createBuilding("crimson_outer_tower", "crimson_outer_tower", "crimson", "tower", 1180, 330),
+      createBuilding("azure_core", "azure_core", "azure", "core", 175, 705),
+      createBuilding("crimson_core", "crimson_core", "crimson", "core", 1420, 205),
     ];
 
     for (const building of this.buildings) {
@@ -340,8 +323,8 @@ export class MobaScene extends Phaser.Scene {
 
   private createInitialUnits() {
     this.units = [
-      this.makeHero("player", "astra_vanguard", "azure", PLAYER_START.x, PLAYER_START.y),
-      this.makeHero("enemy_hero", "crimson_duelist", "crimson", ENEMY_START.x, ENEMY_START.y),
+      createHero("player", "astra_vanguard", "azure", PLAYER_START.x, PLAYER_START.y),
+      createHero("enemy_hero", "crimson_duelist", "crimson", ENEMY_START.x, ENEMY_START.y),
     ];
     this.spawnWave();
 
@@ -378,30 +361,25 @@ export class MobaScene extends Phaser.Scene {
     }) as KeyMap;
 
     keyboard.on("keydown", (event: KeyboardEvent) => {
-      if (event.key === "Tab") {
-        event.preventDefault();
-        this.scoreboardOpen = true;
-        this.syncViews();
-        return;
-      }
-      if (event.key === "Escape") {
-        event.preventDefault();
-        this.handleEscapeKey();
-        this.syncViews();
-        return;
-      }
-      if (!event.ctrlKey) return;
-      const skill = event.key.toLowerCase();
-      if (skill !== "q" && skill !== "w" && skill !== "e" && skill !== "r") return;
-      event.preventDefault();
-      this.tryUpgradeSkill(skill);
+      const action = resolveKeyboardDownAction({
+        key: event.key,
+        repeat: event.repeat,
+        ctrlKey: event.ctrlKey,
+        settingsOpen: this.settingsOpen,
+      });
+      if (action.preventDefault) event.preventDefault();
+      if (action.kind === "openScoreboard") this.scoreboardOpen = true;
+      if (action.kind === "escape") this.handleEscapeKey();
+      if (action.kind === "toggleShop") this.toggleShop();
+      if (action.kind === "upgradeSkill") this.tryUpgradeSkill(action.skill);
+      if (action.syncViews) this.syncViews();
     });
 
     keyboard.on("keyup", (event: KeyboardEvent) => {
-      if (event.key !== "Tab") return;
-      event.preventDefault();
-      this.scoreboardOpen = false;
-      this.syncViews();
+      const action = resolveKeyboardUpAction(event.key);
+      if (action.preventDefault) event.preventDefault();
+      if (action.kind === "closeScoreboard") this.scoreboardOpen = false;
+      if (action.syncViews) this.syncViews();
     });
 
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
@@ -412,331 +390,108 @@ export class MobaScene extends Phaser.Scene {
       const player = this.getPlayer();
       const worldPoint = this.toWorldPoint(pointer);
       this.pointerWorld = worldPoint;
-      if (this.pendingSkill) {
-        if (pointer.leftButtonDown()) this.castPendingSkill(worldPoint);
-        else this.cancelPendingSkill();
+      const action = resolvePointerDownAction({
+        hasPendingSkill: Boolean(this.pendingSkill),
+        leftButtonDown: pointer.leftButtonDown(),
+        playerAlive: player.alive,
+        modalOpen: this.isModalOpen(),
+        targetUnit: this.pickEnemyUnit(worldPoint, player.team),
+        targetBuilding: this.pickEnemyBuilding(worldPoint, player.team),
+        attackMove: Boolean(this.keys?.a.isDown),
+      });
+      if (action.kind === "confirmPendingSkill") {
+        this.castPendingSkill(worldPoint);
         this.syncViews();
-        return;
       }
-      if (!player.alive || this.isModalOpen()) return;
-      const targetUnit = this.pickEnemyUnit(worldPoint, player.team);
-      if (targetUnit) {
-        this.commandAttackUnit(player, targetUnit);
-        return;
+      if (action.kind === "cancelPendingSkill") {
+        this.cancelPendingSkill();
+        this.syncViews();
       }
-      const targetBuilding = this.pickEnemyBuilding(worldPoint, player.team);
-      if (targetBuilding) {
-        this.commandAttackBuilding(player, targetBuilding);
-        return;
-      }
-      this.commandMove(player, worldPoint, Boolean(this.keys?.a.isDown));
+      if (action.kind === "attackUnit") this.commandAttackUnit(player, action.target);
+      if (action.kind === "attackBuilding") this.commandAttackBuilding(player, action.building);
+      if (action.kind === "move") this.commandMove(player, worldPoint, action.attackMove);
     });
   }
 
   private exposeTestHooks() {
-    window.advanceTime = (ms: number) => {
-      const steps = Math.max(1, Math.round(ms / (1000 / 60)));
-      for (let i = 0; i < steps; i += 1) this.step(1 / 60);
-    };
-    window.render_game_to_text = () => JSON.stringify(this.snapshot());
-    window.miniLolDebug = {
-      snapshot: () => this.snapshot(),
-      destroyEnemyTower: () => {
-        this.getBuilding("crimson_outer_tower").hp = 0;
-        this.message = "Crimson tower destroyed";
-        this.syncViews();
-      },
-      damageEnemyCore: (damage = 900) => {
-        this.applyBuildingDamage(this.getBuilding("crimson_core"), damage);
-        this.syncViews();
-      },
-      damagePlayerCore: (damage = 900) => {
-        this.applyBuildingDamage(this.getBuilding("azure_core"), damage);
-        this.syncViews();
-      },
-      levelPlayerTo6: () => {
-        const player = this.getPlayer();
-        player.level = 6;
-        player.xp = 0;
-        player.skillLevels.r = Math.max(1, player.skillLevels.r);
-        player.skillPoints = Math.max(0, player.skillPoints + 1);
-        this.message = "Astra reached level 6";
-        this.syncViews();
-      },
-      buyItem: (itemId) => {
-        const purchased = this.buyItem(itemId);
-        this.syncViews();
-        return purchased;
-      },
-      itemSlotAction: (itemId) => {
-        const acted = this.itemSlotAction(itemId);
-        this.syncViews();
-        return acted;
-      },
-      useItem: (itemId) => {
-        const used = this.useItem(itemId);
-        this.syncViews();
-        return used;
-      },
-      useItemSlot: (slot) => {
-        const used = this.useItemSlot(slot);
-        this.syncViews();
-        return used;
-      },
-      toggleShop: () => {
-        const open = this.toggleShop();
-        this.syncViews();
-        return open;
-      },
-      setShopOpen: (open) => {
-        const changed = this.setShopOpen(open);
-        this.syncViews();
-        return changed;
-      },
-      toggleSettings: () => {
-        const open = this.toggleSettings();
-        this.syncViews();
-        return open;
-      },
-      setSettingsOpen: (open) => {
-        const changed = this.setSettingsOpen(open);
-        this.syncViews();
-        return changed;
-      },
-      setQuickCast: (enabled) => {
-        const current = this.setQuickCast(enabled);
-        this.syncViews();
-        return current;
-      },
-      setRangeIndicators: (enabled) => {
-        const current = this.setRangeIndicators(enabled);
-        this.syncViews();
-        return current;
-      },
-      setScoreboardOpen: (open) => {
-        this.scoreboardOpen = open;
-        this.syncViews();
-        return this.scoreboardOpen;
-      },
-      resetPlayerCooldowns: () => {
-        const player = this.getPlayer();
-        this.playerCooldowns = { q: 0, w: 0, e: 0, r: 0 };
-        if (player.action === "cast") {
-          player.action = "idle";
-          player.actionTimer = 0;
-        }
-        this.activeCastSkill = null;
-        this.pendingSkill = null;
-        this.clearQueuedSkill();
-        this.syncViews();
-      },
-      clearStatusEffects: () => {
-        for (const unit of this.units) {
-          unit.slowTimer = 0;
-          unit.slowMultiplier = 1;
-          unit.rootTimer = 0;
-          unit.markTimer = 0;
-          unit.hasteTimer = 0;
-          unit.hasteMultiplier = 1;
-        }
-        this.syncViews();
-      },
-      activateSkill: (skill) => {
-        const activated = this.activatePlayerSkill(skill);
-        this.syncViews();
-        return activated;
-      },
-      castSkill: (skill) => {
-        const cast = this.castPlayerSkill(skill);
-        this.syncViews();
-        return cast;
-      },
-      upgradeSkill: (skill) => {
-        const upgraded = this.tryUpgradeSkill(skill);
-        this.syncViews();
-        return upgraded;
-      },
-      startRecall: () => {
-        const started = this.startRecall(this.getPlayer());
-        this.syncViews();
-        return started;
-      },
-      injurePlayer: (hp, mana) => {
-        const player = this.getPlayer();
-        player.hp = clamp(hp, 1, player.maxHp);
-        if (typeof mana === "number") player.mana = clamp(mana, 0, player.maxMana);
-        this.syncViews();
-      },
-      injureEnemyHero: (hp) => {
-        const enemy = this.units.find((unit) => unit.id === "enemy_hero");
-        if (!enemy) return;
-        enemy.hp = clamp(hp, 1, enemy.maxHp);
-        this.syncViews();
-      },
-      killPlayer: () => {
-        const player = this.getPlayer();
-        this.damageUnit(player, player.hp + player.shield + 999, "crimson", "enemy_hero");
-        this.syncViews();
-      },
-      setPlayerGold: (gold) => {
-        const player = this.getPlayer();
-        player.gold = Math.max(0, Math.floor(gold));
-        this.syncViews();
-      },
-      forceWave: () => {
-        this.spawnWave();
-        this.syncViews();
-        return this.waveNumber;
-      },
-      setPlayerPosition: (x, y) => {
-        const player = this.getPlayer();
-        player.x = clamp(x, 80, WORLD_WIDTH - 80);
-        player.y = clamp(y, 90, WORLD_HEIGHT - 90);
-        this.clearPlayerCommands(player);
-        this.syncViews();
-      },
-      setEnemyHeroPosition: (x, y) => {
-        const enemy = this.units.find((unit) => unit.id === "enemy_hero");
-        if (!enemy) return;
-        enemy.x = clamp(x, 80, WORLD_WIDTH - 80);
-        enemy.y = clamp(y, 90, WORLD_HEIGHT - 90);
-        enemy.targetPoint = undefined;
-        this.syncViews();
-      },
-      setPointerWorld: (x, y) => {
-        this.pointerWorld = {
-          x: clamp(x, 80, WORLD_WIDTH - 80),
-          y: clamp(y, 90, WORLD_HEIGHT - 90),
-        };
-        this.syncViews();
-      },
-      spawnLastHitTarget: () => {
-        const player = this.getPlayer();
-        const target = this.makeMinion("crimson_melee_minion", "crimson", "melee", player.x + 82, player.y - 28);
-        target.hp = 28;
-        target.maxHp = 320;
-        this.units.push(target);
-        this.createUnitView(target);
-        this.syncViews();
-        return target.id;
-      },
-      spawnEnemyLastHitTarget: () => {
-        const enemy = this.units.find((unit) => unit.id === "enemy_hero");
-        if (!enemy) return "";
-        const target = this.makeMinion("azure_melee_minion", "azure", "melee", enemy.x - 76, enemy.y + 18);
-        target.hp = 32;
-        target.maxHp = 320;
-        this.units.push(target);
-        this.createUnitView(target);
-        this.syncViews();
-        return target.id;
-      },
-      triggerVictory: () => {
-        this.getBuilding("crimson_outer_tower").hp = 0;
-        this.applyBuildingDamage(this.getBuilding("crimson_core"), 9999);
-        this.syncViews();
-      },
-      triggerDefeat: () => {
-        this.getBuilding("azure_outer_tower").hp = 0;
-        this.applyBuildingDamage(this.getBuilding("azure_core"), 9999);
-        this.syncViews();
-      },
-    };
+    installMobaDebugApi(this as unknown as MobaDebugAdapter);
   }
 
   private updateCooldowns(dt: number) {
-    for (const key of Object.keys(this.playerCooldowns) as Array<keyof typeof this.playerCooldowns>) {
-      this.playerCooldowns[key] = Math.max(0, this.playerCooldowns[key] - dt);
-    }
-    for (const itemId of Object.keys(this.itemCooldowns) as ItemId[]) {
-      this.itemCooldowns[itemId] = Math.max(0, this.itemCooldowns[itemId] - dt);
-    }
+    tickSkillCooldowns(this.playerCooldowns, dt);
+    tickItemCooldowns(this.itemCooldowns, dt);
+    tickItemCooldowns(this.enemyItemCooldowns, dt);
   }
 
   private updateStatusEffects(dt: number) {
     for (const unit of this.units) {
-      unit.attackTimer = Math.max(0, unit.attackTimer - dt);
-      unit.actionTimer = Math.max(0, unit.actionTimer - dt);
-      unit.slowTimer = Math.max(0, unit.slowTimer - dt);
-      unit.rootTimer = Math.max(0, unit.rootTimer - dt);
-      unit.markTimer = Math.max(0, unit.markTimer - dt);
-      unit.hasteTimer = Math.max(0, unit.hasteTimer - dt);
-      unit.shieldTimer = Math.max(0, unit.shieldTimer - dt);
-      if (unit.slowTimer <= 0) unit.slowMultiplier = 1;
-      if (unit.hasteTimer <= 0) unit.hasteMultiplier = 1;
-      if (unit.shieldTimer <= 0) unit.shield = 0;
-      if (unit.id === "player" && unit.actionTimer <= 0) this.activeCastSkill = null;
+      const tick = tickUnitStatusEffects(unit, dt);
+      if (unit.id === "player" && tick.actionReady) this.activeCastSkill = null;
     }
   }
 
   private updateQueuedSkill(dt: number) {
-    if (!this.queuedSkill) return;
     const player = this.getPlayer();
-    this.queuedSkillTimer = Math.max(0, this.queuedSkillTimer - dt);
-    if (this.result !== "playing" || !player.alive || this.isModalOpen()) {
-      this.clearQueuedSkill();
-      return;
-    }
-    if (this.queuedSkillTimer <= 0) {
-      this.clearQueuedSkill("Cast buffer expired");
-      return;
-    }
-    if (this.isPlayerCastingLocked(player)) return;
-    const skill = this.queuedSkill;
+    const decision = resolveQueuedSkillTick({
+      queuedSkill: this.queuedSkill,
+      queuedSkillTimer: this.queuedSkillTimer,
+      dt,
+      result: this.result,
+      player,
+      modalOpen: this.isModalOpen(),
+    });
+    this.queuedSkillTimer = decision.timer;
+    if (decision.kind === "clear") return this.clearQueuedSkill(decision.message);
+    if (decision.kind !== "cast") return;
     const aimPoint = this.queuedSkillAim ?? this.pointerWorld;
     this.clearQueuedSkill();
-    this.castPlayerSkill(skill, aimPoint, false);
+    this.castPlayerSkill(decision.skill, aimPoint, false);
   }
 
   private updateTowerAggro(dt: number) {
     tickTowerAggro(this.towerHeroAggro, this.units, dt);
   }
 
+  private updateMinionAggro(dt: number) {
+    tickMinionAggro(this.units, dt);
+  }
+
   private updateBaseRecovery(dt: number) {
     for (const unit of this.units) {
-      if (!unit.alive || unit.kind !== "hero") continue;
-      const base = unit.team === "azure" ? AZURE_BASE : CRIMSON_BASE;
-      if (distance(unit, base) > BASE_REGEN_RADIUS) continue;
-      unit.hp = Math.min(unit.maxHp, unit.hp + unit.maxHp * BASE_HEALTH_REGEN_PER_SECOND * dt);
-      unit.mana = Math.min(unit.maxMana, unit.mana + unit.maxMana * BASE_MANA_REGEN_PER_SECOND * dt);
+      applyBaseRecovery(unit, dt);
     }
   }
 
   private updateRecallChannels(dt: number) {
     for (const unit of this.units) {
-      if (!unit.alive || unit.recallTimer <= 0) continue;
-      unit.recallTimer = Math.max(0, unit.recallTimer - dt);
-      unit.action = "cast";
-      unit.actionTimer = Math.max(unit.actionTimer, 0.08);
-      if (unit.recallTimer > 0) continue;
       const start = unit.team === "azure" ? PLAYER_START : ENEMY_START;
-      unit.x = start.x;
-      unit.y = start.y;
-      unit.hp = unit.maxHp;
-      unit.mana = unit.maxMana;
-      unit.shield = 0;
-      unit.shieldTimer = 0;
-      unit.slowTimer = 0;
-      unit.slowMultiplier = 1;
-      unit.rootTimer = 0;
-      unit.markTimer = 0;
-      this.clearUnitCommands(unit);
+      const recall = tickRecallChannel(unit, dt, start);
+      if (!recall.completed) continue;
+      const enemyPurchased = unit.id === "enemy_hero" && this.tryEnemyPurchaseAtBase(unit);
       this.spawnVfx(unit.team === "azure" ? "vfx-astra-w_shield_pulse" : "vfx-crimson-q_spear_thrust", unit.x, unit.y - 10, 1);
-      this.message = unit.id === "player" ? "Recall complete" : "Crimson recalled";
+      this.message = unit.id === "player" ? "Recall complete" : enemyPurchased ? this.message : "Crimson recalled";
     }
   }
 
   private updateShopState() {
     if (!this.shopOpen) return;
     const player = this.getPlayer();
-    if (this.result !== "playing" || !player.alive || !this.isPlayerInShop()) {
-      this.shopOpen = false;
-      if (this.result === "playing" && player.alive) this.message = "Shop closed";
-    }
+    const transition = resolveShopAutoClose({
+      shopOpen: this.shopOpen,
+      result: this.result,
+      playerAlive: player.alive,
+      playerInShop: this.isPlayerInShop(),
+    });
+    this.shopOpen = transition.shopOpen;
+    if (transition.message) this.message = transition.message;
   }
 
   private isModalOpen() {
-    return this.shopOpen || this.scoreboardOpen || this.settingsOpen;
+    return isAnyModalOpen({
+      shopOpen: this.shopOpen,
+      scoreboardOpen: this.scoreboardOpen,
+      settingsOpen: this.settingsOpen,
+    });
   }
 
   private isPlayerCastingLocked(player = this.getPlayer()) {
@@ -762,23 +517,17 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private handleEscapeKey() {
-    if (this.queuedSkill) {
-      this.clearQueuedSkill("Cast buffer cancelled");
-      return;
-    }
-    if (this.pendingSkill) {
-      this.cancelPendingSkill();
-      return;
-    }
-    if (this.shopOpen) {
-      this.setShopOpen(false);
-      return;
-    }
-    if (this.settingsOpen) {
-      this.setSettingsOpen(false);
-      return;
-    }
-    this.setSettingsOpen(true);
+    const action = resolveEscapeKeyAction({
+      hasQueuedSkill: Boolean(this.queuedSkill),
+      hasPendingSkill: Boolean(this.pendingSkill),
+      shopOpen: this.shopOpen,
+      settingsOpen: this.settingsOpen,
+    });
+    if (action === "clearQueuedSkill") return this.clearQueuedSkill("Cast buffer cancelled");
+    if (action === "cancelPendingSkill") return this.cancelPendingSkill();
+    if (action === "closeShop") return this.setShopOpen(false);
+    if (action === "closeSettings") return this.setSettingsOpen(false);
+    return this.setSettingsOpen(true);
   }
 
   private toggleShop() {
@@ -787,45 +536,33 @@ export class MobaScene extends Phaser.Scene {
 
   private setShopOpen(open: boolean) {
     const player = this.getPlayer();
-    if (!open) {
-      this.shopOpen = false;
-      this.message = "Shop closed";
-      return true;
-    }
-    if (!player.alive) {
-      this.shopOpen = false;
-      this.message = "Cannot shop while dead";
-      return false;
-    }
-    if (!this.isPlayerInShop()) {
-      this.shopOpen = false;
-      this.message = "Shop is only available in base";
-      return false;
-    }
-    this.shopOpen = true;
-    this.settingsOpen = false;
-    this.cancelPendingSkill();
-    this.clearQueuedSkill();
-    this.message = "Shop opened";
-    return true;
+    return this.applyModalTransition(
+      resolveShopTransition(
+        { shopOpen: this.shopOpen, settingsOpen: this.settingsOpen },
+        open,
+        { playerAlive: player.alive, playerInShop: this.isPlayerInShop() },
+      ),
+    );
   }
 
-  private toggleSettings() {
+  toggleSettings() {
     return this.setSettingsOpen(!this.settingsOpen);
   }
 
   private setSettingsOpen(open: boolean) {
-    this.settingsOpen = open;
-    if (open) {
-      this.shopOpen = false;
-      this.cancelPendingSkill();
-      this.clearQueuedSkill();
-    }
-    this.message = open ? "Settings opened" : "Settings closed";
-    return this.settingsOpen;
+    return this.applyModalTransition(resolveSettingsTransition({ shopOpen: this.shopOpen, settingsOpen: this.settingsOpen }, open));
   }
 
-  private setQuickCast(enabled: boolean) {
+  private applyModalTransition(transition: ModalTransition) {
+    this.shopOpen = transition.shopOpen;
+    this.settingsOpen = transition.settingsOpen;
+    if (transition.cancelPendingSkill) this.cancelPendingSkill();
+    if (transition.clearQueuedSkill) this.clearQueuedSkill();
+    this.message = transition.message;
+    return transition.success;
+  }
+
+  setQuickCast(enabled: boolean) {
     this.quickCast = enabled;
     if (enabled) this.cancelPendingSkill();
     this.clearQueuedSkill();
@@ -833,26 +570,29 @@ export class MobaScene extends Phaser.Scene {
     return this.quickCast;
   }
 
-  private setRangeIndicators(enabled: boolean) {
+  setRangeIndicators(enabled: boolean) {
     this.showRangeIndicators = enabled;
     this.message = enabled ? "Range indicators enabled" : "Range indicators hidden";
     return this.showRangeIndicators;
+  }
+
+  setEnemyGold(gold: number) {
+    this.enemyGold = Math.max(0, Math.floor(gold));
+    this.message = `Enemy gold set to ${this.enemyGold}`;
+    return this.enemyGold;
   }
 
   private startRecall(unit: Unit) {
     if (!unit.alive || unit.kind !== "hero") return false;
     if (unit.id === "player" && !this.canStartPlayerAction(unit)) return false;
     if (unit.recallTimer > 0) return false;
-    const nearestEnemy = this.findNearestEnemyUnit(unit, 260);
+    const nearestEnemy = findNearestEnemyUnitRule(this.units, unit, 260);
     if (nearestEnemy) {
       this.message = "Too close to enemies";
       return false;
     }
-    this.clearUnitCommands(unit);
+    if (!beginRecallChannel(unit)) return false;
     if (unit.id === "player") this.clearQueuedSkill();
-    unit.recallTimer = unit.recallDuration;
-    unit.action = "cast";
-    unit.actionTimer = 0.4;
     this.spawnVfx(unit.team === "azure" ? "vfx-astra-w_shield_pulse" : "vfx-crimson-q_spear_thrust", unit.x, unit.y - 6, 0.9);
     this.message = unit.id === "player" ? "Recalling" : "Crimson recall";
     return true;
@@ -864,13 +604,6 @@ export class MobaScene extends Phaser.Scene {
     if (message && unit.id === "player") this.message = message;
   }
 
-  private clearUnitCommands(unit: Unit) {
-    unit.targetUnitId = undefined;
-    unit.targetBuildingId = undefined;
-    unit.targetPoint = undefined;
-    unit.attackMovePoint = undefined;
-  }
-
   private toWorldPoint(pointer: Phaser.Input.Pointer): Point {
     const worldPoint = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
     return { x: clamp(worldPoint.x, 80, WORLD_WIDTH - 80), y: clamp(worldPoint.y, 90, WORLD_HEIGHT - 90) };
@@ -878,152 +611,112 @@ export class MobaScene extends Phaser.Scene {
 
   private commandMove(player: Unit, point: Point, attackMove: boolean) {
     this.cancelRecall(player, "Recall interrupted");
-    player.targetUnitId = undefined;
-    player.targetBuildingId = undefined;
-    player.targetPoint = point;
-    player.attackMovePoint = attackMove ? point : undefined;
-    this.message = attackMove ? "Attack move" : "Move command";
+    this.message = applyMoveCommand(player, point, attackMove);
   }
 
   private commandAttackUnit(player: Unit, target: Unit) {
     this.cancelRecall(player, "Recall interrupted");
-    player.targetUnitId = target.id;
-    player.targetBuildingId = undefined;
-    player.targetPoint = undefined;
-    player.attackMovePoint = undefined;
-    this.message = `${target.kind} targeted`;
+    this.message = applyAttackUnitCommand(player, target);
   }
 
   private commandAttackBuilding(player: Unit, building: Building) {
     this.cancelRecall(player, "Recall interrupted");
-    player.targetUnitId = undefined;
-    player.targetBuildingId = building.id;
-    player.targetPoint = undefined;
-    player.attackMovePoint = undefined;
-    this.message = `${building.id.split("_").join(" ")} targeted`;
-  }
-
-  private clearPlayerCommands(player: Unit) {
-    this.clearUnitCommands(player);
+    this.message = applyAttackBuildingCommand(player, building);
   }
 
   private updatePlayerAttackCommands(player: Unit, dt: number) {
-    if (player.targetUnitId) {
-      const target = this.units.find((unit) => unit.id === player.targetUnitId && unit.alive);
-      if (!target) {
-        player.targetUnitId = undefined;
-        return false;
-      }
-      const gap = distance(player, target) - player.radius - target.radius;
-      if (gap <= player.attackRange + 10) {
+    const decision = resolvePlayerAttackCommand(player, this.units, this.buildings);
+    return applyPlayerAttackCommandDecision(player, decision, {
+      attackUnit: (target) => {
         this.tryUnitAttack(player, true, target);
         if (player.actionTimer <= 0) player.action = "idle";
-      } else {
-        const dir = normalize(target.x - player.x, target.y - player.y);
-        this.moveUnit(player, dir.x, dir.y, player.speed, dt);
-      }
-      return true;
-    }
-
-    if (player.targetBuildingId) {
-      const building = this.buildings.find((candidate) => candidate.id === player.targetBuildingId && candidate.hp > 0);
-      if (!building || !isBuildingVulnerable(building, this.buildings)) {
-        player.targetBuildingId = undefined;
-        return false;
-      }
-      const gap = distance(player, building) - player.radius - building.radius;
-      if (gap <= player.attackRange + 18) {
+      },
+      attackBuilding: (building) => {
         this.attackBuilding(player, building);
         if (player.actionTimer <= 0) player.action = "idle";
-      } else {
-        const dir = normalize(building.x - player.x, building.y - player.y);
-        this.moveUnit(player, dir.x, dir.y, player.speed, dt);
-      }
-      return true;
-    }
-
-    if (player.attackMovePoint) {
-      const target = this.findNearestEnemyUnit(player, player.attackRange + 96);
-      if (target) {
-        this.commandAttackUnit(player, target);
-        return true;
-      }
-    }
-    return false;
+      },
+      attackMoveTarget: (target) => this.commandAttackUnit(player, target),
+      move: (direction) => moveUnit(player, direction.x, direction.y, player.speed, dt),
+    });
   }
 
   private pickEnemyUnit(point: Point, team: Team) {
-    return this.units
-      .filter((unit) => unit.alive && unit.team !== team && distance(unit, point) <= unit.radius + 22)
-      .sort((a, b) => distance(a, point) - distance(b, point))[0];
+    return pickEnemyUnitAtPoint(this.units, point, team);
   }
 
   private pickEnemyBuilding(point: Point, team: Team) {
-    return this.buildings
-      .filter((building) => building.hp > 0 && building.team !== team && isBuildingVulnerable(building, this.buildings) && distance(building, point) <= building.radius + 42)
-      .sort((a, b) => distance(a, point) - distance(b, point))[0];
+    return pickEnemyBuildingAtPoint(this.buildings, point, team);
   }
 
   private updatePlayerInput(dt: number) {
     const player = this.getPlayer();
     if (!this.keys) return;
-    if (!player.alive) {
+    const inputBlock = resolvePlayerInputBlockDecision(player, this.isModalOpen());
+    if (inputBlock.kind === "dead") {
       this.cancelPendingSkill();
       this.clearQueuedSkill();
       return;
     }
-
-    if (!this.settingsOpen && Phaser.Input.Keyboard.JustDown(this.keys.p)) this.toggleShop();
-    if (this.isModalOpen()) {
-      player.action = player.actionTimer > 0 ? player.action : "idle";
+    if (inputBlock.kind === "modal") {
+      player.action = inputBlock.action;
       return;
     }
 
     const axisX = Number(this.keys.right.isDown) - Number(this.keys.left.isDown);
     const axisY = Number(this.keys.down.isDown) - Number(this.keys.up.isDown);
-    const ctrlDown = this.keys.ctrl.isDown;
-    if (!ctrlDown && Phaser.Input.Keyboard.JustDown(this.keys.q)) this.activatePlayerSkill("q");
-    if (!ctrlDown && Phaser.Input.Keyboard.JustDown(this.keys.w)) this.activatePlayerSkill("w");
-    if (!ctrlDown && Phaser.Input.Keyboard.JustDown(this.keys.e)) this.activatePlayerSkill("e");
-    if (!ctrlDown && Phaser.Input.Keyboard.JustDown(this.keys.r)) this.activatePlayerSkill("r");
-    if (Phaser.Input.Keyboard.JustDown(this.keys.one)) this.useItemSlot(1);
-    if (Phaser.Input.Keyboard.JustDown(this.keys.two)) this.useItemSlot(2);
-    if (Phaser.Input.Keyboard.JustDown(this.keys.three)) this.useItemSlot(3);
-    if (Phaser.Input.Keyboard.JustDown(this.keys.four)) this.useItemSlot(4);
-    if (Phaser.Input.Keyboard.JustDown(this.keys.b)) this.startRecall(player);
-    if (Phaser.Input.Keyboard.JustDown(this.keys.space)) this.tryUnitAttack(player, true);
-    if (Phaser.Input.Keyboard.JustDown(this.keys.f)) this.toggleFullscreen();
+    for (const action of collectPlayerInputTickActions({
+      ctrlDown: this.keys.ctrl.isDown,
+      qJustDown: Phaser.Input.Keyboard.JustDown(this.keys.q),
+      wJustDown: Phaser.Input.Keyboard.JustDown(this.keys.w),
+      eJustDown: Phaser.Input.Keyboard.JustDown(this.keys.e),
+      rJustDown: Phaser.Input.Keyboard.JustDown(this.keys.r),
+      oneJustDown: Phaser.Input.Keyboard.JustDown(this.keys.one),
+      twoJustDown: Phaser.Input.Keyboard.JustDown(this.keys.two),
+      threeJustDown: Phaser.Input.Keyboard.JustDown(this.keys.three),
+      fourJustDown: Phaser.Input.Keyboard.JustDown(this.keys.four),
+      recallJustDown: Phaser.Input.Keyboard.JustDown(this.keys.b),
+      manualAttackJustDown: Phaser.Input.Keyboard.JustDown(this.keys.space),
+      fullscreenJustDown: Phaser.Input.Keyboard.JustDown(this.keys.f),
+    })) {
+      if (action.kind === "activateSkill") this.activatePlayerSkill(action.skill);
+      if (action.kind === "useItemSlot") this.useItemSlot(action.slot);
+      if (action.kind === "startRecall") this.startRecall(player);
+      if (action.kind === "manualAttack") this.tryUnitAttack(player, true);
+      if (action.kind === "toggleFullscreen") this.toggleFullscreen();
+    }
 
-    if (player.recallTimer > 0 && (axisX !== 0 || axisY !== 0)) this.cancelRecall(player, "Recall interrupted");
-    if (this.pendingSkill && (axisX !== 0 || axisY !== 0)) this.cancelPendingSkill();
-
-    if (player.action === "cast" && player.actionTimer > 0) return;
-
-    if (axisX !== 0 || axisY !== 0) {
-      const dir = normalize(axisX, axisY);
-      this.moveUnit(player, dir.x, dir.y, player.speed, dt);
-      this.clearPlayerCommands(player);
+    const axisDecision = resolveAxisMovementDecision({
+      axisX,
+      axisY,
+      recalling: player.recallTimer > 0,
+      hasPendingSkill: Boolean(this.pendingSkill),
+      castingLocked: player.action === "cast" && player.actionTimer > 0,
+    });
+    if (axisDecision.cancelRecall) this.cancelRecall(player, "Recall interrupted");
+    if (axisDecision.cancelPendingSkill) this.cancelPendingSkill();
+    if (axisDecision.action.kind === "castingLocked") return;
+    if (axisDecision.action.kind === "move") {
+      moveUnit(player, axisDecision.action.direction.x, axisDecision.action.direction.y, player.speed, dt);
+      clearUnitCommandsRule(player);
       return;
     }
 
     if (this.updatePlayerAttackCommands(player, dt)) return;
 
-    if (player.targetPoint) {
-      const dx = player.targetPoint.x - player.x;
-      const dy = player.targetPoint.y - player.y;
-      if (Math.hypot(dx, dy) < 8) {
-        if (player.attackMovePoint) {
-          player.attackMovePoint = undefined;
-          player.targetPoint = undefined;
-        } else {
-          player.targetPoint = undefined;
-        }
-        player.action = "idle";
-      } else {
-        const dir = normalize(dx, dy);
-        this.moveUnit(player, dir.x, dir.y, player.speed, dt);
-      }
-    } else if (player.actionTimer <= 0) {
+    const targetPointDecision = resolveTargetPointMovementDecision(player);
+    if (targetPointDecision.kind === "clearAttackMovePoint") {
+      player.attackMovePoint = undefined;
+      player.targetPoint = undefined;
+      player.action = "idle";
+    }
+    if (targetPointDecision.kind === "clearTargetPoint") {
+      player.targetPoint = undefined;
+      player.action = "idle";
+    }
+    if (targetPointDecision.kind === "move") {
+      moveUnit(player, targetPointDecision.direction.x, targetPointDecision.direction.y, player.speed, dt);
+    }
+    if (targetPointDecision.kind === "idle") {
       player.action = "idle";
     }
   }
@@ -1033,15 +726,24 @@ export class MobaScene extends Phaser.Scene {
     if (!enemy || !enemy.alive) return;
     const player = this.getPlayer();
     this.enemySkillCooldown = Math.max(0, this.enemySkillCooldown - dt);
-
-    const decision = decideEnemyHeroAction({
+    const decision = decideEnemyHeroAction(createEnemyHeroDecisionInput({
       enemy,
       player,
+      units: this.units,
+      buildings: this.buildings,
+      waveNumber: this.waveNumber,
       enemySkillCooldown: this.enemySkillCooldown,
-      canSafelyRecall: !this.findNearestEnemyUnit(enemy, 260),
-      lastHitTarget: findEnemyLastHitCandidate(enemy, this.units),
-    });
+      enemyGold: this.enemyGold,
+      itemBreakpointGold: this.nextEnemyItemCost(),
+      enemyItems: this.enemyPurchasedItems,
+      enemyItemCooldowns: this.enemyItemCooldowns,
+    }));
     this.enemyAiState = decision.state;
+    const nextTrace = traceEnemyHeroDecision(decision);
+    if (decision.kind === "recalling" && this.enemyAiTrace.reason?.endsWith("_recall")) {
+      nextTrace.reason = this.enemyAiTrace.reason;
+    }
+    this.enemyAiTrace = nextTrace;
 
     if (decision.kind === "recalling") return;
     if (decision.kind === "startRecall") {
@@ -1052,13 +754,17 @@ export class MobaScene extends Phaser.Scene {
       this.castEnemyHarass(enemy, player);
       return;
     }
+    if (decision.kind === "useItem") {
+      this.useEnemyItem(enemy, decision.itemId, decision.targetBuilding);
+      return;
+    }
     if (decision.kind === "attackUnit") {
       this.tryUnitAttack(enemy, false, decision.target);
       return;
     }
 
     const dir = normalize(decision.target.x - enemy.x, decision.target.y - enemy.y);
-    this.moveUnit(enemy, dir.x, dir.y, enemy.speed * decision.speedMultiplier, dt);
+    moveUnit(enemy, dir.x, dir.y, enemy.speed * decision.speedMultiplier, dt);
   }
 
   private castEnemyHarass(enemy: Unit, player: Unit) {
@@ -1080,6 +786,7 @@ export class MobaScene extends Phaser.Scene {
         multiplier: 0.82,
         duration: 0.8,
       },
+      mark: 2.4,
       vfx: {
         key: "vfx-crimson-q_spear_thrust",
         x: player.x,
@@ -1096,21 +803,27 @@ export class MobaScene extends Phaser.Scene {
         continue;
       }
 
-      const targetUnit = this.findNearestEnemyUnit(unit, unit.attackRange + 24);
-      if (targetUnit) {
-        this.tryUnitAttack(unit, false, targetUnit);
+      const decision = decideMinionAction({
+        minion: unit,
+        units: this.units,
+        buildings: this.buildings,
+        laneGoal: laneReturnTargetForUnit(unit),
+      });
+      if (decision.kind === "attackUnit") {
+        this.tryUnitAttack(unit, false, decision.target);
         continue;
       }
-
-      const targetBuilding = this.findNearestAttackableBuilding(unit, unit.attackRange + 38);
-      if (targetBuilding) {
-        this.attackBuilding(unit, targetBuilding);
+      if (decision.kind === "chaseUnit") {
+        const dir = normalize(decision.target.x - unit.x, decision.target.y - unit.y);
+        moveUnit(unit, dir.x, dir.y, unit.speed, dt);
         continue;
       }
-
-      const laneGoal = this.getLaneGoal(unit.team);
-      const dir = normalize(laneGoal.x - unit.x, laneGoal.y - unit.y);
-      this.moveUnit(unit, dir.x, dir.y, unit.speed, dt);
+      if (decision.kind === "attackBuilding") {
+        this.attackBuilding(unit, decision.building);
+        continue;
+      }
+      const dir = normalize(decision.target.x - unit.x, decision.target.y - unit.y);
+      moveUnit(unit, dir.x, dir.y, unit.speed, dt);
     }
   }
 
@@ -1143,73 +856,40 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private resolvePendingDamageEvents() {
-    const due = this.pendingDamageEvents.filter((event) => event.triggerAt <= this.elapsed);
-    this.pendingDamageEvents = this.pendingDamageEvents.filter((event) => event.triggerAt > this.elapsed);
+    const { due, pending } = drainDueDamageEvents(this.pendingDamageEvents, this.elapsed);
+    this.pendingDamageEvents = pending;
     for (const event of due) {
-      if (!this.isDamageSourceValid(event)) continue;
-      if (event.vfx) this.spawnVfx(event.vfx.key, event.vfx.x, event.vfx.y, event.vfx.scale);
-      if (event.kind === "unit" && event.targetId) {
-        const target = this.units.find((unit) => unit.id === event.targetId);
-        if (target?.alive) {
-          this.applyAbilityDamageToUnit(target, event.damage, event.sourceTeam, event.sourceId, {
-            slow: event.slow,
-            root: event.root,
-            mark: event.mark,
-            knockback: event.knockback,
-            consumeMarkBonus: event.consumeMarkBonus,
-            cooldownRefund: event.cooldownRefund,
-          });
-        }
-      } else if (event.kind === "building" && event.buildingId) {
-        const building = this.buildings.find((candidate) => candidate.id === event.buildingId);
-        if (building) this.applyBuildingDamage(building, event.damage * event.buildingDamageMultiplier);
-      } else if (event.kind === "circle" && event.center && event.radius) {
-        this.damageEnemiesNear(
-          event.center,
-          event.damage,
-          event.radius,
-          event.sourceTeam,
-          event.sourceId,
-          {
-            slow: event.slow,
-            root: event.root,
-            mark: event.mark,
-            knockback: event.knockback,
-            consumeMarkBonus: event.consumeMarkBonus,
-            cooldownRefund: event.cooldownRefund,
-          },
-          event.buildingDamageMultiplier,
-        );
-      } else if (event.kind === "cone" && event.origin && event.direction && event.range && event.halfAngleDeg) {
-        this.damageEnemiesInCone(
-          event.origin,
-          event.direction,
-          event.range,
-          event.halfAngleDeg,
-          event.damage,
-          event.sourceTeam,
-          event.sourceId,
-          {
-            slow: event.slow,
-            root: event.root,
-            mark: event.mark,
-            knockback: event.knockback,
-            consumeMarkBonus: event.consumeMarkBonus,
-            cooldownRefund: event.cooldownRefund,
-          },
-          event.buildingDamageMultiplier,
-        );
+      const dispatch = resolvePendingDamageEventDispatch(event, this.units, this.buildings);
+      if (!dispatch) continue;
+      if (dispatch.vfx) this.spawnVfx(dispatch.vfx.key, dispatch.vfx.x, dispatch.vfx.y, dispatch.vfx.scale);
+      const { action, effects } = dispatch;
+      if (action.kind === "unit") this.applyAbilityDamageToUnit(action.target, action.damage, action.sourceTeam, action.sourceId, effects);
+      if (action.kind === "building") this.applyBuildingDamage(action.building, action.amount);
+      if (action.kind === "circle") {
+        this.applyAreaDamage(resolveAreaDamageApplication({
+          shape: { kind: "circle", center: action.center, radius: action.radius },
+          units: this.units,
+          buildings: this.buildings,
+          damage: action.damage,
+          sourceTeam: action.sourceTeam,
+          sourceId: action.sourceId,
+          effects,
+          buildingDamageMultiplier: action.buildingDamageMultiplier,
+        }));
+      }
+      if (action.kind === "cone") {
+        this.applyAreaDamage(resolveAreaDamageApplication({
+          shape: { kind: "cone", origin: action.origin, direction: action.direction, range: action.range, halfAngleDeg: action.halfAngleDeg },
+          units: this.units,
+          buildings: this.buildings,
+          damage: action.damage,
+          sourceTeam: action.sourceTeam,
+          sourceId: action.sourceId,
+          effects,
+          buildingDamageMultiplier: action.buildingDamageMultiplier,
+        }));
       }
     }
-  }
-
-  private isDamageSourceValid(event: PendingDamageEvent) {
-    if (!event.cancelIfSourceDead || !event.sourceId) return true;
-    const sourceUnit = this.units.find((unit) => unit.id === event.sourceId);
-    if (sourceUnit) return sourceUnit.alive;
-    const sourceBuilding = this.buildings.find((building) => building.id === event.sourceId);
-    if (sourceBuilding) return sourceBuilding.hp > 0;
-    return true;
   }
 
   private activatePlayerSkill(skill: SkillKey) {
@@ -1219,7 +899,7 @@ export class MobaScene extends Phaser.Scene {
     if (!this.canStartPlayerAction(player)) return false;
     if (!this.canAttemptSkill(player, skill)) return false;
     this.pendingSkill = skill;
-    this.clearPlayerCommands(player);
+    clearUnitCommandsRule(player);
     this.message = `${skill.toUpperCase()} aiming`;
     return true;
   }
@@ -1238,49 +918,27 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private canStartPlayerAction(player: Unit) {
-    if (this.result !== "playing") return false;
-    if (!player.alive) {
-      this.message = "Respawning";
-      return false;
-    }
-    if (this.isModalOpen()) {
-      this.message = this.inputBlockedReason(player);
-      return false;
-    }
-    if (this.isPlayerCastingLocked(player)) {
-      this.message = "Casting";
-      return false;
-    }
-    return true;
+    const decision = this.playerActionStartDecision(player);
+    if (decision.message) this.message = decision.message;
+    return decision.allowed;
   }
 
-  private skillAttemptFailure(player: Unit, skill: SkillKey) {
-    if (this.playerCooldowns[skill] > 0) {
-      return "Skill cooling down";
-    }
-    if (skill === "r" && player.level < 6) {
-      return "Ultimate locked";
-    }
-    const level = this.skillLevel(player, skill);
-    if (level <= 0) {
-      return "Skill not learned";
-    }
-    const config = SKILL_CONFIG[skill];
-    if (player.mana < config.mana) {
-      return "Not enough mana";
-    }
-    if (skill === "e" && player.rootTimer > 0) {
-      return "Rooted";
-    }
-    return "";
+  private playerActionStartDecision(player: Unit) {
+    return resolvePlayerActionStartDecision({
+      result: this.result,
+      playerAlive: player.alive,
+      modalOpen: this.isModalOpen(),
+      modalBlockReason: this.inputBlockedReason(player),
+      castingLocked: this.isPlayerCastingLocked(player),
+    });
   }
 
   private canAttemptSkillSilently(player: Unit, skill: SkillKey) {
-    return !this.skillAttemptFailure(player, skill);
+    return !playerSkillAttemptFailure({ player, skill, cooldown: this.playerCooldowns[skill] });
   }
 
   private canAttemptSkill(player: Unit, skill: SkillKey) {
-    const failure = this.skillAttemptFailure(player, skill);
+    const failure = playerSkillAttemptFailure({ player, skill, cooldown: this.playerCooldowns[skill] });
     if (!failure) return true;
     this.message = failure;
     return false;
@@ -1290,12 +948,12 @@ export class MobaScene extends Phaser.Scene {
     const player = this.getPlayer();
     if (!player.alive || this.result !== "playing" || this.isModalOpen()) return this.canStartPlayerAction(player);
     if (!this.canAttemptSkill(player, skill)) return false;
-    this.pendingSkill = null;
-    this.queuedSkill = skill;
-    this.queuedSkillAim = { ...aimPoint };
-    this.queuedSkillTimer = CAST_QUEUE_WINDOW;
-    this.clearPlayerCommands(player);
-    this.message = `${skill.toUpperCase()} buffered`;
+    const application = applyQueuedPlayerSkillState(player, skill, aimPoint);
+    this.pendingSkill = application.pendingSkill;
+    this.queuedSkill = application.queuedSkill;
+    this.queuedSkillAim = application.queuedSkillAim;
+    this.queuedSkillTimer = application.queuedSkillTimer;
+    this.message = application.message;
     return true;
   }
 
@@ -1304,119 +962,36 @@ export class MobaScene extends Phaser.Scene {
     if (this.isPlayerCastingLocked(player) && allowQueue) return this.queuePlayerSkill(skill, aimPoint);
     if (!this.canStartPlayerAction(player)) return false;
     if (!this.canAttemptSkill(player, skill)) return false;
-    const level = this.skillLevel(player, skill);
-    const config = SKILL_CONFIG[skill];
-
+    const level = playerSkillLevel(player, skill);
     const dir = this.getPlayerAimDirection(player, aimPoint);
+    const castDraft = createPlayerSkillCastDraft({
+      player,
+      skill,
+      level,
+      direction: dir,
+      elapsed: this.elapsed,
+    });
     this.pendingSkill = null;
     this.clearQueuedSkill();
     this.cancelRecall(player, "Recall interrupted");
-    player.lastDirection = directionFromVector(dir.x, dir.y);
-    player.mana -= config.mana;
-    this.playerCooldowns[skill] = this.skillCooldown(player, skill);
-    player.action = "cast";
-    player.actionTimer = skill === "e" ? 0.24 : 0.42;
-    this.activeCastSkill = skill;
-    this.clearPlayerCommands(player);
+    const application = applyPlayerSkillCastState({
+      player,
+      skill,
+      direction: dir,
+      cooldown: this.skillCooldown(player, skill),
+      cooldowns: this.playerCooldowns,
+      draft: castDraft,
+    });
+    this.activeCastSkill = application.activeCastSkill;
 
-    if (skill === "q") {
-      const origin = { x: player.x, y: player.y };
+    for (const vfx of application.immediateVfx) this.spawnVfx(vfx.key, vfx.x, vfx.y, vfx.scale);
+    for (const event of application.damageEvents) {
       this.queueDamageEvent({
-        id: `skill_q_${this.sequence += 1}`,
-        triggerAt: this.elapsed + SKILL_CONFIG.q.hitDelay,
-        sourceTeam: "azure",
-        sourceId: player.id,
-        kind: "cone",
-        origin,
-        direction: dir,
-        range: SKILL_CONFIG.q.range,
-        halfAngleDeg: SKILL_CONFIG.q.halfAngleDeg,
-        damage: SKILL_CONFIG.q.damage[level],
-        buildingDamageMultiplier: 0.45,
-        cancelIfSourceDead: true,
-        mark: SKILL_CONFIG.q.markDuration,
-        vfx: {
-          key: "vfx-astra-q_slash_arc",
-          x: origin.x + dir.x * 78,
-          y: origin.y + dir.y * 46,
-          scale: 1.05,
-        },
+        id: `skill_${skill}_${this.sequence += 1}`,
+        ...event,
       });
-      this.message = "Arc Slash queued";
-    } else if (skill === "w") {
-      player.shield = Math.max(player.shield, SKILL_CONFIG.w.shield[level]);
-      player.shieldTimer = 2.8;
-      this.queueDamageEvent({
-        id: `skill_w_${this.sequence += 1}`,
-        triggerAt: this.elapsed + SKILL_CONFIG.w.hitDelay,
-        sourceTeam: "azure",
-        sourceId: player.id,
-        kind: "circle",
-        center: { x: player.x, y: player.y },
-        radius: SKILL_CONFIG.w.radius,
-        damage: SKILL_CONFIG.w.pulseDamage[level],
-        buildingDamageMultiplier: 0,
-        cancelIfSourceDead: true,
-        slow: {
-          multiplier: SKILL_CONFIG.w.slowMultiplier,
-          duration: SKILL_CONFIG.w.slowDuration,
-        },
-        mark: SKILL_CONFIG.w.markDuration,
-        vfx: {
-          key: "vfx-astra-w_shield_pulse",
-          x: player.x,
-          y: player.y,
-          scale: 1.15,
-        },
-      });
-      this.message = "Guard Pulse shielded";
-    } else if (skill === "e") {
-      this.spawnVfx("vfx-astra-e_dash_trail", player.x + dir.x * 42, player.y + dir.y * 24, 1.05);
-      player.x = clamp(player.x + dir.x * SKILL_CONFIG.e.dashX[level], 80, WORLD_WIDTH - 80);
-      player.y = clamp(player.y + dir.y * SKILL_CONFIG.e.dashY[level], 90, WORLD_HEIGHT - 90);
-      this.queueDamageEvent({
-        id: `skill_e_${this.sequence += 1}`,
-        triggerAt: this.elapsed,
-        sourceTeam: "azure",
-        sourceId: player.id,
-        kind: "circle",
-        center: { x: player.x, y: player.y },
-        radius: SKILL_CONFIG.e.radius,
-        damage: SKILL_CONFIG.e.damage[level],
-        buildingDamageMultiplier: 0,
-        cancelIfSourceDead: true,
-        consumeMarkBonus: SKILL_CONFIG.e.markBonus[level],
-        cooldownRefund: SKILL_CONFIG.e.markRefund,
-      });
-      this.message = "Astra E dash";
-    } else {
-      const origin = { x: player.x, y: player.y };
-      this.queueDamageEvent({
-        id: `skill_r_${this.sequence += 1}`,
-        triggerAt: this.elapsed + SKILL_CONFIG.r.hitDelay,
-        sourceTeam: "azure",
-        sourceId: player.id,
-        kind: "cone",
-        origin,
-        direction: dir,
-        range: SKILL_CONFIG.r.range,
-        halfAngleDeg: SKILL_CONFIG.r.halfAngleDeg,
-        damage: SKILL_CONFIG.r.damage[level],
-        buildingDamageMultiplier: 0.35,
-        cancelIfSourceDead: true,
-        knockback: SKILL_CONFIG.r.knockback,
-        root: SKILL_CONFIG.r.rootDuration,
-        consumeMarkBonus: SKILL_CONFIG.r.markBonus[level],
-        cooldownRefund: SKILL_CONFIG.r.markRefund,
-        vfx: {
-          key: "vfx-astra-r_shockwave",
-          x: origin.x + dir.x * 104,
-          y: origin.y + dir.y * 58,
-          scale: 1.45,
-        },
-      });
-      this.message = "Azure Breaker released";
     }
+    this.message = application.message;
     return true;
   }
 
@@ -1431,7 +1006,7 @@ export class MobaScene extends Phaser.Scene {
       this.message = "Ultimate locked";
       return false;
     }
-    const current = this.skillLevel(player, skill);
+    const current = playerSkillLevel(player, skill);
     if (current >= this.maxSkillLevel(skill)) {
       this.message = "Skill already maxed";
       return false;
@@ -1440,10 +1015,6 @@ export class MobaScene extends Phaser.Scene {
     player.skillPoints -= 1;
     this.message = `${skill.toUpperCase()} upgraded`;
     return true;
-  }
-
-  private skillLevel(player: Unit, skill: SkillKey) {
-    return player.skillLevels[skill] ?? 0;
   }
 
   private maxSkillLevel(skill: SkillKey) {
@@ -1458,38 +1029,29 @@ export class MobaScene extends Phaser.Scene {
     const dx = aim.x - player.x;
     const dy = aim.y - player.y;
     if (Math.hypot(dx, dy) > 18) return normalize(dx, dy);
-    return this.directionVector(player.lastDirection);
+    return vectorFromDirection(player.lastDirection);
   }
 
   private tryUnitAttack(attacker: Unit, manual: boolean, forcedTarget?: Unit) {
     if (!attacker.alive || attacker.attackTimer > 0) return false;
     if (attacker.kind === "hero" && attacker.action === "cast" && attacker.actionTimer > 0) return false;
     this.cancelRecall(attacker, "Recall interrupted");
-    const target = forcedTarget ?? this.findNearestEnemyUnit(attacker, attacker.attackRange + 16);
+    const target = forcedTarget ?? findNearestEnemyUnitRule(this.units, attacker, attacker.attackRange + 16);
     if (target) {
       attacker.attackTimer = attacker.attackCooldown;
       attacker.action = "basic_attack";
       attacker.actionTimer = 0.46;
       attacker.lastDirection = directionFromVector(target.x - attacker.x, target.y - attacker.y);
-      this.queueDamageEvent({
+      this.queueDamageEvent(createUnitAttackDamageEvent({
         id: `attack_${attacker.id}_${this.sequence += 1}`,
         triggerAt: this.elapsed + this.attackWindup(attacker),
-        sourceTeam: attacker.team,
-        sourceId: attacker.id,
-        kind: "unit",
-        targetId: target.id,
-        damage: attacker.attackDamage,
-        buildingDamageMultiplier: 0,
-        cancelIfSourceDead: true,
-        vfx:
-          attacker.team === "crimson"
-            ? { key: "vfx-crimson-basic_attack_arc", x: target.x, y: target.y - 8, scale: 0.8 }
-            : { key: "vfx-astra-q_slash_arc", x: target.x, y: target.y - 8, scale: 0.72 },
-      });
+        attacker,
+        target,
+      }));
       return true;
     }
 
-    const building = this.findNearestAttackableBuilding(attacker, attacker.attackRange + 34);
+    const building = findNearestAttackableBuildingRule(attacker, this.buildings, attacker.attackRange + 34);
     if (building) {
       return this.attackBuilding(attacker, building);
     } else if (manual) {
@@ -1505,23 +1067,13 @@ export class MobaScene extends Phaser.Scene {
     attacker.action = "basic_attack";
     attacker.actionTimer = 0.46;
     attacker.lastDirection = directionFromVector(building.x - attacker.x, building.y - attacker.y);
-    this.queueDamageEvent({
+    this.queueDamageEvent(createBuildingAttackDamageEvent({
       id: `attack_building_${attacker.id}_${this.sequence += 1}`,
       triggerAt: this.elapsed + this.attackWindup(attacker),
-      sourceTeam: attacker.team,
-      sourceId: attacker.id,
-      kind: "building",
-      buildingId: building.id,
-      damage: attacker.attackDamage * attacker.buildingDamageMultiplier,
-      buildingDamageMultiplier: 1,
-      cancelIfSourceDead: true,
-      vfx: {
-        key: attacker.team === "azure" ? "vfx-astra-q_slash_arc" : "vfx-crimson-basic_attack_arc",
-        x: building.x,
-        y: building.y - 40,
-        scale: 0.9,
-      },
-    });
+      attacker,
+      building,
+      structureDamageMultiplier: structureDamageMultiplier(attacker.team, building, this.units),
+    }));
     return true;
   }
 
@@ -1541,24 +1093,27 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private applyAbilityDamageToUnit(target: Unit, baseDamage: number, sourceTeam: Team, sourceId?: string, effects: DamageHitEffects = {}) {
-    const marked = target.markTimer > 0 && (effects.consumeMarkBonus ?? 0) > 0;
-    const damage = baseDamage + (marked ? effects.consumeMarkBonus ?? 0 : 0);
+    const damagePlan = resolveAbilityDamagePlan(target, baseDamage, effects);
     const beforeAlive = target.alive;
-    this.damageUnit(target, damage, sourceTeam, sourceId);
+    this.damageUnit(target, damagePlan.damage, sourceTeam, sourceId);
     if (beforeAlive && !target.alive) this.grantEnemyLastHitEconomy(target, sourceId);
-    if (!target.alive) return;
-    if (marked) {
+    const postDamage = resolveAbilityPostDamageApplication({
+      targetAlive: target.alive,
+      consumedMark: damagePlan.consumedMark,
+      sourceId,
+      effects,
+    });
+    if (!postDamage) return;
+    if (postDamage.clearMark) {
       target.markTimer = 0;
-      if (sourceId === "player") {
-        this.applyCooldownRefund(effects.cooldownRefund);
-        this.spawnVfx("vfx-astra-w_shield_pulse", target.x, target.y - 6, 0.68);
-        this.message = "Mark consumed";
-      }
     }
-    if (effects.mark) this.applyMark(target, effects.mark);
-    if (effects.slow) this.applySlow(target, effects.slow.multiplier, effects.slow.duration);
-    if (effects.root) this.applyRoot(target, effects.root);
-    if (effects.knockback && effects.knockback > 0) this.knockbackUnit(target, this.getEffectOrigin(sourceId, target), effects.knockback);
+    if (postDamage.cooldownRefund) this.applyCooldownRefund(postDamage.cooldownRefund);
+    if (postDamage.vfx) this.spawnVfx(postDamage.vfx.key, target.x, target.y + postDamage.vfx.yOffset, postDamage.vfx.scale);
+    if (postDamage.message) this.message = postDamage.message;
+    if (postDamage.mark) this.applyMark(target, postDamage.mark);
+    if (postDamage.slow) this.applySlow(target, postDamage.slow.multiplier, postDamage.slow.duration);
+    if (postDamage.root) this.applyRoot(target, postDamage.root);
+    if (postDamage.knockback) this.knockbackUnit(target, this.getEffectOrigin(sourceId, target), postDamage.knockback);
   }
 
   private getEffectOrigin(sourceId: string | undefined, fallback: Point) {
@@ -1595,96 +1150,44 @@ export class MobaScene extends Phaser.Scene {
     unit.targetPoint = undefined;
   }
 
-  private damageEnemiesNear(
-    center: Point,
-    damage: number,
-    radius: number,
-    sourceTeam: Team,
-    sourceId?: string,
-    effects: DamageHitEffects = {},
-    buildingDamageMultiplier = 0.45,
-  ) {
-    const { knockback, ...damageEffects } = effects;
-    for (const unit of this.units) {
-      if (!unit.alive || unit.team === sourceTeam || distance(unit, center) > radius + unit.radius) continue;
-      this.applyAbilityDamageToUnit(unit, damage, sourceTeam, sourceId, damageEffects);
-      if (knockback && unit.alive) this.knockbackUnit(unit, center, knockback);
+  private applyAreaDamage(application: AreaDamageApplication) {
+    for (const unit of application.units) {
+      this.applyAbilityDamageToUnit(unit, application.unitDamage, application.sourceTeam, application.sourceId, application.effects);
+      if (application.knockback && unit.alive) this.knockbackUnit(unit, application.knockback.origin, application.knockback.distance);
     }
-    for (const building of this.buildings) {
-      if (building.team === sourceTeam || building.hp <= 0 || distance(building, center) > radius + building.radius) continue;
-      if (!isBuildingVulnerable(building, this.buildings)) continue;
-      this.applyBuildingDamage(building, damage * buildingDamageMultiplier);
-    }
-  }
-
-  private damageEnemiesInCone(
-    origin: Point,
-    direction: Point,
-    range: number,
-    halfAngleDeg: number,
-    damage: number,
-    sourceTeam: Team,
-    sourceId?: string,
-    effects: DamageHitEffects = {},
-    buildingDamageMultiplier = 0.45,
-  ) {
-    const dir = normalize(direction.x, direction.y);
-    const maxWidthAtEdge = Math.tan(Phaser.Math.DegToRad(halfAngleDeg)) * range;
-    const { knockback, ...damageEffects } = effects;
-    for (const unit of this.units) {
-      if (!unit.alive || unit.team === sourceTeam) continue;
-      const rel = { x: unit.x - origin.x, y: unit.y - origin.y };
-      const forward = rel.x * dir.x + rel.y * dir.y;
-      if (forward < -unit.radius || forward > range + unit.radius) continue;
-      const perpendicular = Math.abs(rel.x * dir.y - rel.y * dir.x);
-      const allowedWidth = Math.max(42, (forward / range) * maxWidthAtEdge) + unit.radius;
-      if (perpendicular > allowedWidth) continue;
-      this.applyAbilityDamageToUnit(unit, damage, sourceTeam, sourceId, damageEffects);
-      if (knockback && unit.alive) this.knockbackUnit(unit, origin, knockback);
-    }
-    for (const building of this.buildings) {
-      if (building.team === sourceTeam || building.hp <= 0 || !isBuildingVulnerable(building, this.buildings)) continue;
-      const rel = { x: building.x - origin.x, y: building.y - origin.y };
-      const forward = rel.x * dir.x + rel.y * dir.y;
-      if (forward < -building.radius || forward > range + building.radius) continue;
-      const perpendicular = Math.abs(rel.x * dir.y - rel.y * dir.x);
-      const allowedWidth = Math.max(56, (forward / range) * maxWidthAtEdge) + building.radius;
-      if (perpendicular <= allowedWidth) this.applyBuildingDamage(building, damage * buildingDamageMultiplier);
+    for (const building of application.buildings) {
+      this.applyBuildingDamage(building, application.buildingDamage);
     }
   }
 
   private damageUnit(target: Unit, amount: number, sourceTeam: Team, sourceId?: string) {
     if (!target.alive) return;
     this.cancelRecall(target, target.id === "player" ? "Recall interrupted" : undefined);
-    const shieldDamage = Math.min(target.shield, amount);
-    target.shield -= shieldDamage;
-    target.hp -= amount - shieldDamage;
+    const player = this.getPlayer();
+    const missedCsCandidate = sourceId !== "player" && target.team !== player.team && target.kind !== "hero" && shouldShowMissedCs({ unit: target, player, buildings: this.buildings });
+    const result = applyUnitDamageResolution(target, amount);
+    if (!result.applied) return;
+    const calledMinions = callMinionAggroOnHeroDamage({ target, sourceId, units: this.units, damage: amount });
+    if (calledMinions > 0 && sourceId === "player") this.message = `Minion aggro ${calledMinions}`;
     this.flashUnit(target);
     this.showDamageNumber(target.x, target.y - 58, Math.round(amount), sourceTeam);
-    target.action = target.hp <= 0 ? "death" : "hit";
-    target.actionTimer = target.hp <= 0 ? 1.2 : 0.24;
-    if (target.hp <= 0) {
-      target.hp = 0;
-      target.alive = false;
-      this.handleUnitDeath(target, sourceTeam, sourceId);
+    if (result.died) {
+      this.handleUnitDeath(target, sourceTeam, sourceId, missedCsCandidate);
     } else {
       this.registerTowerHeroAggro(target, sourceId);
     }
   }
 
   private applyBuildingDamage(building: Building, amount: number) {
-    if (building.hp <= 0 || !isBuildingVulnerable(building, this.buildings)) return;
-    building.hp = Math.max(0, building.hp - amount);
+    const application = applyBuildingDamageApplication(building, this.buildings, amount);
+    if (!application.applied) return;
     this.flashBuilding(building);
-    this.showDamageNumber(building.x, building.y - 118, Math.round(amount), building.team === "azure" ? "crimson" : "azure");
-    if (building.hp <= 0) {
-      this.message = `${building.id} destroyed`;
-      if (building.id === "crimson_core") this.endGame("victory");
-      if (building.id === "azure_core") this.endGame("defeat");
-    }
+    this.showDamageNumber(building.x, building.y - 118, Math.round(amount), application.damageNumberTeam ?? "azure");
+    if (application.message) this.message = application.message;
+    if (application.outcome) this.endGame(application.outcome);
   }
 
-  private handleUnitDeath(target: Unit, sourceTeam: Team, sourceId?: string) {
+  private handleUnitDeath(target: Unit, sourceTeam: Team, sourceId?: string, missedCsCandidate = false) {
     if (sourceTeam === "azure") this.azureKills += 1;
     if (sourceTeam === "crimson") this.crimsonKills += 1;
     if (target.kind === "hero") this.handleHeroDeath(target, sourceTeam);
@@ -1694,21 +1197,16 @@ export class MobaScene extends Phaser.Scene {
     }
     if (sourceId === "player" && target.team !== player.team) {
       this.grantPlayerLastHitGold(target);
+    } else if (missedCsCandidate) {
+      this.playerCsStreak = 0;
+      this.playerMissedCs += 1;
+      this.message = `CS missed · ${this.playerMissedCs}`;
     }
   }
 
   private handleHeroDeath(target: Unit, sourceTeam: Team) {
     this.cancelRecall(target, target.id === "player" ? "Recall interrupted" : undefined);
-    this.clearUnitCommands(target);
-    target.attackTimer = 0;
-    target.shield = 0;
-    target.shieldTimer = 0;
-    target.slowTimer = 0;
-    target.slowMultiplier = 1;
-    target.rootTimer = 0;
-    target.markTimer = 0;
-    target.hasteTimer = 0;
-    target.hasteMultiplier = 1;
+    prepareHeroDeathState(target);
     if (target.id === "player") {
       this.playerDeaths += 1;
       if (sourceTeam === "crimson") this.enemyHeroKills += 1;
@@ -1741,27 +1239,7 @@ export class MobaScene extends Phaser.Scene {
       unit.respawnTimer -= dt;
       if (unit.respawnTimer <= 0) {
         const start = unit.team === "azure" ? PLAYER_START : ENEMY_START;
-        unit.x = start.x;
-        unit.y = start.y;
-        unit.hp = unit.maxHp;
-        unit.mana = unit.maxMana;
-        unit.shield = 0;
-        unit.shieldTimer = 0;
-        unit.slowTimer = 0;
-        unit.slowMultiplier = 1;
-        unit.rootTimer = 0;
-        unit.markTimer = 0;
-        unit.hasteTimer = 0;
-        unit.hasteMultiplier = 1;
-        unit.alive = true;
-        unit.action = "idle";
-        unit.actionTimer = 0;
-        unit.attackTimer = 0;
-        unit.targetUnitId = undefined;
-        unit.targetBuildingId = undefined;
-        unit.targetPoint = undefined;
-        unit.attackMovePoint = undefined;
-        unit.respawnTimer = 0;
+        respawnHeroAt(unit, start);
         this.message = unit.id === "player" ? "Astra respawned" : "Crimson respawned";
       }
     }
@@ -1770,77 +1248,115 @@ export class MobaScene extends Phaser.Scene {
 
   private grantPlayerExperience(target: Unit) {
     const player = this.getPlayer();
-    if (!player.alive) return;
-    const xp = XP_REWARDS[target.kind];
-    player.xp += xp;
-    this.playerXpGained += xp;
-    while (player.level < 6 && player.xp >= LEVEL_XP_REQUIREMENTS[player.level]) {
-      player.xp -= LEVEL_XP_REQUIREMENTS[player.level];
-      player.level += 1;
-      player.skillPoints += 1;
-      player.maxHp += 55;
-      player.hp = Math.min(player.maxHp, player.hp + 55);
-      player.attackDamage += 6;
-      if (player.level === 6) player.skillLevels.r = Math.max(1, player.skillLevels.r);
+    const result = applyPlayerExperienceGain(player, target.kind);
+    this.playerXpGained += result.xpGained;
+    for (let i = 0; i < result.levelsGained; i += 1) {
       this.spawnVfx("vfx-astra-w_shield_pulse", player.x, player.y, 1);
-      this.message = `Level ${player.level}`;
     }
+    if (result.levelsGained > 0) this.message = `Level ${result.finalLevel}`;
   }
 
   private grantPlayerLastHitGold(target: Unit) {
     const player = this.getPlayer();
-    const gold = GOLD_REWARDS[target.kind];
-    player.gold += gold;
-    this.playerLastHits += target.kind === "hero" ? 0 : 1;
-    this.message = target.kind === "hero" ? `Champion takedown +${gold}g` : `Last hit +${gold}g`;
+    const result = applyPlayerLastHitGold(player, target.kind);
+    this.playerLastHits += result.lastHitIncrement;
+    if (result.lastHitIncrement > 0) this.playerCsStreak += 1;
+    this.message = result.lastHitIncrement > 0 ? `${result.message} · streak ${this.playerCsStreak}` : result.message;
   }
 
   private grantEnemyLastHitEconomy(target: Unit, sourceId?: string) {
-    if (sourceId !== "enemy_hero" || target.team !== "azure") return;
-    this.enemyGold += GOLD_REWARDS[target.kind];
-    this.enemyXp += XP_REWARDS[target.kind];
-    if (target.kind !== "hero") this.enemyLastHits += 1;
+    const delta = enemyLastHitEconomyDelta(target, sourceId);
+    this.enemyGold += delta.goldGained;
+    this.enemyXp += delta.xpGained;
+    this.enemyLastHits += delta.lastHitIncrement;
   }
 
-  private buyItem(itemId: keyof typeof ITEM_CATALOG) {
+  private nextEnemyItemId() {
+    return ENEMY_ITEM_ORDER.find((itemId) => !this.enemyPurchasedItems.has(itemId)) ?? null;
+  }
+
+  private nextEnemyItemCost() {
+    const itemId = this.nextEnemyItemId();
+    return itemId ? ITEM_CATALOG[itemId].cost : null;
+  }
+
+  private tryEnemyPurchaseAtBase(enemy: Unit) {
+    const itemId = this.nextEnemyItemId();
+    if (!itemId || this.enemyGold < ITEM_CATALOG[itemId].cost) return false;
+    enemy.gold = this.enemyGold;
+    const result = tryPurchaseCatalogItem({
+      player: enemy,
+      itemId,
+      purchasedItems: this.enemyPurchasedItems,
+      shopAvailable: true,
+    });
+    this.enemyGold = enemy.gold;
+    if (result.purchased) this.message = `Crimson bought ${ITEM_CATALOG[itemId].name}`;
+    return result.purchased;
+  }
+
+  grantEnemyItem(itemId: ItemId) {
+    const enemy = this.units.find((unit) => unit.id === "enemy_hero");
+    if (!enemy || this.enemyPurchasedItems.has(itemId)) return false;
+    const previousGold = this.enemyGold;
+    enemy.gold = ITEM_CATALOG[itemId].cost;
+    const result = tryPurchaseCatalogItem({
+      player: enemy,
+      itemId,
+      purchasedItems: this.enemyPurchasedItems,
+      shopAvailable: true,
+    });
+    enemy.gold = 0;
+    this.enemyGold = previousGold;
+    if (result.purchased) this.message = `Granted Crimson ${ITEM_CATALOG[itemId].name}`;
+    return result.purchased;
+  }
+
+  private useEnemyItem(enemy: Unit, itemId: ItemId, demolishTarget?: Building) {
     const item = ITEM_CATALOG[itemId];
-    const player = this.getPlayer();
-    if (!player.alive) {
-      this.message = "Cannot shop while dead";
-      return false;
-    }
-    if (this.purchasedItems.has(itemId)) {
-      this.message = "Item already owned";
-      return false;
-    }
-    if (!this.isPlayerInShop()) {
-      this.message = "Shop is only available in base";
-      return false;
-    }
-    if (player.gold < item.cost) {
-      this.message = "Not enough gold";
-      return false;
-    }
-    player.gold -= item.cost;
-    player.attackDamage += item.attackDamage;
-    player.speed += item.moveSpeed;
-    player.maxHp += item.maxHp;
-    player.hp += item.maxHp;
-    player.maxMana += item.maxMana;
-    player.mana += item.maxMana;
-    player.cooldownReduction = clamp(player.cooldownReduction + item.cooldownReduction, 0, 0.35);
-    this.purchasedItems.add(itemId);
-    this.message = `Purchased ${itemId.split("_").join(" ")}`;
+    if (!this.enemyPurchasedItems.has(itemId) || item.activeKind === "none" || this.enemyItemCooldowns[itemId] > 0) return false;
+    const enemyCooldowns = { q: this.enemySkillCooldown, w: 0, e: 0, r: 0 };
+    const effect = applyActiveItemEffect({
+      kind: item.activeKind,
+      itemId,
+      player: enemy,
+      playerCooldowns: enemyCooldowns,
+      demolishTarget,
+    });
+    const application = resolveActiveItemUseApplication({
+      effect,
+      activeCooldown: item.activeCooldown,
+      successMessage: `Crimson used ${item.activeLabel}`,
+      cancelRecall: false,
+    });
+    if (!application.used) return false;
+    this.enemySkillCooldown = enemyCooldowns.q;
+    if (application.buildingDamage) this.applyBuildingDamage(application.buildingDamage.building, application.buildingDamage.damage);
+    for (const vfx of application.vfx) this.spawnVfx(vfx.key, vfx.x, vfx.y, vfx.scale);
+    if (application.cooldown !== undefined) this.enemyItemCooldowns[itemId] = application.cooldown;
+    if (application.message) this.message = application.message;
     return true;
   }
 
-  private itemSlotAction(itemId: ItemId) {
+  private buyItem(itemId: keyof typeof ITEM_CATALOG) {
+    const player = this.getPlayer();
+    const result = tryPurchaseCatalogItem({
+      player,
+      itemId,
+      purchasedItems: this.purchasedItems,
+      shopAvailable: this.isPlayerInShop(),
+    });
+    this.message = result.message;
+    return result.purchased;
+  }
+
+  itemSlotAction(itemId: ItemId) {
     if (this.purchasedItems.has(itemId)) return this.useItem(itemId);
     return this.buyItem(itemId);
   }
 
   private useItemSlot(slot: number) {
-    const itemId = ACTIVE_ITEM_IDS.find((id) => ITEM_CATALOG[id].slot === slot);
+    const itemId = itemIdForActiveSlot(slot);
     if (!itemId) {
       this.message = "Empty item slot";
       return false;
@@ -1855,60 +1371,39 @@ export class MobaScene extends Phaser.Scene {
   private useItem(itemId: ItemId) {
     const player = this.getPlayer();
     const item = ITEM_CATALOG[itemId];
-    if (item.activeKind === "none") {
-      this.message = "Passive item";
+    const gate = resolveActiveItemUseGate({
+      activeKind: item.activeKind,
+      owned: this.purchasedItems.has(itemId),
+      actionStart: this.playerActionStartDecision(player),
+      cooldown: this.itemCooldowns[itemId],
+    });
+    if (!gate.allowed) {
+      if (gate.message) this.message = gate.message;
       return false;
     }
-    if (!this.purchasedItems.has(itemId)) {
-      this.message = "Item not owned";
+    const effect = applyActiveItemEffect({
+      kind: item.activeKind,
+      itemId,
+      player,
+      playerCooldowns: this.playerCooldowns,
+      demolishTarget: item.activeKind === "demolish" ? findNearestAttackableBuildingRule(player, this.buildings, 250) : undefined,
+    });
+    const application = resolveActiveItemUseApplication({
+      effect,
+      activeCooldown: item.activeCooldown,
+      successMessage: `${item.activeLabel} activated`,
+      cancelRecall: true,
+    });
+    if (!application.used) {
+      if (application.message) this.message = application.message;
       return false;
     }
-    if (!this.canStartPlayerAction(player)) return false;
-    if (this.itemCooldowns[itemId] > 0) {
-      this.message = "Item cooling down";
-      return false;
-    }
-    const used = this.resolveActiveItemEffect(item.activeKind, itemId, player);
-    if (!used) return false;
-    this.cancelRecall(player, "Recall interrupted");
-    this.itemCooldowns[itemId] = item.activeCooldown;
-    this.message = `${item.activeLabel} activated`;
+    if (application.buildingDamage) this.applyBuildingDamage(application.buildingDamage.building, application.buildingDamage.damage);
+    for (const vfx of application.vfx) this.spawnVfx(vfx.key, vfx.x, vfx.y, vfx.scale);
+    if (application.cancelRecall) this.cancelRecall(player, "Recall interrupted");
+    if (application.cooldown !== undefined) this.itemCooldowns[itemId] = application.cooldown;
+    if (application.message) this.message = application.message;
     return true;
-  }
-
-  private resolveActiveItemEffect(kind: ActiveItemKind, itemId: ItemId, player: Unit) {
-    if (kind === "mana") {
-      player.mana = Math.min(player.maxMana, player.mana + 160);
-      for (const skill of ["q", "w", "e"] as const) {
-        this.playerCooldowns[skill] = Math.max(0, this.playerCooldowns[skill] - 1.1);
-      }
-      this.spawnVfx("vfx-astra-w_shield_pulse", player.x, player.y - 6, 0.78);
-      return true;
-    }
-    if (kind === "shield") {
-      player.shield = Math.max(player.shield, 180);
-      player.shieldTimer = Math.max(player.shieldTimer, 3.2);
-      this.spawnVfx("vfx-astra-w_shield_pulse", player.x, player.y, 1);
-      return true;
-    }
-    if (kind === "haste") {
-      player.hasteMultiplier = Math.max(player.hasteMultiplier, 1.34);
-      player.hasteTimer = Math.max(player.hasteTimer, 3.4);
-      this.spawnVfx("vfx-astra-e_dash_trail", player.x + 20, player.y - 4, 0.92);
-      return true;
-    }
-    if (kind === "demolish") {
-      const building = this.findNearestAttackableBuilding(player, 250);
-      if (!building) {
-        this.message = "No structure in range";
-        return false;
-      }
-      this.applyBuildingDamage(building, 260);
-      this.spawnVfx("vfx-astra-q_slash_arc", building.x, building.y - 42, 1.05);
-      return true;
-    }
-    this.message = `${itemId} has no active`;
-    return false;
   }
 
   private syncViews() {
@@ -1940,50 +1435,43 @@ export class MobaScene extends Phaser.Scene {
     const skill = this.activeAimSkill();
     if (!skill) return;
     const dir = this.getPlayerAimDirection(player);
-    if (skill === "w") {
+    const shape = createAimPreviewShape(player, skill, dir);
+    if (shape.kind === "circle") {
       preview.lineStyle(2, 0x8fe7ff, 0.34);
       preview.fillStyle(0x4aa8ff, 0.06);
-      preview.fillCircle(player.x, player.y, SKILL_CONFIG.w.radius);
-      preview.strokeCircle(player.x, player.y, SKILL_CONFIG.w.radius);
+      preview.fillCircle(player.x, player.y, shape.radius);
+      preview.strokeCircle(player.x, player.y, shape.radius);
       return;
     }
-    if (skill === "e") {
-      const level = Math.max(1, this.skillLevel(player, "e"));
-      const end = {
-        x: player.x + dir.x * SKILL_CONFIG.e.dashX[level],
-        y: player.y + dir.y * SKILL_CONFIG.e.dashY[level],
-      };
+    if (shape.kind === "dash") {
       preview.lineStyle(7, 0x76d9ff, 0.18);
-      preview.lineBetween(player.x, player.y, end.x, end.y);
+      preview.lineBetween(player.x, player.y, shape.end.x, shape.end.y);
       preview.lineStyle(2, 0xc4f6ff, 0.42);
-      preview.strokeCircle(end.x, end.y, SKILL_CONFIG.e.radius);
+      preview.strokeCircle(shape.end.x, shape.end.y, shape.radius);
       return;
     }
-    const config = skill === "r" ? SKILL_CONFIG.r : SKILL_CONFIG.q;
-    const range = skill === "r" ? config.range : SKILL_CONFIG.q.range;
-    const halfAngle = Phaser.Math.DegToRad(skill === "r" ? SKILL_CONFIG.r.halfAngleDeg : SKILL_CONFIG.q.halfAngleDeg);
-    const center = { x: player.x + dir.x * range, y: player.y + dir.y * range };
-    const leftAngle = Math.atan2(dir.y, dir.x) - halfAngle;
-    const rightAngle = Math.atan2(dir.y, dir.x) + halfAngle;
-    const left = { x: player.x + Math.cos(leftAngle) * range, y: player.y + Math.sin(leftAngle) * range };
-    const right = { x: player.x + Math.cos(rightAngle) * range, y: player.y + Math.sin(rightAngle) * range };
     preview.fillStyle(skill === "r" ? 0x9bd7ff : 0x76d9ff, skill === "r" ? 0.1 : 0.075);
-    preview.fillTriangle(player.x, player.y, left.x, left.y, right.x, right.y);
+    preview.fillTriangle(player.x, player.y, shape.left.x, shape.left.y, shape.right.x, shape.right.y);
     preview.lineStyle(2, skill === "r" ? 0xd7f4ff : 0x9feaff, skill === "r" ? 0.42 : 0.3);
-    preview.lineBetween(player.x, player.y, left.x, left.y);
-    preview.lineBetween(player.x, player.y, right.x, right.y);
+    preview.lineBetween(player.x, player.y, shape.left.x, shape.left.y);
+    preview.lineBetween(player.x, player.y, shape.right.x, shape.right.y);
     preview.lineStyle(1, 0xc8f6ff, 0.25);
-    preview.lineBetween(player.x, player.y, center.x, center.y);
+    preview.lineBetween(player.x, player.y, shape.center.x, shape.center.y);
   }
 
   private activeAimSkill(): SkillKey | null {
-    if (this.pendingSkill) return this.pendingSkill;
-    if (!this.showRangeIndicators || !this.keys || this.isModalOpen()) return null;
-    if (this.keys.r.isDown) return "r";
-    if (this.keys.e.isDown) return "e";
-    if (this.keys.w.isDown) return "w";
-    if (this.keys.q.isDown) return "q";
-    return null;
+    return resolveActiveAimSkill({
+      pendingSkill: this.pendingSkill,
+      showRangeIndicators: this.showRangeIndicators,
+      keysAvailable: Boolean(this.keys),
+      modalOpen: this.isModalOpen(),
+      keys: {
+        r: Boolean(this.keys?.r.isDown),
+        e: Boolean(this.keys?.e.isDown),
+        w: Boolean(this.keys?.w.isDown),
+        q: Boolean(this.keys?.q.isDown),
+      },
+    });
   }
 
   private drawTowerRanges() {
@@ -2003,10 +1491,11 @@ export class MobaScene extends Phaser.Scene {
     sprite.setPosition(unit.x, unit.y);
     sprite.setDepth(unit.y);
     sprite.setAlpha(unit.alive ? 1 : 0.8);
-    const action = this.visibleAction(unit);
+    const action = visibleUnitAction(unit);
     const animKey = this.animationKey(unit.assetId, action, unit.lastDirection);
     if (sprite.anims.currentAnim?.key !== animKey) sprite.play(animKey, true);
-    this.drawHealthBar(bar, unit.x, unit.y - 54 * UNIT_ASSETS[unit.assetId].scale, 58, unit.hp, unit.maxHp, unit.team, unit.shield, unitEffectLabels(unit));
+    const effects = unitEffectLabels(unit, { player: this.getPlayer(), buildings: this.buildings });
+    this.drawHealthBar(bar, unit.x, unit.y - 54 * UNIT_ASSETS[unit.assetId].scale, 58, unit.hp, unit.maxHp, unit.team, unit.shield, effects);
   }
 
   private syncBuildingView(building: Building) {
@@ -2039,6 +1528,22 @@ export class MobaScene extends Phaser.Scene {
       graphics.fillStyle(0x90f4ff, 0.92);
       graphics.fillRoundedRect(x - width / 2 + 1, y + 15, width - 2, 3, 2);
     }
+    if (effects.includes("aggro")) {
+      graphics.fillStyle(0xd98dff, 0.9);
+      graphics.fillRoundedRect(x - width / 2 + 1, y + 20, width - 2, 3, 2);
+    }
+    if (effects.includes("tower-setup")) {
+      graphics.lineStyle(2, 0x67d9ff, 0.86);
+      graphics.strokeRoundedRect(x - width / 2 - 2, y - 2, width + 4, 11, 4);
+      graphics.fillStyle(0x67d9ff, 0.88);
+      graphics.fillRoundedRect(x - width / 2 + 1, y + 25, width - 2, 3, 2);
+    }
+    if (effects.includes("last-hit")) {
+      graphics.lineStyle(2, 0xffd76a, 0.96);
+      graphics.strokeRoundedRect(x - width / 2 - 3, y - 3, width + 6, 13, 5);
+      graphics.fillStyle(0xffd76a, 0.95);
+      graphics.fillRoundedRect(x - width / 2 + 1, y + 25, width - 2, 3, 2);
+    }
   }
 
   private spawnWave() {
@@ -2068,17 +1573,9 @@ export class MobaScene extends Phaser.Scene {
     this.message = this.waveNumber % 3 === 0 ? "Siege wave spawned" : "Minion wave spawned";
   }
 
-  private makeHero(id: string, assetId: string, team: Team, x: number, y: number): Unit {
-    return createHero(id, assetId, team, x, y);
-  }
-
   private makeMinion(assetId: string, team: Team, kind: Exclude<UnitKind, "hero">, x: number, y: number): Unit {
     this.sequence += 1;
     return createMinion(`${assetId}_${this.sequence}`, assetId, team, kind, x, y, Phaser.Math.FloatBetween(0, 0.35));
-  }
-
-  private makeBuilding(id: string, assetId: keyof typeof BUILDING_ASSETS, team: Team, type: "tower" | "core", x: number, y: number): Building {
-    return createBuilding(id, assetId, team, type, x, y);
   }
 
   private createUnitView(unit: Unit) {
@@ -2089,36 +1586,6 @@ export class MobaScene extends Phaser.Scene {
     sprite.play(this.animationKey(unit.assetId, "idle", unit.lastDirection));
     this.unitSprites.set(unit.id, sprite);
     this.unitBars.set(unit.id, this.add.graphics().setDepth(9999));
-  }
-
-  private moveUnit(unit: Unit, dx: number, dy: number, speed: number, dt: number) {
-    if (unit.rootTimer > 0) {
-      if (unit.actionTimer <= 0) unit.action = "idle";
-      return;
-    }
-    const adjustedSpeed = speed * unit.slowMultiplier * unit.hasteMultiplier;
-    unit.x = clamp(unit.x + dx * adjustedSpeed * dt, 72, WORLD_WIDTH - 72);
-    unit.y = clamp(unit.y + dy * adjustedSpeed * dt, 80, WORLD_HEIGHT - 76);
-    unit.lastDirection = directionFromVector(dx, dy);
-    if (unit.actionTimer <= 0) unit.action = "move";
-  }
-
-  private findNearestEnemyUnit(source: Unit, range: number) {
-    return this.units
-      .filter((unit) => unit.alive && unit.team !== source.team)
-      .map((unit) => ({ unit, gap: distance(source, unit) - unit.radius - source.radius }))
-      .filter(({ gap }) => gap <= range)
-      .sort((a, b) => a.gap - b.gap)[0]?.unit;
-  }
-
-  private findNearestAttackableBuilding(source: Unit, range: number) {
-    return findNearestAttackableBuildingRule(source, this.buildings, range);
-  }
-
-  private visibleAction(unit: Unit): UnitAction {
-    if (!unit.alive) return "death";
-    if (unit.actionTimer > 0) return unit.action;
-    return unit.action === "move" ? "move" : "idle";
   }
 
   private spawnVfx(animationKey: string, x: number, y: number, scale: number) {
@@ -2161,24 +1628,6 @@ export class MobaScene extends Phaser.Scene {
       ease: "Cubic.easeOut",
       onComplete: () => text.destroy(),
     });
-  }
-
-  private directionVector(direction: Direction) {
-    const vectors: Record<Direction, Point> = {
-      south: { x: 0, y: 1 },
-      "south-east": { x: 0.7, y: 0.7 },
-      east: { x: 1, y: 0 },
-      "north-east": { x: 0.7, y: -0.7 },
-      north: { x: 0, y: -1 },
-      "north-west": { x: -0.7, y: -0.7 },
-      west: { x: -1, y: 0 },
-      "south-west": { x: -0.7, y: 0.7 },
-    };
-    return normalize(vectors[direction].x, vectors[direction].y);
-  }
-
-  private getLaneGoal(team: Team): Point {
-    return team === "azure" ? LANE_END : LANE_START;
   }
 
   private getPlayer() {
@@ -2237,6 +1686,8 @@ export class MobaScene extends Phaser.Scene {
       playerHeroKills: this.playerHeroKills,
       enemyHeroKills: this.enemyHeroKills,
       playerLastHits: this.playerLastHits,
+      playerCsStreak: this.playerCsStreak,
+      playerMissedCs: this.playerMissedCs,
       enemyLastHits: this.enemyLastHits,
       playerDeaths: this.playerDeaths,
       enemyDeaths: this.enemyDeaths,
@@ -2244,10 +1695,12 @@ export class MobaScene extends Phaser.Scene {
       enemyXp: this.enemyXp,
       enemySkillCooldown: this.enemySkillCooldown,
       enemyAiState: this.enemyAiState,
+      enemyAiTrace: this.enemyAiTrace,
       player,
       playerCooldowns: this.playerCooldowns,
       itemCooldowns: this.itemCooldowns,
       purchasedItems: this.purchasedItems,
+      enemyPurchasedItems: this.enemyPurchasedItems,
       waveNumber: this.waveNumber,
       waveTimer: this.waveTimer,
       shopOpen: this.shopOpen,
@@ -2266,6 +1719,7 @@ export class MobaScene extends Phaser.Scene {
       playerCastingLocked: this.isPlayerCastingLocked(player),
       buildings: this.buildings,
       units: this.units,
+      towerHeroAggro: this.towerHeroAggro,
       activeVfx: this.vfx.length,
       message: this.message,
       canAttemptSkill: (skill) => this.canAttemptSkillSilently(player, skill),

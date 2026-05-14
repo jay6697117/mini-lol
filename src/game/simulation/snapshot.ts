@@ -1,8 +1,12 @@
 import { ACTIVE_ITEM_IDS, ITEM_CATALOG, type ItemId } from "../data/game-config";
 import type { CooldownSnapshot, GameResult, GameSnapshot, MatchSummarySnapshot, ScoreboardRowSnapshot, SkillKey, SkillSnapshot } from "../types";
+import { createLaneSnapshot } from "./lane-state";
+import { lanePathProgress } from "./lane-path";
+import { lastHitHintForUnit, lastHitWindowForUnit } from "./last-hit";
 import { buildingState } from "./objectives";
 import { maxSkillLevel } from "./rules";
-import type { Building, Point, Unit } from "./types";
+import { towerDangerForUnit } from "./towers";
+import type { Building, Point, TowerAggroState, Unit } from "./types";
 
 const coordinateSystem = "world pixels, origin top-left, x right, y down; lane runs from azure lower-left to crimson upper-right";
 
@@ -22,6 +26,8 @@ export interface CreateGameSnapshotInput extends PlayerInputState {
   playerHeroKills: number;
   enemyHeroKills: number;
   playerLastHits: number;
+  playerCsStreak: number;
+  playerMissedCs: number;
   enemyLastHits: number;
   playerDeaths: number;
   enemyDeaths: number;
@@ -29,9 +35,11 @@ export interface CreateGameSnapshotInput extends PlayerInputState {
   enemyXp: number;
   enemySkillCooldown: number;
   enemyAiState: GameSnapshot["enemyAi"]["state"];
+  enemyAiTrace: GameSnapshot["enemyAi"]["trace"];
   playerCooldowns: CooldownSnapshot;
   itemCooldowns: Record<ItemId, number>;
   purchasedItems: ReadonlySet<string>;
+  enemyPurchasedItems: ReadonlySet<string>;
   waveNumber: number;
   waveTimer: number;
   shopAvailable: boolean;
@@ -46,18 +54,30 @@ export interface CreateGameSnapshotInput extends PlayerInputState {
   pointerWorld: Point;
   buildings: Building[];
   units: Unit[];
+  towerHeroAggro: TowerAggroState;
   activeVfx: number;
   message: string;
   canAttemptSkill: (skill: SkillKey) => boolean;
 }
 
-export const unitEffectLabels = (unit: Unit) => {
+interface UnitEffectLabelContext {
+  player?: Unit;
+  buildings?: Building[];
+}
+
+export const unitEffectLabels = (unit: Unit, context: UnitEffectLabelContext = {}) => {
   const effects: string[] = [];
   if (unit.markTimer > 0) effects.push("marked");
   if (unit.rootTimer > 0) effects.push("rooted");
   if (unit.slowTimer > 0) effects.push("slowed");
   if (unit.shield > 0) effects.push("shielded");
   if (unit.hasteTimer > 0) effects.push("hasted");
+  if (unit.aggroTimer > 0 && unit.aggroTargetId) effects.push("aggro");
+  if (context.player && context.buildings) {
+    const lastHitWindow = lastHitWindowForUnit({ unit, player: context.player, buildings: context.buildings });
+    if (lastHitWindow === "last_hit") effects.push("last-hit");
+    if (lastHitWindow === "tower_setup") effects.push("tower-setup");
+  }
   return effects;
 };
 
@@ -154,7 +174,7 @@ const scoreboardRows = (input: CreateGameSnapshotInput): ScoreboardRowSnapshot[]
       deaths: input.enemyDeaths,
       gold: input.enemyGold,
       lastHits: input.enemyLastHits,
-      items: [],
+      items: [...input.enemyPurchasedItems],
       alive: enemy?.alive ?? false,
       respawnTimer: enemy?.alive ? 0 : Math.max(0, Math.ceil(enemy?.respawnTimer ?? 0)),
     },
@@ -225,6 +245,8 @@ export const createGameSnapshot = (input: CreateGameSnapshotInput): GameSnapshot
       xp: Math.round(input.player.xp),
       gold: input.player.gold,
       lastHits: input.playerLastHits,
+      csStreak: input.playerCsStreak,
+      missedCs: input.playerMissedCs,
       deaths: input.playerDeaths,
       skillPoints: input.player.skillPoints,
       recallProgress: input.player.recallTimer > 0 && input.player.recallDuration > 0 ? Number(((input.player.recallDuration - input.player.recallTimer) / input.player.recallDuration).toFixed(2)) : 0,
@@ -256,10 +278,7 @@ export const createGameSnapshot = (input: CreateGameSnapshotInput): GameSnapshot
       queuedSkill: input.queuedSkill,
       queuedExpiresIn: input.queuedSkill ? Number(input.queuedSkillTimer.toFixed(2)) : 0,
     },
-    lane: {
-      waveNumber: input.waveNumber,
-      nextSiegeWave: input.waveNumber + (input.waveNumber % 3 === 0 ? 3 : 3 - (input.waveNumber % 3)),
-    },
+    lane: createLaneSnapshot({ units: input.units, waveNumber: input.waveNumber }),
     shop: {
       open: input.shopOpen,
       available: input.shopAvailable,
@@ -286,6 +305,7 @@ export const createGameSnapshot = (input: CreateGameSnapshotInput): GameSnapshot
       xp: input.enemyXp,
       lastHits: input.enemyLastHits,
       deaths: input.enemyDeaths,
+      trace: input.enemyAiTrace,
     },
     aimPreview: {
       active: input.aimPreviewVisible,
@@ -294,6 +314,12 @@ export const createGameSnapshot = (input: CreateGameSnapshotInput): GameSnapshot
       x: Math.round(input.pointerWorld.x),
       y: Math.round(input.pointerWorld.y),
     },
+    towerDanger: towerDangerForUnit({
+      unit: input.player,
+      buildings: input.buildings,
+      units: input.units,
+      towerHeroAggro: input.towerHeroAggro,
+    }),
     buildings: input.buildings.map((building) => ({
       id: building.id,
       team: building.team,
@@ -312,7 +338,9 @@ export const createGameSnapshot = (input: CreateGameSnapshotInput): GameSnapshot
         maxHp: unit.maxHp,
         x: Math.round(unit.x),
         y: Math.round(unit.y),
-        effects: unitEffectLabels(unit),
+        laneProgress: Number(lanePathProgress(unit).toFixed(2)),
+        effects: unitEffectLabels(unit, { player: input.player, buildings: input.buildings }),
+        lastHitHint: lastHitHintForUnit({ unit, player: input.player, buildings: input.buildings }),
       })),
     activeVfx: input.activeVfx,
     nextWaveIn: Number(Math.max(0, input.waveTimer).toFixed(1)),

@@ -47,6 +47,9 @@ export interface Unit {
   targetBuildingId?: string;
   targetPoint?: Point;
   attackMovePoint?: Point;
+  aggroTargetId?: string;
+  aggroTimer: number;
+  aggroThreat: number;
   alive: boolean;
   respawnTimer: number;
   respawnDuration: number;
@@ -74,6 +77,7 @@ export type BuildingState = "idle" | "attack" | "damaged" | "destroyed";
 export interface TowerAggroEntry {
   targetId: string;
   ttl: number;
+  shots?: number;
 }
 
 export type TowerAggroState = Partial<Record<Team, TowerAggroEntry>>;

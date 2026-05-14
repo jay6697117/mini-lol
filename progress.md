@@ -85,7 +85,7 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 - 新增 `src/game/simulation/rules.ts`，迁出 `clamp`、`distance`、`normalize`、`directionFromVector`、`maxSkillLevel`、`skillCooldown`、`respawnDurationFor` 等无 Phaser 依赖规则函数。
 - 新增 `src/game/simulation/factories.ts`，迁出 hero、minion、building 初始实体创建逻辑。
 - 更新 `src/game/MobaScene.ts`，改为从 data/simulation 模块导入配置、类型和规则函数，保留 Scene 的 Phaser lifecycle、renderer/input/HUD bridge 责任。
-- `MobaScene.ts` 从 2879 行逐步降到 2291 行；Phase 1 尚未完成到计划中的 1800 行目标，下一步应继续拆 combat resolution、AI trace 或 command dispatcher。
+- `MobaScene.ts` 从 2879 行逐步降到 2075 行；Phase 1 尚未完成到计划中的 1800 行目标，下一步应继续拆 player input adapter、shop/settings state 或 economy/shop rules。
 - 更新 `src/game/assets.ts`，导出 `BuildingAssetId` 供 simulation 类型使用。
 - `npm run build` passes after the Phase 1 config/type/rules extraction.
 - `git diff --check -- PLAN.md src/game/MobaScene.ts src/game/assets.ts src/game/data/game-config.ts src/game/simulation/types.ts src/game/simulation/rules.ts` passes.
@@ -107,10 +107,424 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 - Develop-web-game smoke playtest passes after snapshot extraction: `playtest-artifacts/phase-1-snapshot-refactor-smoke` contains nonblank screenshots and JSON states with shop items, active item slots, scoreboard rows, enemy AI state, active lane combat, and intact building state.
 - 新增 `src/game/simulation/towers.ts`，迁出 tower aggro ticking、tower hero aggro registration、tower target selection、tower attack intents 和 tower damage event draft creation。
 - `MobaScene.updateBuildings` 现在只调用 `resolveTowerAttacks`，给 tower attack intent 分配事件 id 并入队；`MobaScene.registerTowerHeroAggro` 只转发 Scene 状态到 tower rule。
-- `PLAN.md` current snapshot now reflects the latest `MobaScene.ts` size: 2291 lines after tower targeting extraction.
+- `PLAN.md` was updated after tower targeting extraction; later combat resolution extraction lowered the Scene size again.
 - `git diff --check` passes after tower targeting extraction.
 - `npm run build` passes after extracting tower targeting.
 - Develop-web-game smoke playtest passes after tower targeting extraction: `playtest-artifacts/phase-1-tower-targeting-refactor-smoke` contains nonblank screenshots and JSON states with tower fire message, active lane combat, enemy AI state, and intact building state.
+- 新增 `src/game/simulation/combat.ts`，迁出 pending damage event drain、damage source validation、hit effect extraction、circle/cone hit queries，以及 unit hp/shield 和 building hp resolution。
+- `MobaScene.resolvePendingDamageEvents` 现在只负责分派事件到 Scene side effects；`damageEnemiesNear` / `damageEnemiesInCone` 不再自己维护命中几何；`damageUnit` / `applyBuildingDamage` 只保留 recall/VFX/number/death/economy/result side effects。
+- `PLAN.md` current snapshot now reflects the latest `MobaScene.ts` size: 2222 lines after combat resolution extraction.
+- `git diff --check` passes after combat resolution extraction.
+- `npm run build` passes after extracting combat resolution rules.
+- Develop-web-game smoke playtest passes after combat resolution extraction: `playtest-artifacts/phase-1-combat-resolution-refactor-smoke` contains nonblank screenshots and JSON states with tower fire message, active VFX, active lane combat, player damage state, enemy AI state, and intact building state.
+- 新增 `src/game/simulation/player-skills.ts`，迁出 Q/W/E/R skill cast draft creation，包含 damage event drafts、shield、dash move target、immediate VFX 和 HUD message。
+- `MobaScene.castPlayerSkill` 现在负责校验、扣 mana、设置 cooldown/cast state，并应用 `createPlayerSkillCastDraft` 的结果。
+- `PLAN.md` was updated after skill cast event creation extraction; later attack event and command helper extraction lowered the Scene size again.
+- `git diff --check` passes after skill cast event creation extraction.
+- `npm run build` passes after extracting skill cast event creation.
+- Skill-feel Playwright assertions pass after skill cast event creation extraction: `playtest-artifacts/skill-feel-pass/report.json` is ok for Q mark, E cast buffer, marked E bonus feedback, R root, and `render_game_to_text` casting/effects state.
+- Develop-web-game smoke playtest passes after skill cast event creation extraction: `playtest-artifacts/phase-1-skill-cast-refactor-smoke` contains nonblank screenshots and JSON states with tower fire message, active lane combat, player damage state, enemy AI state, and intact casting state.
+- 扩展 `src/game/simulation/combat.ts`，迁出 basic unit attack 和 building attack 的 `PendingDamageEvent` creation。
+- `MobaScene.tryUnitAttack` 和 `MobaScene.attackBuilding` 现在只负责 target/action/timer/direction side effects，并调用 combat helpers 创建伤害事件。
+- `PLAN.md` was updated after attack damage event creation extraction; later command helper extraction lowered the Scene size again.
+- `git diff --check` passes after attack damage event creation extraction.
+- `npm run build` passes after extracting attack damage event creation.
+- Develop-web-game smoke playtest passes after attack damage event creation extraction: `playtest-artifacts/phase-1-attack-event-refactor-smoke` contains nonblank screenshots and JSON states with tower fire message, active lane combat, player damage state, enemy AI state, active VFX, and intact building state.
+- 扩展 `src/game/types.ts`、`src/game/simulation/enemy-ai.ts` 和 `src/game/simulation/snapshot.ts`，给 `GameSnapshot.enemyAi` 增加 decision trace。
+- `MobaScene.updateEnemyHeroAI` 现在通过 `traceEnemyHeroDecision` 记录当前 intent、target id/position 和 speed multiplier，方便 browser smoke 和 debug snapshot 解释 AI 行为。
+- `git diff --check` passes after enemy AI trace extraction.
+- `npm run build` passes after adding enemy AI trace.
+- Develop-web-game smoke playtest passes after enemy AI trace extraction: `playtest-artifacts/phase-1-enemy-ai-trace-smoke` contains nonblank screenshots and JSON states with `enemyAi.trace.intent`, target coordinates, active lane combat, player damage/death state, and intact building state.
+- 新增 `src/game/simulation/commands.ts`，迁出 move command、attack-unit command、attack-building command 和 clear-command 的 state assignment。
+- `MobaScene.commandMove` / `commandAttackUnit` / `commandAttackBuilding` 现在只负责 recall interruption 和 message assignment；命令字段写入由 simulation command helpers 完成。
+- `PLAN.md` was updated after command helper extraction; later command execution decision extraction lowered the Scene size again.
+- `git diff --check` passes after command helper extraction.
+- `npm run build` passes after extracting command helpers.
+- Develop-web-game smoke playtest passes after command helper extraction: `playtest-artifacts/phase-1-command-helper-refactor-smoke` contains nonblank screenshots and JSON states with command-driven combat, tower fire message, enemy AI trace, player death block state, active VFX, and intact building state.
+- 扩展 `src/game/simulation/commands.ts`，迁出 player attack-command decision，包括 target validity、attack range check、chase target 和 attack-move target selection。
+- `MobaScene.updatePlayerAttackCommands` 现在消费 `resolvePlayerAttackCommand` 的 decision union，只负责执行 attack/move/clear side effects。
+- `PLAN.md` was updated after command execution decision extraction; later unit lifecycle extraction lowered the Scene size again.
+- `git diff --check` passes after command execution decision extraction.
+- `npm run build` passes after extracting command execution decision logic.
+- Develop-web-game smoke playtest passes after command execution decision extraction: `playtest-artifacts/phase-1-command-execution-refactor-smoke` contains nonblank screenshots and JSON states with command-driven combat, tower fire message, enemy AI trace, active VFX, player state, and intact building state.
+- 新增 `src/game/simulation/unit-lifecycle.ts`，迁出 crowd-control cleanup、defensive effect cleanup、hero death prep 和 respawn-to-base reset。
+- `MobaScene.handleHeroDeath` 和 `MobaScene.resolveDeaths` 现在只保留计数、modal close、queued cast cleanup、message 和 unit filtering。
+- `PLAN.md` current snapshot now reflects the latest `MobaScene.ts` size: 2075 lines after unit lifecycle extraction.
+- `git diff --check` passes after unit lifecycle extraction.
+- `npm run build` passes after extracting unit lifecycle rules.
+- Completion round 4 assertions pass after unit lifecycle extraction: `playtest-artifacts/completion-round-4/report.json` is ok for shop purchases, player death/respawn, victory and match summary.
+- Develop-web-game smoke playtest passes after unit lifecycle extraction: `playtest-artifacts/phase-1-lifecycle-refactor-smoke` contains nonblank screenshots and JSON states with active combat, enemy AI trace, player state, active VFX, and intact building state.
+- 新增 `src/game/simulation/economy.ts`，迁出 player XP gain、player last-hit gold、enemy last-hit economy delta、catalog purchase validation/stat application 和 active item slot lookup。
+- `MobaScene.grantPlayerExperience`、`grantPlayerLastHitGold`、`grantEnemyLastHitEconomy`、`buyItem` 和 `useItemSlot` 现在只保留 Scene message/VFX/counter integration，经济规则由 simulation helper 处理。
+- `PLAN.md` current snapshot now reflects the latest `MobaScene.ts` size: 2042 lines after economy/shop rule extraction.
+- `git diff --check` passes after economy/shop extraction.
+- `npm run build` passes after economy/shop extraction, with the existing `vite:prepare-out-dir` timing warning.
+- Completion round 4 assertions pass after economy/shop extraction: `playtest-artifacts/completion-round-4/report.json` is ok for shop purchases, player death/respawn, victory and match summary.
+- Targeted economy/shop debug-hook assertions pass for player last-hit XP/gold/CS, active slot use, focus crystal cooldown/mana restore, and haste talisman cooldown-reduction stat application.
+- Develop-web-game smoke playtest passes after economy/shop extraction: `playtest-artifacts/phase-1-economy-shop-refactor-smoke` contains nonblank screenshots and JSON states with active lane combat, enemy AI trace, player state, active VFX, and intact building state.
+- Note: `playtest-artifacts/completion-round-5/assertions.mjs` currently has a timing-sensitive `P` shop shortcut check; after its click-to-move step the player can leave the shop radius before `KeyP` is processed, causing that one assertion to fail independently of the economy/shop extraction. Direct debug-hook shop and active-item assertions pass.
+- 新增 `src/game/simulation/active-items.ts`，迁出 active item effect draft creation，包括 mana restore/cooldown refund、shield、haste 和 demolish target damage draft。
+- `MobaScene.useItem` 现在只负责使用前校验、选择 demolish target、应用 building damage、播放 VFX、打断回城、设置 cooldown 和 HUD message。
+- `PLAN.md` current snapshot now reflects the latest `MobaScene.ts` size: 2018 lines after active item effect extraction.
+- `git diff --check` passes after active item effect extraction.
+- `npm run build` passes after active item effect extraction, with the existing `vite:prepare-out-dir` timing warning.
+- Completion round 4 assertions pass after active item effect extraction: `playtest-artifacts/completion-round-4/report.json` is ok for shop purchases, player death/respawn, victory and match summary.
+- Targeted active item debug-hook assertions pass for Focus Crystal, Guard Shield and Haste Talisman active effects.
+- Develop-web-game smoke playtest passes after active item effect extraction: `playtest-artifacts/phase-1-active-item-refactor-smoke` contains nonblank screenshots and JSON states with active lane combat, enemy AI trace, player state, active VFX, and intact building state.
+- 新增 `src/game/debug-api.ts`，迁出 `window.advanceTime`、`window.render_game_to_text` 和完整 `window.miniLolDebug` debug/test adapter；`MobaScene.exposeTestHooks` 现在只负责安装 adapter。
+- `MobaScene.ts` 降到 1774 行，首次满足 Phase 1 的 `< 1800` 行验收门槛。
+- 扩展 `src/game/simulation/player-skills.ts`，迁出 `playerSkillAttemptFailure` 和 `playerSkillLevel`，让 skill attempt failure 成为可直接测试的纯 simulation 规则。
+- 新增 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs`，通过 Vite SSR 加载 TypeScript simulation 模块，不引入新测试依赖；覆盖 damage resolution、XP/gold reward、building vulnerability、skill attempt failure 和 skill cast draft。
+- `MobaScene.ts` current size is 1749 lines after debug adapter and skill attempt rule extraction.
+- `git diff --check` passes after debug adapter and skill attempt rule extraction.
+- `npm run build` passes after debug adapter and skill attempt rule extraction, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes and writes `playtest-artifacts/phase-1-simulation-unit/report.json`.
+- Skill-feel, completion round 4, and completion round 5 regression assertions pass after the debug adapter and skill attempt rule extraction.
+- Develop-web-game smoke playtest passes after the simulation unit extraction: `playtest-artifacts/phase-1-simulation-unit-refactor-smoke` contains nonblank screenshots and JSON states with active lane combat, enemy AI trace, player state, active VFX, and intact building state.
+- 开始 Phase 2 防御塔机制深化。
+- 更新 `src/game/simulation/towers.ts`，防御塔非强制仇恨目标选择现在按 `siege -> melee -> caster -> hero`，同优先级内按距离；已有 forced hero aggro 仍覆盖该普通优先级。
+- 扩展 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs`，加入 tower target priority 覆盖：无强制仇恨时优先 siege，有 forced hero aggro 时优先英雄。
+- `git diff --check` passes after tower priority extraction.
+- `npm run build` passes after tower priority extraction, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding tower priority coverage.
+- Develop-web-game smoke playtest passes after tower priority update: `playtest-artifacts/phase-2-tower-priority-smoke` contains nonblank screenshots and JSON states with active tower-range combat, player/enemy state, and intact building state.
+- 扩展 `src/game/simulation/objectives.ts`，新增 `structureDamageMultiplier` 和 `hasAlliedMinionNearBuilding`，无己方小兵靠近敌方建筑时 basic attack structure damage 乘以 `0.42`。
+- 扩展 `src/game/simulation/combat.ts` 的 `createBuildingAttackDamageEvent`，允许传入 `structureDamageMultiplier`；`MobaScene.attackBuilding` 现在按当前单位/建筑/兵线状态传入倍率。
+- 扩展 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs`，覆盖 no-minion structure damage penalty 和有己方小兵支援时的 full damage 路径。
+- 修正 `playtest-artifacts/completion-round-5/assertions.mjs` 中 `P` shop shortcut 的时序敏感步骤：先聚焦页面，再通过 debug hook 把玩家明确放回基地并关闭面板，然后按 `KeyP` 验证快捷键。
+- `git diff --check` passes after structure damage penalty.
+- `npm run build` passes after structure damage penalty, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding structure damage penalty coverage.
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/` passes after structure damage penalty.
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/` passes after stabilizing the P-shop assertion.
+- Develop-web-game smoke playtest passes after structure damage penalty: `playtest-artifacts/phase-2-structure-damage-penalty-smoke` contains nonblank screenshots and JSON states with active tower-range combat and intact building state.
+- 扩展 `src/game/simulation/towers.ts`，forced hero aggro 会保留同一目标的 `shots` stack，防御塔连续命中同一英雄时按 stack 递增伤害，当前 cap 为 3 stacks。
+- 修正 `src/game/MobaScene.ts` 的 shop shortcut 输入处理：`P` 现在走 `keydown` 事件并过滤 repeat，避免极短 key press 在 `update()` 的 `JustDown` 轮询前完成 keyup 后被漏掉。
+- 扩展 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs`，覆盖 tower hero aggro ramping：第一发 forced hero tower shot 为 `190`，第二发递增到 `232`，并验证 `shots` stack 增长。
+- `git diff --check` passes after tower hero aggro ramping.
+- `npm run build` passes after tower hero aggro ramping, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding tower hero aggro ramping coverage.
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/` passes after tower hero aggro ramping.
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/` passes after moving `P` handling to `keydown`.
+- Develop-web-game smoke playtest passes after tower hero aggro ramping: `playtest-artifacts/phase-2-tower-ramping-smoke` contains nonblank screenshots and JSON states with active tower-range combat, damage numbers, player/enemy state, and intact building state.
+- 扩展 `src/game/simulation/towers.ts`，新增 `towerDangerForUnit`，根据玩家是否进入敌塔范围、是否有己方小兵掩护、当前 forced aggro stack 产出 `towerDanger` 状态。
+- 扩展 `src/game/simulation/snapshot.ts` 和 `src/game/types.ts`，`GameSnapshot` 现在包含 `towerDanger`，可供 debug API、`render_game_to_text` 和 HUD 共同消费。
+- 扩展 `src/ui/hud.ts` 与 `src/styles.css`，新增 `tower-danger-chip`；玩家进入敌塔范围时显示 `Enemy tower range`，无己方小兵掩护时显示 `no minion cover` 和下一发塔伤。
+- 扩展 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs`，覆盖 tower danger indicator：进入敌塔范围 active、无兵线 unsupported、forced aggro ramped next damage、有己方小兵时清除 unsupported、离开塔范围 inactive。
+- `git diff --check` passes after tower danger indicator.
+- `npm run build` passes after tower danger indicator, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding tower danger indicator coverage.
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/` passes after tower danger indicator.
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/` passes after tower danger indicator.
+- Targeted Playwright HUD assertion passes and writes `playtest-artifacts/phase-2-tower-danger-indicator-smoke/report.json`; screenshot `danger-chip.png` visually shows `Enemy tower range · no minion cover · next 190` without overlapping core HUD controls.
+- Develop-web-game smoke playtest passes after tower danger indicator: `playtest-artifacts/phase-2-tower-danger-smoke` contains nonblank screenshots and JSON states with normal lane/tower combat still rendering correctly.
+- 新增 `src/game/simulation/lane-state.ts`，按 `LANE_START -> LANE_END` 投影计算 lane progress，并派生 `empty` / `neutral` / `azure_slow_push` / `crimson_slow_push` / `azure_crashing` / `crimson_crashing`。
+- 扩展 `GameSnapshot.lane`，现在包含 wave number、next siege wave、pressure、progress、双方小兵数量和 HUD label。
+- 扩展 `src/ui/hud.ts` 与 `src/styles.css`，战斗面板新增 Lane 状态 chip，例如 `Lane Neutral 50%`。
+- 扩展 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs`，覆盖 azure slow push、crash、neutral、empty lane 和 next siege wave。
+- `git diff --check` passes after lane state snapshot.
+- `npm run build` passes after lane state snapshot, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding lane state snapshot coverage.
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/` passes after lane state snapshot.
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/` passes after lane state snapshot.
+- Targeted Playwright HUD assertion passes and writes `playtest-artifacts/phase-2-lane-state-indicator-smoke/report.json`; screenshot `lane-chip.png` visually shows `Lane Neutral 50%` in the player HUD without overlapping ability or item controls.
+- Develop-web-game smoke playtest passes after lane state snapshot: `playtest-artifacts/phase-2-lane-state-smoke` contains nonblank gameplay screenshots with normal lane/tower combat still rendering correctly.
+- 新增 `src/game/simulation/minion-aggro.ts`，集中管理 minion aggro memory、hero-damage call-for-help、aggro target resolve、timeout 和 leash clear。
+- 扩展 `Unit` 状态，新增 `aggroTargetId` 和 `aggroTimer`；factory 默认初始化 `aggroTimer: 0`。
+- `MobaScene.damageUnit` 现在在英雄伤害英雄时触发 `callMinionAggroOnHeroDamage`；`updateUnitAI` 优先处理 remembered aggro target，再回落到普通小兵寻敌/推线。
+- `GameSnapshot.lane` 现在包含 `azureAggroMinions` / `crimsonAggroMinions`；unit effects 会暴露 `aggro`，HUD Lane chip 在有小兵仇恨时显示 `Aggro N`。
+- 扩展 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs`，覆盖 call-for-help 范围、远处小兵不响应、remembered attacker resolve、timeout clear 和 leash clear。
+- `git diff --check` passes after minion aggro memory.
+- `npm run build` passes after minion aggro memory, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding minion aggro memory coverage.
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/` passes after minion aggro memory.
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/` passes after minion aggro memory.
+- Targeted Playwright Q-hit assertion passes and writes `playtest-artifacts/phase-2-minion-aggro-indicator-smoke/report.json`; screenshot `minion-aggro.png` shows `Lane Neutral 52% · Aggro 6` and crimson minions with visible aggro status.
+- Develop-web-game smoke playtest passes after minion aggro memory: `playtest-artifacts/phase-2-minion-aggro-smoke` contains nonblank gameplay screenshots with normal lane/tower combat still rendering correctly.
+- 新增 `src/game/simulation/minion-ai.ts`，抽出 minion target policy：active aggro 优先，其次 enemy minion，再 enemy hero、building，最后回归 lane goal。
+- `MobaScene.updateUnitAI` 现在只调用 `decideMinionAction` 并执行 `attackUnit`、`chaseUnit`、`attackBuilding`、`moveToLane`，Scene 不再内联小兵目标优先级。
+- 扩展 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs`，覆盖 enemy minion over hero、active aggro override、out-of-range aggro chase、building target、idle return-to-lane。
+- `git diff --check` passes after minion target policy extraction.
+- `npm run build` passes after minion target policy extraction, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding minion target policy coverage.
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/` passes after minion target policy extraction.
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/` passes after minion target policy extraction.
+- Targeted Playwright Q-hit assertion passes after target policy extraction and writes `playtest-artifacts/phase-2-minion-policy-indicator-smoke/report.json`; screenshot `minion-policy.png` still shows `Lane Neutral 52% · Aggro 6`.
+- Develop-web-game smoke playtest passes after minion target policy extraction: `playtest-artifacts/phase-2-minion-policy-smoke` contains nonblank gameplay screenshots with normal lane/tower combat.
+- Lane pressure classification now distinguishes `azure_slow_push` / `crimson_slow_push` from `azure_crashing` / `crimson_crashing` using wave-front progress and minion count advantage.
+- `src/ui/hud.ts` now derives lane chip team styling from `pressure.startsWith("azure_")` / `pressure.startsWith("crimson_")`, so future lane pressure subtypes do not require extra HUD branches.
+- `PLAN.md` Section 4.4 now marks slow push / crash as implemented and leaves freeze, wave reset, aggro decay, and tower-last-hit teaching as follow-up work.
+- `git diff --check` passes after lane pressure classification.
+- `npm run build` passes after lane pressure classification, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding lane pressure classification coverage.
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/` passes after lane pressure classification.
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/` passes after lane pressure classification.
+- Targeted Playwright lane pressure assertion passes and writes `playtest-artifacts/phase-2-lane-pressure-indicator-smoke/report.json`; screenshot `lane-pressure-slow.png` visually shows `Lane Crimson slow 57%` without overlapping HUD controls.
+- Develop-web-game smoke playtest passes after lane pressure classification: `playtest-artifacts/phase-2-lane-pressure-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- Lane pressure classification now also distinguishes `azure_freezing` / `crimson_freezing` for contested waves held on the defending side with equal or one-minion pressure.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers azure freeze and crimson freeze labels, progress zones, and stable pressure values.
+- `src/game/debug-api.ts` now exposes `miniLolDebug.setLaneFixture("azure_freeze" | "crimson_freeze")` so Playwright can deterministically validate freeze HUD states without waiting for a natural wave state.
+- `PLAN.md` Section 4.4 now marks slow push / freeze / crash as implemented and leaves wave reset, aggro decay, and tower-last-hit teaching as follow-up work.
+- `git diff --check` passes after lane freeze classification.
+- `npm run build` passes after lane freeze classification, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding lane freeze classification coverage.
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/` passes after lane freeze classification.
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/` passes when rerun alone after an initial parallel-run failure in active item timing assertions.
+- Targeted Playwright lane freeze assertion passes and writes `playtest-artifacts/phase-2-lane-freeze-indicator-smoke/report.json`; screenshots `azure_freeze.png` and `crimson_freeze.png` visually show `Lane Azure freeze 35%` and `Lane Crimson freeze 68%`.
+- Develop-web-game smoke playtest passes after lane freeze classification: `playtest-artifacts/phase-2-lane-freeze-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- Added `src/game/simulation/last-hit.ts` for player-facing last-hit teaching windows: `last_hit` when the player can kill the enemy minion now, `tower_setup` when an allied tower shot can set up the next player attack.
+- `src/game/simulation/snapshot.ts` and `src/game/MobaScene.ts` now include `last-hit` / `tower-setup` unit effects in snapshots and healthbar rendering.
+- `src/game/MobaScene.ts` now emits `CS missed` when an enemy minion dies near the player inside a visible last-hit or tower-setup window without the player securing the last hit.
+- `src/game/debug-api.ts` now exposes `miniLolDebug.setLastHitTeachingFixture("last_hit" | "tower_setup")` so Playwright can validate the healthbar highlights deterministically.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers last-hit, tower setup, healthy minion, and allied minion no-hint cases.
+- `PLAN.md` Section 4.4 now marks baseline tower-last-hit teaching as implemented and leaves minion-kind-specific tower-shot count teaching as follow-up work.
+- `git diff --check` passes after last-hit teaching windows.
+- `npm run build` passes after last-hit teaching windows, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding last-hit teaching coverage.
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/` passes after last-hit teaching windows.
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/` passes after last-hit teaching windows.
+- Targeted Playwright last-hit teaching assertion passes and writes `playtest-artifacts/phase-2-last-hit-teaching-indicator-smoke/report.json`; screenshots `last_hit.png`, `tower_setup.png`, and `after_tower_shot.png` visually show the gold last-hit outline, cyan tower-setup outline, and post-tower-shot last-hit transition.
+- Develop-web-game smoke playtest passes after last-hit teaching windows: `playtest-artifacts/phase-2-last-hit-teaching-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `src/game/simulation/last-hit.ts` now exposes `lastHitPlanForUnit`, including `towerShotsToLastHit` and `hpAfterTowerShots` for immediate last-hit and tower setup windows.
+- `UnitSnapshot.lastHitHint` now reports the current last-hit window, required tower shots, and expected post-tower-shot hp; this is visible through `render_game_to_text`.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers tower-shot count for immediate last-hit, one-shot tower setup, and no-hint cases.
+- `PLAN.md` Section 4.4 now marks tower-shot count as implemented and leaves CS streak / missed CS summary teaching as follow-up work.
+- `git diff --check` passes after tower-shot count hints.
+- `npm run build` passes after tower-shot count hints, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding tower-shot count hint coverage.
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/` passes after tower-shot count hints.
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/` passes after tower-shot count hints.
+- Targeted Playwright tower-shot count assertion passes and writes `playtest-artifacts/phase-2-last-hit-count-indicator-smoke/report.json`; screenshot `tower_setup.png` visually shows the cyan setup outline while the JSON exposes `towerShotsToLastHit: 1` and `hpAfterTowerShots: 60`.
+- Develop-web-game smoke playtest passes after tower-shot count hints: `playtest-artifacts/phase-2-last-hit-count-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `src/game/MobaScene.ts` now tracks `playerCsStreak` and `playerMissedCs`; successful minion last hits increment the streak, visible missed CS windows reset it and increment missed count.
+- `GameSnapshot.player` now includes `csStreak` and `missedCs`, and `src/ui/hud.ts` renders compact `STK` / `MISS` stat pills beside CS.
+- `src/game/debug-api.ts` now exposes `miniLolDebug.secureLastHitTarget()` so Playwright can deterministically validate streak increments after `setLastHitTeachingFixture("last_hit")`.
+- `PLAN.md` Section 4.4 now marks CS streak / missed CS summary feedback as implemented.
+- `git diff --check` passes after CS summary feedback.
+- `npm run build` passes after CS summary feedback, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after CS summary feedback.
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/` passes after CS summary feedback.
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/` passes after CS summary feedback.
+- Targeted Playwright CS summary assertion passes and writes `playtest-artifacts/phase-2-cs-summary-indicator-smoke/report.json`; screenshot `after_miss.png` visually shows `CS 1`, `STK 0`, `MISS 1`, and `CS missed · 1`.
+- Develop-web-game smoke playtest passes after CS summary feedback: `playtest-artifacts/phase-2-cs-summary-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `LanePressure` now includes `resetting`; `src/game/simulation/lane-state.ts` reports `Wave reset` only when both sides have a contested, balanced mid-lane wave with no active minion aggro.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers wave reset classification and verifies active minion aggro keeps a mid-lane wave as neutral instead of reset.
+- `src/game/debug-api.ts` now supports `miniLolDebug.setLaneFixture("reset")` for deterministic Playwright HUD validation.
+- `PLAN.md` Section 4.4 now marks wave reset / slow push / freeze / crash lane state classification as implemented.
+- `git diff --check` passes after wave reset classification.
+- `npm run build` passes after wave reset classification, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding wave reset classification coverage.
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/` passes after wave reset classification.
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/` passes after wave reset classification.
+- Targeted Playwright wave reset assertion passes and writes `playtest-artifacts/phase-2-wave-reset-indicator-smoke/report.json`; screenshot `wave_reset.png` visually shows `Lane Wave reset 51%` with neutral lane chip styling.
+- Develop-web-game smoke playtest passes after wave reset classification: `playtest-artifacts/phase-2-wave-reset-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `src/game/simulation/minion-aggro.ts` now keeps hard leash behavior but adds soft leash accelerated decay: remembered aggro drains faster past 460px and clears immediately past 620px.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers soft leash decay, accelerated timeout, and hard leash clear.
+- `PLAN.md` Section 4.4 now marks aggro distance decay as implemented and leaves multi-target threat weighting as follow-up work.
+- `git diff --check` passes after minion aggro distance decay.
+- `npm run build` passes after minion aggro distance decay, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding minion aggro distance decay coverage.
+- 针对 minion aggro distance decay 的 develop-web-game 烟测已通过：`playtest-artifacts/phase-2-minion-aggro-decay-smoke` 包含非空战斗截图与 JSON 状态。
+- 专项 Playwright 断言已验证 Q 命中后触发 1 个 crimson minion aggro、软脱战窗口内仍保持 aggro、继续拉开后总 aggro 归零；报告写入 `playtest-artifacts/phase-2-minion-aggro-decay-indicator-smoke/report.json`。
+- 已人工检查 `soft_decay_active.png` 与 `aggro_cleared.png`：前者 HUD 显示 `Aggro 1`，后者不再显示 aggro 标签，画面与 snapshot 一致。
+- `src/game/simulation/minion-aggro.ts` 现在给 call-for-help 生成基础 threat score：本次英雄伤害、minion 到受害英雄距离、minion 到攻击者距离共同决定是否刷新或切换 aggro target。
+- `Unit` 新增 `aggroThreat`，并随 aggro timer 衰减；timeout、目标丢失和 hard leash clear 会同步归零 threat。
+- `MobaScene.damageUnit` 会把实际 damage amount 传给 `callMinionAggroOnHeroDamage`，Scene 仍只负责转发战斗事件，威胁判断留在 simulation module。
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers minion aggro threat weighting: lower threat hero damage cannot steal existing aggro, while higher threat hero damage can switch the target and raise the threat score.
+- `PLAN.md` Section 4.4 now marks baseline multi-target minion threat weighting as implemented and leaves sustained source tables / finer disengage behavior as follow-up work.
+- `git diff --check` passes after minion aggro threat weighting.
+- `npm run build` passes after minion aggro threat weighting, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding minion aggro threat weighting coverage.
+- Develop-web-game smoke playtest passes after minion aggro threat weighting: `playtest-artifacts/phase-2-minion-aggro-threat-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- Targeted Playwright minion aggro threat regression passes and writes `playtest-artifacts/phase-2-minion-aggro-threat-indicator-smoke/report.json`; screenshots `aggro_held.png` and `aggro_cleared.png` visually show aggro present and then cleared.
+- 新增 `src/game/simulation/lane-path.ts`，集中管理 lane waypoints、path projection progress、`lanePointAtProgress` 和按队伍推进的 look-ahead lane target。
+- `src/game/simulation/lane-state.ts` 现在通过 lane path helper 计算 lane progress，不再维护自己的直线投影逻辑。
+- `src/game/simulation/snapshot.ts` / `src/game/types.ts` 现在给每个 `UnitSnapshot` 暴露 `laneProgress`，便于 debug snapshot 直接检查单个单位在线上的位置。
+- `MobaScene.updateUnitAI` 的无目标小兵推进现在使用 `lanePathTargetForUnit(unit)`，Scene 不再持有单独的 `getLaneGoal` wrapper；`MobaScene.ts` 当前为 1796 行。
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers lane path progress: start/mid/end projection and team-specific look-ahead lane target direction.
+- `PLAN.md` Section 4.4 now marks `LanePath` and per-unit lane progress as implemented and leaves path-based spacing / reset return behavior as follow-up work.
+- `git diff --check` passes after lane path extraction.
+- `npm run build` passes after lane path extraction, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding lane path progress coverage.
+- Develop-web-game smoke playtest passes after lane path extraction: `playtest-artifacts/phase-2-lane-path-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- Targeted Playwright lane path assertion passes and writes `playtest-artifacts/phase-2-lane-path-indicator-smoke/report.json`; reset fixture reports lane progress `0.51`, minion `laneProgress` values `0.50` / `0.52`, and `allUnitsExposeLaneProgress: true`.
+- `src/game/simulation/minion-ai.ts` now applies basic lane spacing for idle lane movement: if a same-team minion is too close ahead on the lane path, the rear minion holds or targets a spaced position instead of continuing to crowd forward.
+- Spacing only affects the final `moveToLane` fallback; active aggro, enemy minion targets, enemy hero targets, and building attacks still override it.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers azure and crimson lane spacing holds for close allied minions ahead.
+- `PLAN.md` Section 4.4 now marks baseline minion lane spacing as implemented and leaves path-based queue shape / collision separation / reset return behavior as follow-up work.
+- `git diff --check` passes after minion lane spacing.
+- `npm run build` passes after minion lane spacing, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding minion lane spacing coverage.
+- Develop-web-game smoke playtest passes after minion lane spacing: `playtest-artifacts/phase-2-minion-lane-spacing-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- Targeted Playwright minion lane spacing regression passes and writes `playtest-artifacts/phase-2-minion-lane-spacing-indicator-smoke/report.json`; azure average lane progress advances from `0.0083` to `0.0383`, crimson advances from `0.9917` to `0.9667`, and all unit snapshots expose finite `laneProgress`.
+- `src/game/simulation/lane-path.ts` now exposes `lanePathProjection` and `laneReturnTargetForUnit`; off-lane idle minions return to their nearest lane path projection before taking a forward look-ahead target.
+- `MobaScene.updateUnitAI` now passes `laneReturnTargetForUnit(unit)` as the idle minion lane goal, so return-to-lane correction happens before the existing minion spacing fallback.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers off-lane projection distance and verifies the return target lands back on the lane path without advancing lane progress first.
+- `PLAN.md` Section 4.4 now marks off-path return target as implemented and leaves collision separation / multi-segment tactical points as follow-up work.
+- `git diff --check` passes after lane return target.
+- `npm run build` passes after lane return target, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding lane return target coverage.
+- Develop-web-game smoke playtest passes after lane return target: `playtest-artifacts/phase-2-lane-return-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- Targeted Playwright lane return regression passes and writes `playtest-artifacts/phase-2-lane-return-indicator-smoke/report.json`; azure average lane progress advances from `0.0083` to `0.0383`, crimson advances from `0.9917` to `0.9667`, and all unit snapshots expose finite `laneProgress`.
+- `src/game/simulation/lane-path.ts` now supports lateral offsets in `lanePointAtProgress` and exposes `laneFormationOffsetForUnit`; idle minion lane targets use stable per-unit formation offsets once they are close enough to the lane path.
+- Off-path return still targets the center path projection first, so badly displaced minions do not chase a lateral formation lane before they have returned to the path.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers formation offsets by verifying several same-team minions produce multiple lateral target distances while still advancing lane progress.
+- `PLAN.md` Section 4.4 now marks stable lateral queue formation as implemented and leaves dynamic collision separation / routing / multi-segment tactical points as follow-up work.
+- `git diff --check` passes after lane formation offsets.
+- `npm run build` passes after lane formation offsets, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding lane formation offset coverage.
+- Develop-web-game smoke playtest passes after lane formation offsets: `playtest-artifacts/phase-2-lane-formation-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- Targeted Playwright lane formation regression passes and writes `playtest-artifacts/phase-2-lane-formation-indicator-smoke/report.json`; after 1.2s, azure spread is `231x133`, crimson spread is `226x147`, both teams advance lane progress, and all unit snapshots expose finite `laneProgress`.
+- `src/game/simulation/minion-ai.ts` now adds a lightweight same-team minion separation vector to the final `moveToLane` target when nearby allied minions are inside a short radius.
+- Separation only adjusts idle lane movement targets; active aggro, unit targets, hero targets, and building attacks still bypass it.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers minion collision separation by verifying a close allied minion shifts the lane target away from the overlap direction.
+- `PLAN.md` Section 4.4 now marks lightweight dynamic separation as implemented and leaves routing / multi-segment tactical points as follow-up work.
+- `git diff --check` passes after minion collision separation.
+- `npm run build` passes after minion collision separation, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding minion collision separation coverage.
+- Develop-web-game smoke playtest passes after minion collision separation: `playtest-artifacts/phase-2-minion-separation-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- Targeted Playwright minion separation regression passes and writes `playtest-artifacts/phase-2-minion-separation-indicator-smoke/report.json`; after 1.2s, azure spread is `237x138`, crimson spread is `227x147`, both teams advance lane progress, and all unit snapshots expose finite `laneProgress`.
+- `src/game/simulation/lane-path.ts` now exposes lane tactical points: `azure_outer`, `mid_lane`, and `crimson_outer`, plus helpers for nearest and next tactical point by team direction.
+- `GameSnapshot.lane` now includes `tacticalPoint`, derived from current clash progress through the lane path helper.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers tactical point mapping, next tactical point by team, and lane snapshot tactical points for reset/crash states.
+- `PLAN.md` Section 4.4 now marks lane tactical points as implemented and leaves tactical-point-aware AI/routing decisions as follow-up work.
+- `git diff --check` passes after lane tactical points.
+- `npm run build` passes after lane tactical points, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding lane tactical point coverage.
+- Develop-web-game smoke playtest passes after lane tactical points: `playtest-artifacts/phase-2-lane-tactical-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- Targeted Playwright lane tactical point regression passes and writes `playtest-artifacts/phase-2-lane-tactical-indicator-smoke/report.json`; `azure_freeze`, `reset`, and `crimson_freeze` map to `azure_outer`, `mid_lane`, and `crimson_outer`.
+- `src/game/simulation/enemy-ai.ts` now routes default laning fallback through lane tactical points via `nextLaneTacticalPointForTeam` and `laneTacticalPointTarget`, so a far Crimson Duelist above mid-lane returns toward the `mid_lane` anchor instead of the raw lane endpoint.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` covers the enemy tactical routing baseline.
+- Targeted Playwright enemy tactical routing regression passes and writes `playtest-artifacts/phase-2-enemy-tactical-routing-indicator-smoke/report.json`; the reset fixture exposes `mid_lane`, and the enemy AI `Laning:move` target stays within 4.48px of the mid-lane tactical anchor.
+- `PLAN.md` Section 4.4 now marks baseline Enemy AI tactical-point routing as implemented and leaves wave-state-aware harass/reset/recall/all-in behavior as follow-up work.
+- `git diff --check` passes after Enemy AI tactical routing docs.
+- `npm run build` passes after Enemy AI tactical routing docs, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after Enemy AI tactical routing docs.
+- Develop-web-game smoke playtest passes after Enemy AI tactical routing: `playtest-artifacts/phase-2-enemy-tactical-routing-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `src/game/simulation/enemy-ai.ts` now accepts `lanePressure` and gates decisions by wave state: opponent pressure blocks harass/all-in and routes the AI to its defensive tactical point; own pressure preserves harass windows and allows higher-health safe-wave recall.
+- `EnemyAiTraceSnapshot` now includes `reason`, with wave-aware reasons such as `unsafe_wave_disengage`, `safe_wave_recall`, `harass_window`, and `unsafe_wave_anchor`.
+- `src/game/MobaScene.ts` passes current lane pressure from `createLaneSnapshot` into `decideEnemyHeroAction`, keeping the wave strategy inside the simulation module.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers unsafe-wave disengage, safe-wave recall, favorable-wave harass, and trace reasons.
+- Targeted Playwright enemy wave-aware regression passes and writes `playtest-artifacts/phase-2-enemy-wave-aware-indicator-smoke/report.json`; the `azure_freeze` fixture produces `Retreat:move` with `unsafe_wave_disengage` and a defensive target near Crimson outer.
+- `PLAN.md` Section 4.4 now marks baseline Enemy AI wave-state-aware decision gating as implemented and leaves item breakpoint recall, combo sequencing, and richer threat scoring as follow-up work.
+- `git diff --check` passes after Enemy AI wave-aware decisions.
+- `npm run build` passes after Enemy AI wave-aware decisions, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding Enemy AI wave-aware coverage.
+- Develop-web-game smoke playtest passes after Enemy AI wave-aware decisions: `playtest-artifacts/phase-2-enemy-wave-aware-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `src/game/simulation/enemy-ai.ts` now accepts `enemyGold` and `itemBreakpointGold`; on a safe lane with enough gold and no nearby enemy unit, it starts recall with trace reason `item_breakpoint_recall`.
+- `src/game/MobaScene.ts` now tracks `enemyPurchasedItems`, passes the next enemy item cost into Enemy AI, preserves the original recall reason while the recall channel continues, and purchases the next enemy item at base after recall completes.
+- `src/game/simulation/snapshot.ts` now includes enemy purchased items in the scoreboard enemy row, so browser assertions can verify the purchase outcome.
+- `src/game/debug-api.ts` now exposes `setEnemyGold` for deterministic item-breakpoint recall fixtures.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers enemy item breakpoint recall and blocks item recall on unsafe waves.
+- Targeted Playwright enemy item recall regression passes and writes `playtest-artifacts/phase-2-enemy-item-recall-indicator-smoke/report.json`; with 350g and a reset wave, Crimson preserves `item_breakpoint_recall` during recall, buys `bronze_sword`, and spends gold to 0.
+- `PLAN.md` Section 4.4 now marks Enemy AI item breakpoint recall as implemented and leaves combo sequencing, active item usage, and richer threat scoring as follow-up work.
+- `git diff --check` passes after Enemy AI item breakpoint recall.
+- `npm run build` passes after Enemy AI item breakpoint recall, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding Enemy AI item breakpoint recall coverage.
+- Develop-web-game smoke playtest passes after Enemy AI item breakpoint recall: `playtest-artifacts/phase-2-enemy-item-recall-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `src/game/MobaScene.ts` now makes enemy harass apply a short `mark` in addition to slow and damage.
+- `src/game/simulation/enemy-ai.ts` now follows up marked player targets with All In decisions: `marked_combo_attack` when already in attack range, and `marked_combo_chase` while inside the combo chase range.
+- The marked combo follow-up is still gated by wave safety; unsafe wave pressure continues to force retreat before the combo branch.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers marked combo attack, marked combo chase, and unsafe-wave combo suppression.
+- Targeted Playwright enemy combo regression passes and writes `playtest-artifacts/phase-2-enemy-combo-indicator-smoke/report.json`; the fixture shows player `marked`/`slowed`, player HP reduced to 1068, and Enemy AI trace `All In:attackUnit` with reason `marked_combo_attack`.
+- `PLAN.md` Section 4.4 now marks baseline marked combo follow-up as implemented and leaves active item usage, multi-skill combo expansion, and richer threat scoring as follow-up work.
+- `git diff --check` passes after Enemy AI marked combo follow-up.
+- `npm run build` passes after Enemy AI marked combo follow-up, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding Enemy AI marked combo coverage.
+- Develop-web-game smoke playtest passes after Enemy AI marked combo follow-up: `playtest-artifacts/phase-2-enemy-combo-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `src/game/simulation/enemy-ai.ts` now has a `useItem` decision kind. Enemy AI uses `haste_talisman` during marked combo windows and `guard_shield` when medium-low health is under nearby pressure.
+- `src/game/MobaScene.ts` now tracks separate enemy item cooldowns, executes enemy active item effects through `applyActiveItemEffect`, spawns VFX, and sets messages such as `Crimson used Tempo`.
+- `src/game/debug-api.ts` now exposes `grantEnemyItem` so browser fixtures can give Crimson an active item without running multiple recall purchases.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers enemy haste active usage and barrier active usage.
+- Targeted Playwright enemy active item regression passes and writes `playtest-artifacts/phase-2-enemy-active-item-indicator-smoke/report.json`; with `haste_talisman`, marked combo triggers `All In:useItem` with `combo_haste_active`, enemy gains `hasted`, and player remains `marked`/`slowed`.
+- `PLAN.md` Section 4.4 now marks baseline Enemy AI active item usage as implemented and leaves multi-skill combo expansion, active item target selection, and richer threat scoring as follow-up work.
+- `git diff --check` passes after Enemy AI active item usage.
+- `npm run build` passes after Enemy AI active item usage, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding Enemy AI active item coverage.
+- Develop-web-game smoke playtest passes after Enemy AI active item usage: `playtest-artifacts/phase-2-enemy-active-item-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `src/game/simulation/enemy-ai.ts` now exports `enemyThreatProfile`, which combines low health, enemy tower threat, unfavorable lane pressure, and close player pressure into a baseline retreat score.
+- `decideEnemyHeroAction` now accepts `underEnemyTowerThreat`; when the threat score crosses the retreat threshold, Crimson routes to its defensive tactical point and exposes `threat_score_retreat:<reason>` through the existing trace path.
+- `src/game/MobaScene.ts` passes tower danger into Enemy AI via `findNearestAttackableBuilding(enemy, 360)`, keeping tower sensing in the Scene bridge and retreat scoring in the simulation module.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers `enemy threat score retreat` and directly verifies the exported threat profile helper.
+- Targeted Playwright enemy threat score regression passes and writes `playtest-artifacts/phase-2-enemy-threat-score-indicator-smoke/report.json`; the tower-danger fixture produces `Retreat:move` with reason `threat_score_retreat:enemy_tower`.
+- `PLAN.md` Section 4.4 and Phase 2 acceptance criteria now mark baseline Enemy AI threat score retreat as implemented, leaving multi-skill combo expansion, active item target selection, and a fuller multi-entity threat model as follow-up work.
+- `MobaScene.ts` is currently 1891 lines after moving Enemy AI context building into simulation; it is still far below the 2879-line audit baseline, but above the Phase 1 1800-line target again, so the next cleanup should keep shaving Scene orchestration.
+- `git diff --check` passes after Enemy AI threat score retreat.
+- `npm run build` passes after Enemy AI threat score retreat, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after adding Enemy AI threat score coverage.
+- Develop-web-game smoke playtest passes after Enemy AI threat score retreat: `playtest-artifacts/phase-2-enemy-threat-score-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `src/game/simulation/enemy-ai.ts` now exports `enemyMinionPressureAround`, and `decideEnemyHeroAction` accepts `minionPressure` so local hostile/friendly minion counts can affect the baseline threat score.
+- Hostile minion pressure is scored from nearby hostile minus friendly minions; a local hostile minion advantage can now produce `threat_score_retreat:minion_pressure` before basic trading.
+- `src/game/MobaScene.ts` passes `enemyMinionPressureAround(enemy, this.units)` into Enemy AI, keeping the local crowd sensing in the simulation module instead of adding more ad hoc Scene logic.
+- `src/game/debug-api.ts` adds the `enemy_minion_pressure` lane fixture so browser tests can isolate local minion pressure without also forcing bad lane pressure, tower danger, or last-hit branches.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers enemy minion pressure sensing, hostile pressure scoring, friendly support offsetting, and traceable `threat_score_retreat:minion_pressure`.
+- Targeted Playwright enemy minion pressure regression passes and writes `playtest-artifacts/phase-2-enemy-minion-pressure-indicator-smoke/report.json`; the fixture stays at neutral lane pressure, shows local Azure 5 vs Crimson 1 minion pressure, and produces `Retreat:move` with `threat_score_retreat:minion_pressure`.
+- Develop-web-game smoke playtest passes after Enemy AI minion pressure threat: `playtest-artifacts/phase-2-enemy-minion-pressure-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `src/game/simulation/enemy-ai.ts` now lets `useItem` decisions carry an optional `targetBuilding`; `traceEnemyHeroDecision` reports that building target for structure-active decisions.
+- Enemy AI now uses `siege_hammer` when it has a supported attackable structure target, enough health, safe wave pressure, and no close player threat; the trace reason is `siege_demolish_active`.
+- `src/game/MobaScene.ts` now filters the enemy siege target through `structureDamageMultiplier(enemy.team, target, units)`, so Crimson only uses `Demolish` when allied minion support is present, then passes that target into `applyActiveItemEffect`.
+- `src/game/debug-api.ts` adds the `enemy_siege_demolish` lane fixture for deterministic browser coverage of enemy structure active usage.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers enemy siege active target selection and blocks siege active on unsafe waves.
+- Targeted Playwright enemy siege active regression passes and writes `playtest-artifacts/phase-2-enemy-siege-active-indicator-smoke/report.json`; Crimson uses `siege_hammer` on `azure_outer_tower`, trace shows `Laning:useItem` / `siege_demolish_active`, and tower HP drops from 3000 to 2740.
+- Develop-web-game smoke playtest passes after Enemy AI siege active target selection: `playtest-artifacts/phase-2-enemy-siege-active-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `src/game/simulation/enemy-ai.ts` now exports `createEnemyHeroDecisionInput`, which builds the full Enemy AI decision input from units/buildings/wave/economy/items.
+- `MobaScene.updateEnemyHeroAI` no longer assembles lane pressure, tower threat, minion pressure, supported siege target, safe recall, or last-hit target itself; it calls the simulation builder and then applies the chosen decision.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers the enemy decision input builder selecting a supported siege target, computing safe recall, computing lane pressure, and feeding the siege active decision.
+- Targeted Playwright context-builder siege regression passes and writes `playtest-artifacts/phase-2-enemy-context-builder-siege-regression/report.json`; after the refactor, `siege_hammer` still hits `azure_outer_tower` and drops HP from 3000 to 2740.
+- Develop-web-game smoke playtest passes after Enemy AI context builder extraction: `playtest-artifacts/phase-2-enemy-context-builder-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `src/game/simulation/combat.ts` now exports `findNearestEnemyUnit`, sharing the same center-distance minus radii targeting primitive used by recall blocking and unit auto-attacks.
+- `MobaScene.startRecall` and `MobaScene.tryUnitAttack` now call the combat helper, and the private Scene-local nearest-enemy method has been removed.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers nearest enemy targeting, including allied-unit filtering and range checks after unit radii.
+- Targeted Playwright nearest-enemy recall regression passes and writes `playtest-artifacts/phase-2-nearest-enemy-targeting-regression/report.json`; close enemy units block recall while clearly out-of-range enemy units allow recall.
+- Develop-web-game smoke playtest passes after nearest enemy targeting extraction: `playtest-artifacts/phase-2-nearest-enemy-targeting-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `MobaScene.ts` is currently 1883 lines after moving nearest enemy targeting into simulation combat rules.
+- `src/game/simulation/enemy-ai.ts` now reuses `combat.findNearestEnemyUnit` for safe recall sensing, removing the duplicate local nearest-hostile gap calculation from the Enemy AI context builder.
+- Develop-web-game smoke playtest passes after sharing the nearest enemy helper with Enemy AI: `playtest-artifacts/phase-2-nearest-enemy-shared-helper-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `src/game/simulation/unit-lifecycle.ts` now owns `tickUnitStatusEffects` and `applyBaseRecovery`, moving per-unit timer decay, expired slow/haste/shield cleanup, and base health/mana regeneration out of the Scene.
+- `MobaScene.updateStatusEffects` now only applies the lifecycle tick result and clears the player active cast when the action timer is ready; `MobaScene.updateBaseRecovery` delegates base regen to simulation.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers unit status ticking and base recovery, including expired effect cleanup and base-radius regen math.
+- Targeted Playwright unit lifecycle regression passes and writes `playtest-artifacts/phase-2-unit-lifecycle-browser-regression/report.json`; an injured player in Azure base recovers from `1000/300` to `1100/356` after 0.5 seconds.
+- Develop-web-game smoke playtest passes after unit lifecycle tick extraction: `playtest-artifacts/phase-2-unit-lifecycle-tick-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `MobaScene.ts` is currently 1865 lines after moving unit status tick and base recovery into simulation lifecycle rules.
+- `src/game/simulation/unit-lifecycle.ts` now also owns `tickRecallChannel`, keeping recall timer advancement, cast action maintenance, completion restore, expired effect cleanup, and command clearing in simulation.
+- `MobaScene.updateRecallChannels` now only chooses the team start point, delegates recall ticking, then handles completion side effects such as enemy base purchase, VFX, and HUD message.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers recall channel ticking before and after completion.
+- Targeted Playwright recall channel regression passes and writes `playtest-artifacts/phase-2-recall-channel-browser-regression/report.json`; a damaged recalling player returns to `485,565`, full health, full mana, and `Recall complete`.
+- Develop-web-game smoke playtest passes after recall channel extraction: `playtest-artifacts/phase-2-recall-channel-tick-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `MobaScene.ts` is currently 1851 lines after moving recall channel ticking into simulation lifecycle rules.
+- `MobaScene` no longer keeps a private `findNearestAttackableBuilding` wrapper; attack fallback and Demolish item targeting now call the simulation objective helper directly with `this.buildings`.
+- Develop-web-game smoke playtest passes after removing the building targeting wrapper: `playtest-artifacts/phase-2-building-wrapper-removal-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `MobaScene.ts` is currently 1847 lines after removing the direct building targeting wrapper.
+- Added `src/game/simulation/cooldowns.ts` with `tickSkillCooldowns` and `tickItemCooldowns`, moving player skill cooldown and both player/enemy active item cooldown decay out of the Scene.
+- `MobaScene.updateCooldowns` now only delegates to the cooldown helpers for player skills, player item cooldowns, and enemy item cooldowns.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers cooldown ticking and zero clamping for both skill and item cooldown maps.
+- Develop-web-game smoke playtest passes after cooldown tick extraction: `playtest-artifacts/phase-2-cooldown-tick-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `MobaScene.ts` is currently 1844 lines after moving cooldown ticking into simulation rules.
+- Removed the private `MobaScene.clearUnitCommands` wrapper. `startRecall` and debug-facing `clearPlayerCommands` now call `clearUnitCommandsRule` directly.
+- Develop-web-game smoke playtest passes after removing the command wrapper: `playtest-artifacts/phase-2-command-wrapper-removal-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `MobaScene.ts` is currently 1840 lines after removing the direct command wrapper.
+- `src/game/simulation/unit-lifecycle.ts` now owns `beginRecallChannel`, which clears existing commands, initializes the recall timer, and puts the unit into cast action.
+- `MobaScene.startRecall` now keeps eligibility checks, nearby-enemy blocking, VFX, queued-skill clearing, and message side effects while delegating channel state mutation to lifecycle rules.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers recall channel begin, including command clearing and already-channeling rejection.
+- Targeted Playwright recall channel begin regression passes and writes `playtest-artifacts/phase-2-recall-channel-begin-regression/report.json`; recall starts at progress 0, advances to positive progress after 500ms, then completes at full health/mana and player start.
+- Develop-web-game smoke playtest passes after recall channel begin extraction: `playtest-artifacts/phase-2-recall-channel-begin-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `MobaScene.ts` is currently 1837 lines after moving recall channel begin state into simulation lifecycle rules.
+- Added `src/game/simulation/target-picking.ts` with `pickEnemyUnitAtPoint` and `pickEnemyBuildingAtPoint`, moving pointer hit-radius selection and vulnerable-building filtering out of the Scene.
+- `MobaScene.pickEnemyUnit` and `MobaScene.pickEnemyBuilding` now delegate to the target-picking helpers while keeping input handling in the Scene.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers pointer target picking, including dead hostile filtering, allied filtering, attackable tower selection, protected-core rejection, and vulnerable-core selection.
+- Develop-web-game smoke playtest passes after pointer target picking extraction: `playtest-artifacts/phase-2-pointer-target-picking-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `MobaScene.ts` is currently 1834 lines after moving pointer target picking into simulation rules.
+- Added `src/game/simulation/queued-skill.ts` with `resolveQueuedSkillTick`, moving queued skill buffer timer decay, modal/death clearing, expiry messaging, casting-lock wait, and ready-cast decisions out of the Scene.
+- `MobaScene.updateQueuedSkill` now delegates the decision to simulation and keeps only Scene side effects: clearing state, choosing aim point, and invoking `castPlayerSkill`.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers queued skill ticking for none, wait, expired clear, and cast decisions.
+- Targeted Playwright queued skill regression passes and writes `playtest-artifacts/phase-2-queued-skill-browser-regression/report.json`; Q cast locks the player, W buffers, then W releases automatically as `Guard Pulse shielded`.
+- Develop-web-game smoke playtest passes after queued skill tick extraction: `playtest-artifacts/phase-2-queued-skill-tick-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `MobaScene.ts` is currently 1834 lines after queued skill decision extraction; the abstraction improved coverage without increasing the Scene from the previous pointer-picking snapshot.
+- Added `src/game/simulation/movement.ts` with `moveUnit`, moving rooted movement blocking, slow/haste speed adjustment, world bounds clamping, direction updates, and move action assignment out of the Scene.
+- Player, enemy hero, and minion movement paths now call the shared simulation movement helper directly.
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` now covers unit movement, including rooted rejection, adjusted-speed movement, direction/action update, and world-boundary clamping.
+- Develop-web-game smoke playtest passes after movement rule extraction: `playtest-artifacts/phase-2-movement-rule-smoke` contains nonblank gameplay screenshots and JSON states with normal lane/tower combat.
+- `MobaScene.ts` is currently 1823 lines after moving movement rules into simulation.
 
 ## Verification
 
@@ -144,3 +558,321 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 - `git diff --check`
 - `npm run build`
 - `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-tower-targeting-refactor-smoke`
+- `git diff --check`
+- `npm run build`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-combat-resolution-refactor-smoke`
+- `git diff --check`
+- `npm run build`
+- `node playtest-artifacts/skill-feel-pass/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-skill-cast-refactor-smoke`
+- `git diff --check`
+- `npm run build`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-attack-event-refactor-smoke`
+- `git diff --check`
+- `npm run build`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-enemy-ai-trace-smoke`
+- `git diff --check`
+- `npm run build`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-command-helper-refactor-smoke`
+- `git diff --check`
+- `npm run build`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-command-execution-refactor-smoke`
+- `git diff --check`
+- `npm run build`
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-lifecycle-refactor-smoke`
+- `git diff --check`
+- `npm run build`
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/`
+- Targeted economy/shop debug-hook assertion via Playwright `page.evaluate`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173/ --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-economy-shop-refactor-smoke`
+- `git diff --check`
+- `npm run build`
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/`
+- Targeted active item debug-hook assertion via Playwright `page.evaluate`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173/ --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-active-item-refactor-smoke`
+- `git diff --check`
+- `npm run build`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `node playtest-artifacts/skill-feel-pass/assertions.mjs http://127.0.0.1:4173/`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173/ --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-simulation-unit-refactor-smoke`
+- `git diff --check`
+- `npm run build`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173/ --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-tower-priority-smoke`
+- `git diff --check`
+- `npm run build`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173/ --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-structure-damage-penalty-smoke`
+- `git diff --check`
+- `npm run build`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173/ --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-tower-ramping-smoke`
+- `git diff --check`
+- `npm run build`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- Targeted Playwright tower danger HUD assertion writing `playtest-artifacts/phase-2-tower-danger-indicator-smoke/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173/ --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-tower-danger-smoke`
+- `git diff --check`
+- `npm run build`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- Targeted Playwright lane state HUD assertion writing `playtest-artifacts/phase-2-lane-state-indicator-smoke/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173/ --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-lane-state-smoke`
+- `git diff --check`
+- `npm run build`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- Targeted Playwright minion aggro Q-hit assertion writing `playtest-artifacts/phase-2-minion-aggro-indicator-smoke/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173/ --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-minion-aggro-smoke`
+- `git diff --check`
+- `npm run build`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- Targeted Playwright minion policy Q-hit assertion writing `playtest-artifacts/phase-2-minion-policy-indicator-smoke/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173/ --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-minion-policy-smoke`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-minion-aggro-decay-smoke`
+- Targeted Playwright minion aggro decay assertion writing `playtest-artifacts/phase-2-minion-aggro-decay-indicator-smoke/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-minion-aggro-threat-smoke`
+- Targeted Playwright minion aggro threat regression writing `playtest-artifacts/phase-2-minion-aggro-threat-indicator-smoke/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-lane-path-smoke`
+- Targeted Playwright lane path snapshot assertion writing `playtest-artifacts/phase-2-lane-path-indicator-smoke/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-minion-lane-spacing-smoke`
+- Targeted Playwright minion lane spacing progression assertion writing `playtest-artifacts/phase-2-minion-lane-spacing-indicator-smoke/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-lane-return-smoke`
+- Targeted Playwright lane return progression assertion writing `playtest-artifacts/phase-2-lane-return-indicator-smoke/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-lane-formation-smoke`
+- Targeted Playwright lane formation spread assertion writing `playtest-artifacts/phase-2-lane-formation-indicator-smoke/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-minion-separation-smoke`
+- Targeted Playwright minion separation spread assertion writing `playtest-artifacts/phase-2-minion-separation-indicator-smoke/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-lane-tactical-smoke`
+- Targeted Playwright lane tactical point fixture assertion writing `playtest-artifacts/phase-2-lane-tactical-indicator-smoke/report.json`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- Targeted Playwright nearest enemy recall regression writing `playtest-artifacts/phase-2-nearest-enemy-targeting-regression/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-nearest-enemy-targeting-smoke`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-nearest-enemy-shared-helper-smoke`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- Targeted Playwright unit lifecycle regression writing `playtest-artifacts/phase-2-unit-lifecycle-browser-regression/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-unit-lifecycle-tick-smoke`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- Targeted Playwright recall channel regression writing `playtest-artifacts/phase-2-recall-channel-browser-regression/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-recall-channel-tick-smoke`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-building-wrapper-removal-smoke`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-cooldown-tick-smoke`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-command-wrapper-removal-smoke`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- Targeted Playwright recall channel begin regression writing `playtest-artifacts/phase-2-recall-channel-begin-regression/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-recall-channel-begin-smoke`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-pointer-target-picking-smoke`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- Targeted Playwright queued skill regression writing `playtest-artifacts/phase-2-queued-skill-browser-regression/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-queued-skill-tick-smoke`
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-movement-rule-smoke`
+- `src/game/simulation/rules.ts` now exports `vectorFromDirection`, and `src/game/simulation/unit-lifecycle.ts` now exports `visibleUnitAction`.
+- `src/game/MobaScene.ts` now calls `createHero` / `createBuilding` directly and no longer owns the direction-vector, visible-action, hero factory, or building factory wrappers.
+- `MobaScene.ts` is currently 1795 lines after scene helper extraction and factory wrapper removal, so it is back under the `< 1800` target.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-scene-helper-smoke`
+- Inspected `playtest-artifacts/phase-2-scene-helper-smoke/shot-2.png`; gameplay view is nonblank and shows normal lane, tower, minion, hero, VFX, and range rendering after the helper extraction.
+- Added `src/game/simulation/modal-state.ts` for pure modal/shop/settings transitions: Esc priority, shop availability rejection, shop/settings mutual exclusion, and shop auto-close.
+- `src/game/MobaScene.ts` now applies modal transitions and keeps only Scene side effects such as pending-cast cancellation, queued-cast cleanup, HUD message updates, and snapshot sync.
+- `MobaScene.ts` is currently 1786 lines after modal state extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-modal-state-smoke`
+- Inspected `playtest-artifacts/completion-round-5/settings-open.png` and `playtest-artifacts/phase-2-modal-state-smoke/shot-2.png`; settings modal and normal gameplay rendering are both visible and nonblank.
+- Added `src/game/simulation/player-input.ts` for pure keyboard event decisions: Tab scoreboard open/close, Esc routing, P shop toggle/repeat handling, settings-blocked shop toggle, and Ctrl+Q/W/E/R upgrade actions.
+- `src/game/MobaScene.ts` keyboard callbacks now only apply resolved input actions and call Scene side effects; Phaser key state movement remains in `updatePlayerInput` for a later slice.
+- `MobaScene.ts` is currently 1776 lines after keyboard input decision extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-keyboard-input-smoke`
+- Inspected `playtest-artifacts/phase-2-keyboard-input-smoke/shot-2.png`; gameplay view remains nonblank with normal lane, tower, minion, hero, VFX, and range rendering.
+- Extended `src/game/simulation/player-input.ts` with pointer input decisions for pending skill confirm/cancel, alive/modal blocking, unit target, building target, and move/attack-move fallback.
+- `src/game/MobaScene.ts` pointerdown handling now resolves a pointer action first, then applies Scene side effects through existing command/skill methods.
+- `MobaScene.ts` is currently 1778 lines after pointer input decision extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-pointer-input-smoke`
+- Inspected `playtest-artifacts/phase-2-pointer-input-smoke/shot-2.png`; gameplay view remains nonblank with normal pointer-driven combat/movement rendering.
+- Extended `src/game/simulation/player-input.ts` with per-tick discrete input action collection for Q/W/E/R activation, item slots 1-4, recall, manual attack, and fullscreen toggle.
+- `src/game/MobaScene.ts` now delegates discrete JustDown action ordering to `collectPlayerInputTickActions`; continuous axis movement and target-point travel remain in Scene for a later slice.
+- `MobaScene.ts` is currently 1786 lines after input tick action extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-input-tick-smoke`
+- Inspected `playtest-artifacts/phase-2-input-tick-smoke/shot-2.png`; gameplay view remains nonblank with normal keyboard-driven movement/combat state after the tick action extraction.
+- Extended `src/game/simulation/player-input.ts` with axis movement decisions and target-point travel decisions, including recall/pending cast interrupts, casting lock preservation, arrival cleanup, and target-point movement direction.
+- `src/game/MobaScene.ts` now applies those movement decisions while keeping `updatePlayerAttackCommands` as the Scene integration boundary.
+- `MobaScene.ts` is currently 1788 lines after movement/targetPoint decision extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-movement-decision-smoke`
+- Inspected `playtest-artifacts/phase-2-movement-decision-smoke/shot-2.png`; gameplay view remains nonblank with normal movement, lane, tower, and combat rendering.
+- Added `applyPlayerAttackCommandDecision` in `src/game/simulation/commands.ts` so clear-target, attack, attack-move retarget, and move-direction application are centralized around the existing command decision union.
+- `src/game/MobaScene.ts` now supplies side-effect callbacks for unit attacks, building attacks, attack-move retargeting, and movement instead of owning the full command application branch.
+- `MobaScene.ts` is currently 1774 lines after attack command application extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-attack-command-application-smoke`
+- Inspected `playtest-artifacts/phase-2-attack-command-application-smoke/shot-2.png`; gameplay view remains nonblank with normal attack-command combat rendering.
+- Added `resolvePlayerInputBlockDecision` in `src/game/simulation/player-input.ts` for dead-player cleanup and modal input blocking while preserving active cast actions.
+- `src/game/MobaScene.ts` now delegates the dead/modal input gate at the top of `updatePlayerInput` and keeps only cleanup side effects.
+- `MobaScene.ts` remains 1774 lines after player input block extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-input-block-smoke`
+- Inspected `playtest-artifacts/phase-2-input-block-smoke/shot-2.png`; gameplay view remains nonblank with normal lane/tower/combat rendering.
+- Added `resolveActiveAimSkill` and `createAimPreviewShape` in `src/game/simulation/player-skills.ts` so pending/held skill selection and circle/dash/cone geometry are testable outside Phaser drawing.
+- `src/game/MobaScene.ts` now only maps the returned aim preview shape to Phaser graphics calls.
+- `MobaScene.ts` is currently 1767 lines after aim preview decision extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-aim-preview-decision-smoke`
+- Inspected `playtest-artifacts/phase-2-aim-preview-decision-smoke/shot-2.png`; gameplay view remains nonblank after the aim preview decision extraction.
+- Added `resolvePendingDamageEventDispatch` in `src/game/simulation/combat.ts` for pending damage source validation, hit-effect extraction, target/building lookup, VFX retention, and unit/building/circle/cone dispatch actions.
+- `src/game/MobaScene.ts` now only applies returned damage dispatch actions through existing Scene side effects.
+- `MobaScene.ts` is currently 1759 lines after damage event dispatch extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-damage-dispatch-smoke`
+- Inspected `playtest-artifacts/phase-2-damage-dispatch-smoke/shot-2.png`; gameplay view remains nonblank with normal damage, VFX, tower, and combat rendering.
+- Added `resolveAreaDamageApplication` in `src/game/simulation/combat.ts` to centralize circle/cone area target selection, building damage scaling, knockback origin, and damage-effect cleanup.
+- Replaced the Scene-local `damageEnemiesNear` / `damageEnemiesInCone` duplicate loops with a single `applyAreaDamage` side-effect method.
+- `MobaScene.ts` is currently 1751 lines after area damage application extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-area-damage-application-smoke`
+- Inspected `playtest-artifacts/phase-2-area-damage-application-smoke/shot-2.png`; gameplay view remains nonblank with normal AoE damage, VFX, tower, and combat rendering.
+- Added `resolveAbilityDamagePlan` and `resolveAbilityPostDamageApplication` in `src/game/simulation/combat.ts` for marked-damage bonus, mark consumption, cooldown refund, VFX/message feedback, and follow-up mark/slow/root/knockback side effects.
+- `src/game/MobaScene.ts` now applies the returned ability post-damage application through existing Scene side-effect methods, keeping Phaser/VFX ownership in Scene while making the damage rule branch testable.
+- `MobaScene.ts` is currently 1754 lines after ability damage side-effect extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-ability-damage-side-effects-smoke`
+- Inspected `playtest-artifacts/phase-2-ability-damage-side-effects-smoke/shot-2.png`; gameplay view remains nonblank with normal lane, tower, minion, hero, range, VFX, and damage-number rendering.
+- Added `applyBuildingDamageApplication` in `src/game/simulation/combat.ts` so building damage now returns damage-number team, destroyed message, and core victory/defeat outcome as a testable rule result.
+- `src/game/MobaScene.ts` now applies building damage through the returned application result and keeps only flash, damage number, message assignment, and `endGame` side effects.
+- `MobaScene.ts` is currently 1751 lines after building damage application extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-building-damage-application-smoke`
+- Inspected `playtest-artifacts/phase-2-building-damage-application-smoke/shot-2.png`; gameplay view remains nonblank with normal lane, tower, minion, hero, range, VFX, and damage-number rendering.
+- Added `applyPlayerSkillCastState` in `src/game/simulation/player-skills.ts` for player skill cast state commits: facing, mana spend, cooldown assignment, cast action timer, stale command cleanup, shield application, dash movement, and Scene side-effect payloads.
+- `src/game/MobaScene.ts` now uses that skill cast application result and keeps only queued damage event IDs, immediate VFX spawning, active cast tracking, and message assignment.
+- `MobaScene.ts` is currently 1742 lines after skill cast state extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-skill-cast-state-smoke`
+- Inspected `playtest-artifacts/phase-2-skill-cast-state-smoke/shot-2.png`; gameplay view remains nonblank with normal lane, tower, minion, hero, range, VFX, and damage-number rendering.
+- Added `resolvePlayerActionStartDecision` in `src/game/simulation/player-input.ts` for match-ended, dead-player, modal-blocked, casting-locked, and ready action gates.
+- `src/game/MobaScene.ts` now only applies the returned gate decision and message in `canStartPlayerAction`.
+- `MobaScene.ts` is currently 1737 lines after player action start gate extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-player-action-start-smoke`
+- Inspected `playtest-artifacts/phase-2-player-action-start-smoke/shot-2.png`; gameplay view remains nonblank with normal lane, tower, minion, hero, range, VFX, and damage-number rendering.
+- Removed the Scene-local `clearPlayerCommands` wrapper and switched `src/game/MobaScene.ts` plus `src/game/debug-api.ts` to call `clearUnitCommands` directly.
+- The first browser assertion caught the stale debug adapter call (`clearPlayerCommands is not a function`); `src/game/debug-api.ts` now imports the rule helper directly, and the browser regression passes again.
+- `MobaScene.ts` is currently 1733 lines after clear-command wrapper removal.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-clear-command-wrapper-smoke`
+- Inspected `playtest-artifacts/phase-2-clear-command-wrapper-smoke/shot-2.png`; gameplay view remains nonblank with normal lane, tower, minion, hero, range, VFX, and damage-number rendering.
+- Added `applyQueuedPlayerSkillState` in `src/game/simulation/player-skills.ts` so queued skill buffering owns command cleanup, aim snapshot, queue timer, and buffered message creation.
+- `src/game/MobaScene.ts` now only stores the returned queued skill state, and no longer imports `CAST_QUEUE_WINDOW`.
+- `MobaScene.ts` is currently 1732 lines after queued skill state extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-queued-skill-state-smoke`
+- Inspected `playtest-artifacts/phase-2-queued-skill-state-smoke/shot-2.png`; gameplay view remains nonblank with normal lane, tower, minion, hero, range, VFX, and damage-number rendering.
+- Added `resolveActiveItemUseGate` in `src/game/simulation/active-items.ts` for passive item, ownership, player action gate, cooldown, and ready active item checks while preserving the original decision order.
+- `src/game/MobaScene.ts` now reuses `playerActionStartDecision` for item gating and keeps only active effect application, VFX, recall cancel, cooldown assignment, and activated message.
+- `MobaScene.ts` is currently 1733 lines after active item use gate extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-active-item-gate-smoke`
+- Inspected `playtest-artifacts/phase-2-active-item-gate-smoke/shot-2.png`; gameplay view remains nonblank with normal lane, tower, minion, hero, range, VFX, and damage-number rendering.
+- Added `resolveActiveItemUseApplication` in `src/game/simulation/active-items.ts` so active item effect results now produce a common application payload: failure message, success cooldown, success message, cancel-recall flag, VFX, and optional building damage.
+- `src/game/MobaScene.ts` now uses the same active item application path for player and enemy item usage; Scene still owns VFX spawning, building damage application, recall cancel, cooldown store updates, and message assignment.
+- `MobaScene.ts` is currently 1745 lines after active item use application extraction.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`
+- `npm run build`
+- `git diff --check`
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-active-item-application-smoke`
+- Inspected `playtest-artifacts/phase-2-active-item-application-smoke/shot-2.png`; gameplay view remains nonblank with normal lane, tower, minion, hero, range, VFX, and damage-number rendering.

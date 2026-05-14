@@ -36,8 +36,11 @@ export const initHud = () => {
           <span class="stat-pill">${icon(UI_ICON_URLS.status.gold, "Gold")}<strong data-gold>842</strong></span>
           <span class="stat-pill">${icon(UI_ICON_URLS.status.skill_point, "XP")}<strong data-xp>0</strong></span>
           <span class="stat-pill text-stat">CS <strong data-last-hits>0</strong></span>
+          <span class="stat-pill text-stat">STK <strong data-cs-streak>0</strong></span>
+          <span class="stat-pill text-stat">MISS <strong data-missed-cs>0</strong></span>
           <span class="stat-pill text-stat">SP <strong data-skill-points>0</strong></span>
           <span class="stat-pill text-stat">W <strong data-wave>1</strong></span>
+          <span class="stat-pill text-stat lane-pill neutral" data-lane-pill>Lane <strong data-lane-state>Neutral</strong></span>
         </div>
         <div class="recall-bar" data-recall-wrap hidden><span data-recall-bar></span><em data-recall-text></em></div>
       </div>
@@ -114,6 +117,7 @@ export const initHud = () => {
     </section>
 
     <section class="status-chip" data-message>Lane phase</section>
+    <section class="tower-danger-chip" data-tower-danger hidden></section>
     <section class="result-banner" data-result hidden>
       <strong data-result-title></strong>
       <span data-result-subtitle></span>
@@ -194,14 +198,18 @@ export const updateHud = (snapshot: GameSnapshot) => {
   query<HTMLElement>("[data-gold]").textContent = String(snapshot.player.gold);
   query<HTMLElement>("[data-xp]").textContent = String(snapshot.player.xp);
   query<HTMLElement>("[data-last-hits]").textContent = String(snapshot.player.lastHits);
+  query<HTMLElement>("[data-cs-streak]").textContent = String(snapshot.player.csStreak);
+  query<HTMLElement>("[data-missed-cs]").textContent = String(snapshot.player.missedCs);
   query<HTMLElement>("[data-skill-points]").textContent = String(snapshot.player.skillPoints);
   query<HTMLElement>("[data-wave]").textContent = String(snapshot.lane.waveNumber);
+  renderLaneState(snapshot);
   const castState = snapshot.casting.queuedSkill
     ? ` · ${snapshot.casting.queuedSkill.toUpperCase()} queued`
     : snapshot.casting.locked && snapshot.casting.activeSkill
       ? ` · Casting ${snapshot.casting.activeSkill.toUpperCase()}`
       : "";
   query<HTMLElement>("[data-message]").textContent = `${snapshot.message}${castState} · AI ${snapshot.enemyAi.state}`;
+  renderTowerDanger(snapshot);
   const recallWrap = query<HTMLElement>("[data-recall-wrap]");
   recallWrap.hidden = !snapshot.player.recalling;
   query<HTMLElement>("[data-recall-bar]").style.width = `${Math.round(snapshot.player.recallProgress * 100)}%`;
@@ -400,6 +408,29 @@ const renderDeath = (snapshot: GameSnapshot) => {
   query<HTMLElement>("[data-death-countdown]").textContent = `${snapshot.player.deathTimer.toFixed(1)}s`;
   query<HTMLElement>("[data-death-blocked]").textContent = snapshot.controls.reason;
   query<HTMLElement>("[data-death-progress]").style.width = `${Math.round(snapshot.player.respawnProgress * 100)}%`;
+};
+
+const renderLaneState = (snapshot: GameSnapshot) => {
+  const pill = query<HTMLElement>("[data-lane-pill]");
+  const azurePressure = snapshot.lane.pressure.startsWith("azure_");
+  const crimsonPressure = snapshot.lane.pressure.startsWith("crimson_");
+  pill.classList.toggle("azure", azurePressure);
+  pill.classList.toggle("crimson", crimsonPressure);
+  pill.classList.toggle("neutral", !azurePressure && !crimsonPressure);
+  const progress = snapshot.lane.progress === null ? "" : ` ${Math.round(snapshot.lane.progress * 100)}%`;
+  const aggroMinions = snapshot.lane.azureAggroMinions + snapshot.lane.crimsonAggroMinions;
+  const aggro = aggroMinions > 0 ? ` · Aggro ${aggroMinions}` : "";
+  query<HTMLElement>("[data-lane-state]").textContent = `${snapshot.lane.label}${progress}${aggro}`;
+};
+
+const renderTowerDanger = (snapshot: GameSnapshot) => {
+  const chip = query<HTMLElement>("[data-tower-danger]");
+  chip.hidden = !snapshot.towerDanger.active;
+  if (!snapshot.towerDanger.active) return;
+  chip.classList.toggle("unsupported", snapshot.towerDanger.unsupported);
+  chip.textContent = snapshot.towerDanger.unsupported
+    ? `Enemy tower range · no minion cover · next ${snapshot.towerDanger.nextDamage}`
+    : `Enemy tower range · minion cover · next ${snapshot.towerDanger.nextDamage}`;
 };
 
 const minimapPosition = (id: string) => {

@@ -25,6 +25,22 @@ export const directionFromVector = (dx: number, dy: number): Direction => {
   return "south-west";
 };
 
+const DIRECTION_VECTORS: Record<Direction, Point> = {
+  south: { x: 0, y: 1 },
+  "south-east": { x: 0.7, y: 0.7 },
+  east: { x: 1, y: 0 },
+  "north-east": { x: 0.7, y: -0.7 },
+  north: { x: 0, y: -1 },
+  "north-west": { x: -0.7, y: -0.7 },
+  west: { x: -1, y: 0 },
+  "south-west": { x: -0.7, y: 0.7 },
+};
+
+export const vectorFromDirection = (direction: Direction) => {
+  const vector = DIRECTION_VECTORS[direction];
+  return normalize(vector.x, vector.y);
+};
+
 export const maxSkillLevel = (skill: SkillKey) => (skill === "r" ? 2 : 4);
 
 export const skillCooldown = (player: Unit, skill: SkillKey) => {

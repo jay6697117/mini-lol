@@ -4,6 +4,15 @@ export type GameResult = "playing" | "victory" | "defeat";
 export type UnitKind = "hero" | "melee" | "caster" | "siege";
 export type EnemyAiState = "Laning" | "Harass" | "Retreat" | "All In" | "Recall";
 
+export interface EnemyAiTraceSnapshot {
+  intent: string;
+  targetId: string | null;
+  targetX: number | null;
+  targetY: number | null;
+  speedMultiplier: number | null;
+  reason: string | null;
+}
+
 export interface CooldownSnapshot {
   q: number;
   w: number;
@@ -102,7 +111,52 @@ export interface UnitSnapshot {
   maxHp: number;
   x: number;
   y: number;
+  laneProgress: number;
   effects: string[];
+  lastHitHint: LastHitHintSnapshot | null;
+}
+
+export type LastHitHintWindow = "last_hit" | "tower_setup";
+
+export interface LastHitHintSnapshot {
+  window: LastHitHintWindow;
+  towerShotsToLastHit: number;
+  hpAfterTowerShots: number;
+}
+
+export interface TowerDangerSnapshot {
+  active: boolean;
+  towerId: string | null;
+  unsupported: boolean;
+  distance: number | null;
+  shots: number;
+  nextDamage: number;
+}
+
+export type LanePressure =
+  | "empty"
+  | "resetting"
+  | "neutral"
+  | "azure_slow_push"
+  | "crimson_slow_push"
+  | "azure_freezing"
+  | "crimson_freezing"
+  | "azure_crashing"
+  | "crimson_crashing";
+
+export type LaneTacticalPointId = "azure_outer" | "mid_lane" | "crimson_outer";
+
+export interface LaneSnapshot {
+  waveNumber: number;
+  nextSiegeWave: number;
+  pressure: LanePressure;
+  progress: number | null;
+  tacticalPoint: LaneTacticalPointId | null;
+  azureMinions: number;
+  crimsonMinions: number;
+  azureAggroMinions: number;
+  crimsonAggroMinions: number;
+  label: string;
 }
 
 export interface GameSnapshot {
@@ -127,6 +181,8 @@ export interface GameSnapshot {
     xp: number;
     gold: number;
     lastHits: number;
+    csStreak: number;
+    missedCs: number;
     deaths: number;
     skillPoints: number;
     recallProgress: number;
@@ -148,10 +204,7 @@ export interface GameSnapshot {
     queuedSkill: SkillKey | null;
     queuedExpiresIn: number;
   };
-  lane: {
-    waveNumber: number;
-    nextSiegeWave: number;
-  };
+  lane: LaneSnapshot;
   shop: {
     open: boolean;
     available: boolean;
@@ -178,6 +231,7 @@ export interface GameSnapshot {
     xp: number;
     lastHits: number;
     deaths: number;
+    trace: EnemyAiTraceSnapshot;
   };
   aimPreview: {
     active: boolean;
@@ -186,6 +240,7 @@ export interface GameSnapshot {
     x: number;
     y: number;
   };
+  towerDanger: TowerDangerSnapshot;
   buildings: BuildingSnapshot[];
   units: UnitSnapshot[];
   activeVfx: number;

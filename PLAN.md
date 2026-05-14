@@ -17,7 +17,7 @@
 1. 把玩法规则从 `src/game/MobaScene.ts` 中拆出，形成可测试、可调参、可复用的 simulation 层。
 2. 继续补强 LoL-like 对线决策链：兵线管理、防御塔仇恨、补刀反馈、回城时机、装备成长、AI 对线压力。
 
-推荐先执行 “系统边界重构 + 兵线/防御塔机制深化” 这条路线。原因是审计基线中的 `MobaScene.ts` 已经达到 2879 行，本轮 Phase 1 继续拆分后仍有 2291 行，并且仍承担 Phaser Scene lifecycle、asset loading、render sync、input、combat、economy、shop 和 debug hooks。继续直接加功能会让后续调参、测试和移动端适配成本快速上升。
+推荐先执行 “系统边界重构 + 兵线/防御塔机制深化” 这条路线。原因是审计基线中的 `MobaScene.ts` 已经达到 2879 行，本轮拆分后当前为 1745 行，仍承担 Phaser Scene lifecycle、asset loading、render sync、input 和主要 runtime orchestration。继续直接加功能会让后续调参、测试和移动端适配成本快速上升。
 
 ## 2. 本次调研依据
 
@@ -59,10 +59,10 @@
 | Runtime | Phaser `3.90.0` |
 | Build | Vite `8.0.12` + TypeScript `6.0.3` |
 | Entry | `src/main.ts` 创建 Phaser game，并初始化 DOM HUD |
-| Core Scene | `src/game/MobaScene.ts`，审计基线 2879 行，本轮 Phase 1 继续拆分后 2291 行 |
+| Core Scene | `src/game/MobaScene.ts`，审计基线 2879 行，本轮拆分后当前 1745 行 |
 | HUD | `src/ui/hud.ts`，434 行 |
 | Asset manifest | `src/game/assets.ts`，集中管理 generated sprite、building、VFX、UI icon URL |
-| Snapshot contract | `src/game/types.ts`，提供 `GameSnapshot`、unit/building/shop/scoreboard/result 状态 |
+| Snapshot contract | `src/game/types.ts`，提供 `GameSnapshot`、unit/building/shop/scoreboard/result/enemy AI trace 状态 |
 | Verification history | `progress.md` 记录多轮 `npm run build`、runtime assertions 和 browser smoke playtest |
 
 ### 3.2 已实现的高价值玩法
@@ -130,21 +130,22 @@
 - 塔会攻击范围内敌人。
 - 英雄攻击己方英雄时能触发初版 tower hero aggro。
 - core 受 outer tower gating 保护。
+- 防御塔普通目标选择已细化为 `siege -> melee -> caster -> champion`，强制英雄仇恨仍然最高优先级。
+- 强制英雄仇恨下，防御塔连续攻击同一英雄会递增伤害，降低越塔长期换血收益。
+- 英雄或单位普攻建筑时，如果附近没有己方小兵，会受到 structure damage penalty，降低无兵线硬拆效率。
+- 玩家进入敌方防御塔范围时，HUD 会显示 tower danger indicator；无己方小兵掩护时明确提示 no minion cover 和下一发塔伤。
 
 与 LoL-like 参考的差距：
 
-- 目标优先级过粗，目前基本是有 aggro 则打英雄，否则先找任意 minion，再找英雄。
-- 缺少 siege/minion/champion 的明确优先级。
-- 缺少连续攻击同一英雄的 ramping threat。
-- 缺少 “无兵线时拆塔效率降低” 的推进约束。
-- tower range 当前是常驻显示，缺少靠近/选中/危险态差异。
+- tower range 当前仍是常驻显示，后续可改成靠近/选中/危险态差异化显示。
+- 防御塔仇恨还缺少更细的目标提示，例如当前锁定目标、连续塔伤 stack 的视觉层级。
 
 建议：
 
-1. 基础 tower system 已先提取到 `src/game/simulation/towers.ts`，后续继续把优先级细化为 `forcedHeroAggro -> siege -> melee -> caster -> champion`。
-2. 增加 champion ramping damage 或 danger stack，让越塔成为高风险选择。
-3. 给 building damage 增加 `hasAlliedMinionNearby` 修正，减少无兵线硬拆。
-4. HUD/场景中增加 tower danger indicator：玩家进入敌塔且无己方 minion 时明显提示。
+1. 基础 tower system 已提取到 `src/game/simulation/towers.ts`，并已加入 `forcedHeroAggro -> siege -> melee -> caster -> champion` 优先级。
+2. champion ramping damage 已加入 tower simulation：同一英雄在 forced aggro 下连续吃塔伤会按 stack 递增。
+3. building basic attack damage 已增加 `hasAlliedMinionNearby` 修正，减少无兵线硬拆；后续可继续评估技能和主动道具是否也应进入该规则。
+4. HUD tower danger indicator 已接入 snapshot：玩家进入敌塔且无己方 minion 时会明显提示，并显示下一发塔伤。
 
 ### 4.4 P1：兵线系统还不能支撑 wave management
 
@@ -154,20 +155,33 @@
 - 每波 melee/caster，第 3 波 siege。
 - 小兵自动寻找敌方单位或建筑。
 - last-hit gold 和附近 XP 已分离。
+- `GameSnapshot.lane` 已暴露 wave number、next siege wave、lane pressure、frontline progress、tactical point、双方小兵数量和 HUD label；`UnitSnapshot` 已暴露每个单位的 `laneProgress`。
+- HUD 战斗面板已显示 Lane 状态 chip，例如 `Wave reset 50%`、`Azure slow 67%`、`Crimson freeze 64%`、`Azure crash 76%`。
+- `src/game/simulation/lane-path.ts` 已抽出 lane waypoints、path projection progress、tactical points、off-path return target、formation lateral offset 和按队伍推进的 look-ahead lane target；小兵无目标时会先回到 lane path，再沿带横向错位的 lane path 目标推进，并会在同队前方小兵过近时保持基础队列间距。
+- 小兵已有短期 aggro memory：英雄攻击敌方英雄时，受害英雄附近己方小兵会 call-for-help 并短暂追击攻击者；超过 soft leash 后 aggro timer 会加速衰减，超过 hard leash 会立即脱战；多来源时会按本次伤害和距离权重判断是否切换 aggro target。
+- `GameSnapshot.lane` 已暴露双方 active aggro minion count，HUD Lane chip 会显示 `Aggro N`。
+- 小兵 target policy 已抽到 `src/game/simulation/minion-ai.ts`：active aggro 优先，其次敌方小兵，再敌方英雄、建筑，最后回归 lane goal。
+- `src/game/simulation/last-hit.ts` 已暴露 last-hit / tower setup 窗口和 tower-shot count，`UnitSnapshot.effects` 会输出 `last-hit` / `tower-setup`，`UnitSnapshot.lastHitHint` 会输出窗口类型、需要塔伤次数和塔伤后剩余血量，Phaser healthbar 会做低血补刀和塔刀窗口高亮。
+- `src/game/simulation/enemy-ai.ts` 的默认 laning fallback 已消费 lane tactical points：敌方英雄远离玩家且无 last-hit 目标时，会沿己方推进方向选择下一个 tactical point 作为对线锚点，而不是直接走向 lane 端点。
+- Enemy AI 已接入 lane pressure：不利兵线下会避免 harass/all-in 并回撤到防守 tactical point；有利兵线下会保留 harass 窗口，并允许更高血量阈值的安全回城；`enemyAi.trace.reason` 会暴露 `unsafe_wave_disengage`、`safe_wave_recall`、`harass_window` 等原因。
+- Enemy AI 已接入 item breakpoint recall：敌方金币达到下一件基础装备成本、兵线安全且附近没有敌方单位时，会以 `item_breakpoint_recall` 开始回城；回城完成后会用既有购买逻辑买入下一件装备，并在 scoreboard enemy row 中显示。
+- Enemy AI 已接入基础 combo sequencing：Crimson harass 命中会给玩家挂短 `mark`，AI 会在安全兵线下进入 `marked_combo_attack` / `marked_combo_chase` 的 All In follow-up。
+- Enemy AI 已接入基础 active item usage：持有 `haste_talisman` 时会在 marked combo window 使用 `Tempo`，持有 `guard_shield` 且中低血近战受压时会使用 `Barrier`，持有 `siege_hammer` 且有己方小兵掩护的可攻击建筑目标时会使用 `Demolish`；trace 会暴露 `combo_haste_active` / `low_health_barrier` / `siege_demolish_active`。
+- Enemy AI 已接入基础 threat score：合并低血、敌塔威胁、坏兵线、局部敌/友小兵压力和玩家贴身压力；达到回撤阈值时会用 `threat_score_retreat:<reason>` trace reason 回撤到防守 tactical point。
 
 与 LoL-like 对线策略的差距：
 
-- lane path 是单个目标点，不是真正的 waypoint path。
-- 小兵没有 aggro memory、call-for-help、重新归线逻辑。
-- 兵线强弱只取决于当前存活单位，没有 slow push、freeze、crash 的可观察状态。
-- 塔下补刀没有专门调优，玩家较难学习“塔打几下再补”的节奏。
+- lane path 已有基础 waypoints、per-unit progress、tactical points、off-path return target、稳定横向 formation offset、同队前方小兵 spacing、轻量动态 separation、Enemy AI 默认 tactical-point routing、基础 wave-state-aware trade/recall/retreat、item breakpoint recall、marked combo follow-up、基础 active item usage、Demolish 建筑目标选择和基础 threat score retreat；更细的多技能连招、更多主动道具目标优先级和更完整英雄/技能/持续伤害威胁模型仍未接入。
+- 小兵已有基础 aggro memory、call-for-help、目标优先级、距离衰减、hard leash 脱战、回归 lane 和基础多目标威胁权重，但还没有持续伤害来源表或更完整的多人协作仇恨模型。
+- 兵线强弱当前已基于存活单位数量、前线位置和 active aggro 细分 wave reset、slow push、freeze、crash；更细的 wave reset 后续行为仍然较粗。
+- 塔下补刀已有基础高亮、tower-shot count、CS streak 和 missed CS 汇总反馈。
 
 建议：
 
-1. 增加 `LanePath` 和 per-unit lane progress。
-2. 增加 minion target policy：enemy minion 优先、被英雄攻击时短暂 call-for-help、脱战后回归 lane。
-3. 在 snapshot 中暴露 `laneState`：`neutral`、`slowPushAzure`、`slowPushCrimson`、`crashingAzure`、`crashingCrimson`。
-4. 给塔下补刀做明确教学反馈：低血 minion 高亮、击杀窗口提示、CS missed 提示。
+1. `LanePath`、per-unit lane progress、tactical points、off-path return target、基础小兵间距、稳定横向队列形态、轻量动态 separation、Enemy AI 默认 tactical-point routing、基础 wave-state-aware decision gating、item breakpoint recall、marked combo follow-up、基础 active item usage、Demolish 建筑目标选择和包含局部小兵压力的基础 threat score retreat 已完成；下一步可做多技能连招扩展、更多主动道具目标优先级或更完整的英雄/技能/持续伤害威胁模型。
+2. minion call-for-help、基础 target policy、aggro distance decay 和基础多目标威胁权重已完成；下一步可继续做更细的脱战行为或持续伤害来源表。
+3. lane state snapshot 和 HUD chip 已完成 wave reset / slow push / freeze / crash 细分；后续可继续增加 reset 后的 AI 决策。
+4. 塔下补刀已有基础反馈、tower-shot count 和 CS summary；后续继续做更细的补刀训练节奏。
 
 ### 4.5 P1：HUD 与 gameplay 交互边界过硬耦合
 
@@ -193,17 +207,18 @@
 ### 4.6 P1：AI 有状态名，但缺少可解释的决策模型
 
 当前 AI 已经能 laning、harass、retreat、all-in、recall，并会尝试 last-hit。
+Enemy AI 的 sensing/context builder 已迁入 `src/game/simulation/enemy-ai.ts`：Scene 只传当前 units/buildings/wave/economy/items，AI 模块内部计算 lane pressure、tower threat、local minion pressure、siege target、safe recall 和 last-hit target。
 
 主要差距：
 
-- 没有 threat score、tower danger、wave state、gold spend desire。
-- recall 判断主要靠血量与距离，不会因为 wave crash、金币够买关键装备、敌方死亡而主动回补。
-- AI 技能是单点 harass，缺少和玩家类似的技能组合。
+- 已有基础 threat score、tower danger、wave state、局部小兵压力和 gold spend desire，但 threat score 仍是轻量模型，还没有完整英雄技能冷却、持续伤害来源和多目标威胁聚合。
+- recall 已能在安全兵线和 item breakpoint 下触发，但还没有结合敌方死亡窗口、wave crash 后回推时间和技能冷却窗口。
+- AI 已有 mark 后 All In follow-up、基础主动道具使用和 Demolish 建筑目标选择，但还缺少和玩家类似的多技能连招序列。
 
 建议：
 
-1. 提取 `enemy-ai.ts`，把状态机拆成 `sense -> score -> decide -> act`。
-2. 增加 AI 输入因子：health ratio、mana ratio、wave state、tower danger、item breakpoint、player cooldown window。
+1. `enemy-ai.ts` 已承载 `sense -> score -> decide` 的主要逻辑；后续继续把 act 层 side effect 保持在 Scene bridge 内。
+2. AI 输入因子已覆盖 health ratio、wave state、tower danger、item breakpoint、local minion pressure 和 siege target；后续可加入 player cooldown window 和更多英雄威胁来源。
 3. 增加 AI 可调参数：aggression、lastHitStrictness、recallDiscipline、towerRespect。
 4. 给 AI 决策写 snapshot trace，方便 playtest 中看到它为什么 retreat 或 all-in。
 
@@ -240,7 +255,15 @@
 | --- | --- |
 | `src/game/simulation/types.ts` | 新建 simulation state 类型，承载 Unit、Building、GameMode、CombatEvent |
 | `src/game/data/game-config.ts` | 新建集中数值配置 |
+| `src/game/debug-api.ts` | 从 Scene 中迁出 `window.advanceTime`、`window.render_game_to_text` 和 `window.miniLolDebug` debug/test adapter |
+| `src/game/simulation/active-items.ts` | 从 Scene 中迁出 active item effect draft、mana restore、shield、haste 和 demolish target damage draft |
+| `src/game/simulation/combat.ts` | 从 Scene 中迁出 attack damage event creation、damage event drain、source validation、hit geometry 和 hp/shield resolution |
+| `src/game/simulation/commands.ts` | 从 Scene 中迁出 move/attack command state assignment 和 player attack-command decision |
+| `src/game/simulation/economy.ts` | 从 Scene 中迁出 XP/gold reward、enemy last-hit economy、catalog purchase validation、item stat application 和 active slot lookup |
+| `src/game/simulation/enemy-ai.ts` | 承载 Enemy AI decision、trace、threat score、active item target selection 和 decision input builder |
+| `src/game/simulation/player-skills.ts` | 从 Scene 中迁出 Q/W/E/R skill cast event draft creation 和 skill attempt failure 判断 |
 | `src/game/simulation/towers.ts` | 从 Scene 中迁出 tower aggro、targeting 和 tower attack intent |
+| `src/game/simulation/unit-lifecycle.ts` | 从 Scene 中迁出 crowd-control cleanup、hero death prep 和 respawn reset |
 | `src/game/simulation/snapshot.ts` | 从 simulation state 生成 `GameSnapshot` |
 | `src/game/MobaScene.ts` | 保留 Phaser lifecycle、renderer/input bridge，逐步删除规则所有权 |
 | `src/game/types.ts` | 保留 UI/test-facing snapshot contract |
@@ -249,8 +272,8 @@
 
 - `npm run build` 通过。
 - 现有 `playtest-artifacts/completion-round-5/report.json` 对应的断言能力仍可重跑并通过。
-- `MobaScene.ts` 行数下降到 1800 行以下。
-- 纯 simulation 函数至少覆盖：damage resolution、XP/gold reward、skill attempt failure、building vulnerability。
+- `MobaScene.ts` 行数目标是下降到 1800 行以下。当前为 1745 行，已从审计基线 2879 行下降并重新满足该门槛；后续继续接入 AI/tower/lane 编排时仍应优先拆 Scene orchestration。
+- 纯 simulation 函数至少覆盖：damage resolution、damage event dispatch、area damage application、ability damage side effects、building damage application、XP/gold reward、skill attempt failure、skill cast state application、queued skill state application、active item use gate、active item use application、building vulnerability、nearest enemy targeting、pointer target picking、cooldown ticking、queued skill tick、modal state transitions、keyboard input decisions、pointer input decisions、player input tick actions、movement input decisions、target point movement decisions、attack command application、player input block decisions、player action start decisions、aim preview decisions、unit movement、direction fallback vector、visible unit action、unit status tick、base recovery、recall channel begin、recall channel tick 和 enemy decision input builder。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖。
 
 ### Phase 2：兵线与防御塔深化
 
@@ -269,9 +292,26 @@
 
 - 玩家攻击塔下敌方英雄时，敌塔切换攻击玩家。
 - 敌方英雄离开塔范围或死亡后，塔重新按优先级选择目标。
-- siege minion 比 melee/caster 更优先承受塔火力。
-- 无兵线拆塔明显更慢。
-- lane state 能在 debug snapshot 中稳定出现。
+- siege minion 比 melee/caster 更优先承受塔火力。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖。
+- forced hero aggro 下，防御塔连续攻击同一英雄的伤害递增。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖。
+- 无兵线普攻拆塔明显更慢。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖 structure damage penalty。
+- 玩家进入敌塔范围时能在 snapshot/HUD 中看到 tower danger；无己方小兵时显示 no minion cover。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 和 `playtest-artifacts/phase-2-tower-danger-indicator-smoke/report.json` 覆盖。
+- lane state 能在 debug snapshot 中稳定出现，并在 HUD chip 中展示。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 和 `playtest-artifacts/phase-2-lane-state-indicator-smoke/report.json` 覆盖。
+- lane path projection 和 per-unit `laneProgress` 能在 snapshot 中稳定出现，小兵无目标时使用 lane path look-ahead target 推进。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 和 `playtest-artifacts/phase-2-lane-path-indicator-smoke/report.json` 覆盖。
+- lane tactical point 能在 snapshot 中稳定出现，当前锚点为 `azure_outer`、`mid_lane`、`crimson_outer`。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖，并由 `playtest-artifacts/phase-2-lane-tactical-indicator-smoke/report.json` 做浏览器 fixture 回归。
+- Enemy AI 默认对线 fallback 会选择己方推进方向上的下一个 lane tactical point，而不是直接朝 lane 端点移动。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖，并由 `playtest-artifacts/phase-2-enemy-tactical-routing-indicator-smoke/report.json` 做浏览器 fixture 回归。
+- Enemy AI 会读取 lane pressure：不利兵线下会用 `unsafe_wave_disengage` trace reason 回撤，有利兵线下仍会保留 `harass_window`，安全兵线允许 `safe_wave_recall`。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖，并由 `playtest-artifacts/phase-2-enemy-wave-aware-indicator-smoke/report.json` 做浏览器 fixture 回归。
+- Enemy AI 达到下一件装备金币阈值时，会在安全兵线窗口以 `item_breakpoint_recall` 回城；回城完成后会购买下一件基础装备并同步到 scoreboard enemy row。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖，并由 `playtest-artifacts/phase-2-enemy-item-recall-indicator-smoke/report.json` 做浏览器 fixture 回归。
+- Enemy AI harass 命中后会给玩家挂 `marked`，随后在安全兵线下进入 All In follow-up，并通过 `marked_combo_attack` / `marked_combo_chase` trace reason 解释。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖，并由 `playtest-artifacts/phase-2-enemy-combo-indicator-smoke/report.json` 做浏览器 fixture 回归。
+- Enemy AI 持有主动道具时会在明确窗口使用：`haste_talisman` 用于 marked combo，`guard_shield` 用于中低血近战受压，`siege_hammer` 用于有小兵掩护的可攻击建筑目标。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖，并由 `playtest-artifacts/phase-2-enemy-active-item-indicator-smoke/report.json` 与 `playtest-artifacts/phase-2-enemy-siege-active-indicator-smoke/report.json` 做浏览器 fixture 回归。
+- Enemy AI 会把低血、敌塔威胁、坏兵线、局部敌/友小兵压力和玩家贴身压力合成基础 threat score；超过阈值时用 `threat_score_retreat:<reason>` 回撤。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖，并由 `playtest-artifacts/phase-2-enemy-threat-score-indicator-smoke/report.json` 与 `playtest-artifacts/phase-2-enemy-minion-pressure-indicator-smoke/report.json` 做浏览器 fixture 回归。
+- 小兵无目标推进时会避免继续挤压同队前方过近小兵；基础队列间距由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖，并由 `playtest-artifacts/phase-2-minion-lane-spacing-indicator-smoke/report.json` 做浏览器推进回归。
+- 小兵偏离 lane path 且无战斗目标时，会先回最近的 path projection，再继续 look-ahead 推进。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖，并由 `playtest-artifacts/phase-2-lane-return-indicator-smoke/report.json` 做浏览器推进回归。
+- 小兵 lane target 会带稳定横向 formation offset，避免无目标推进时全部收敛到中心线。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖，并由 `playtest-artifacts/phase-2-lane-formation-indicator-smoke/report.json` 做浏览器推进回归。
+- 小兵无目标推进目标会叠加短距离 separation vector，减轻近距离同队重叠。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖，并由 `playtest-artifacts/phase-2-minion-separation-indicator-smoke/report.json` 做浏览器推进回归。
+- 英雄攻击敌方英雄时，附近敌方小兵会短暂 call-for-help 并追击攻击者。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 和 `playtest-artifacts/phase-2-minion-aggro-indicator-smoke/report.json` 覆盖。
+- 小兵 call-for-help 对多来源英雄伤害会按伤害量和距离生成 threat score；低威胁来源不会抢走当前 aggro，高威胁来源会切换目标。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖，并由 `playtest-artifacts/phase-2-minion-aggro-threat-indicator-smoke/report.json` 做浏览器回归。
+- 小兵普通策略会优先攻击敌方小兵；active aggro 会覆盖普通策略；无目标时回归 lane goal。当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 和 `playtest-artifacts/phase-2-minion-policy-indicator-smoke/report.json` 覆盖。
 
 ### Phase 3：补刀与成长反馈
 
@@ -297,18 +337,18 @@
 
 修改内容：
 
-1. 拆出 AI decision module。
-2. 增加 threat score 和 wave state 感知。
+1. 拆出 AI decision module 和 decision input builder。
+2. 扩展 threat score 和 wave state 感知。
 3. 增加 item breakpoint recall。
 4. 增加基本 skill combo：harass、mark、all-in。
 5. 增加 AI decision trace 到 snapshot。
 
 验收标准：
 
-- AI 在低血、被塔威胁、wave 不利时撤退。
+- AI 在低血、被塔威胁、wave 不利或局部敌方小兵过多时撤退。基础 threat score retreat 当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖，并由 `playtest-artifacts/phase-2-enemy-threat-score-indicator-smoke/report.json` 与 `playtest-artifacts/phase-2-enemy-minion-pressure-indicator-smoke/report.json` 做浏览器 fixture 回归。
 - AI 在玩家低血、关键技能冷却可用时尝试 all-in。
 - AI 在攒够装备钱且 wave 状态安全时回城。
-- AI 行为可通过 snapshot trace 解释。
+- AI 行为可通过 snapshot trace 解释；decision input builder 当前由 `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 覆盖，并由 `playtest-artifacts/phase-2-enemy-context-builder-siege-regression/report.json` 做浏览器回归。
 
 ### Phase 5：HUD 输入边界与安全整理
 
