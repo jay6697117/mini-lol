@@ -1,0 +1,66 @@
+{
+  "cell": 64,
+  "columns": 6,
+  "rows": 8,
+  "action": "death",
+  "directions": [
+    "south",
+    "south-east",
+    "east",
+    "north-east",
+    "north",
+    "north-west",
+    "west",
+    "south-west"
+  ],
+  "rows_meta": [
+    {
+      "row": 0,
+      "action": "death",
+      "direction": "south",
+      "frames": 6
+    },
+    {
+      "row": 1,
+      "action": "death",
+      "direction": "south-east",
+      "frames": 6
+    },
+    {
+      "row": 2,
+      "action": "death",
+      "direction": "east",
+      "frames": 6
+    },
+    {
+      "row": 3,
+      "action": "death",
+      "direction": "north-east",
+      "frames": 6
+    },
+    {
+      "row": 4,
+      "action": "death",
+      "direction": "north",
+      "frames": 6
+    },
+    {
+      "row": 5,
+      "action": "death",
+      "direction": "north-west",
+      "frames": 6
+    },
+    {
+      "row": 6,
+      "action": "death",
+      "direction": "west",
+      "frames": 6
+    },
+    {
+      "row": 7,
+      "action": "death",
+      "direction": "south-west",
+      "frames": 6
+    }
+  ]
+}

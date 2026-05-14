@@ -1,0 +1,6 @@
+Asset: crimson_siege_minion
+Action: idle
+Direction: west
+Cell: 64x64
+Method: derived from accepted imagegen caster minion source with a unique siege chassis overlay.
+Acceptance: preserve team color, wheeled siege silhouette, readable 2.5D lane unit proportions, transparent background, fixed cell grid.

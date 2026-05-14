@@ -5,11 +5,17 @@ export const STRUCTURE_DAMAGE_UNSUPPORTED_MULTIPLIER = 0.42;
 export const STRUCTURE_DAMAGE_MINION_SUPPORT_RADIUS = 420;
 
 const blockingTowerId = (building: Building) => (building.team === "azure" ? "azure_outer_tower" : "crimson_outer_tower");
+const inhibitorId = (building: Building) => (building.team === "azure" ? "azure_inhibitor" : "crimson_inhibitor");
+
+const destroyed = (buildings: Building[], id: string) => {
+  const building = buildings.find((candidate) => candidate.id === id);
+  return !building || building.hp <= 0;
+};
 
 export const isBuildingVulnerable = (building: Building, buildings: Building[]) => {
   if (building.type === "tower") return true;
-  const blockingTower = buildings.find((candidate) => candidate.id === blockingTowerId(building));
-  return Boolean(blockingTower && blockingTower.hp <= 0);
+  if (building.type === "inhibitor") return destroyed(buildings, blockingTowerId(building));
+  return destroyed(buildings, blockingTowerId(building)) && destroyed(buildings, inhibitorId(building));
 };
 
 export const findNearestAttackableBuilding = (source: Unit, buildings: Building[], range: number) =>

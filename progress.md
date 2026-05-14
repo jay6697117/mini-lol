@@ -876,3 +876,12 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 - `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`
 - `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-2-active-item-application-smoke`
 - Inspected `playtest-artifacts/phase-2-active-item-application-smoke/shot-2.png`; gameplay view remains nonblank with normal lane, tower, minion, hero, range, VFX, and damage-number rendering.
+
+## 2026-05-14 MVP 验收链路与终局推进更新
+
+- 补齐 `azure_siege_minion` 与 `crimson_siege_minion` 的 `game-character-sprites` QA 产物：source/generated strips、frames、metadata、validation、motion audit、contact sheets、previews、visual review、manifest validation。
+- 新增 `npm run test:mvp`，当前链路为 `npm run build`、`phase-1-simulation-unit/assertions.mjs`、`scripts/mvp-test.mjs`，用于固定浏览器 MVP 验收。
+- 新增 `src/game/game-command.ts`，HUD 交互改为通过 `window.miniLolCommands.dispatch` 进入 Scene adapter；`miniLolDebug` 保留为测试/调试 API，不再作为 HUD 控制通道。
+- 加入 first-run 可玩性 pass：早期新手提示、无兵线塔下危险提示、死亡后引导、商店推荐购买标记。
+- 加入简化 inhibitor/super minion 终局机制：外塔后才开放 inhibitor，inhibitor 后才开放 core；敌方 inhibitor 被摧毁后，本方下一波生成 super minion。
+- 已验证：`npm run test:mvp`、`completion-round-4/assertions.mjs`、`completion-round-5/assertions.mjs`、`web_game_playwright_client.js` smoke、`git diff --check`。

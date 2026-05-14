@@ -176,10 +176,11 @@ export const towerDamageForTarget = (tower: Building, target: Unit, aggro?: Towe
 };
 
 const towerTargetPriority = (unit: Unit) => {
-  if (unit.kind === "siege") return 0;
-  if (unit.kind === "melee") return 1;
-  if (unit.kind === "caster") return 2;
-  return 3;
+  if (unit.kind === "super") return 0;
+  if (unit.kind === "siege") return 1;
+  if (unit.kind === "melee") return 2;
+  if (unit.kind === "caster") return 3;
+  return 4;
 };
 
 const towerIdForTeam = (team: Team) => (team === "azure" ? "azure_outer_tower" : "crimson_outer_tower");

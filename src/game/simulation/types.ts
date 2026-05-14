@@ -59,7 +59,7 @@ export interface Building {
   id: string;
   assetId: BuildingAssetId;
   team: Team;
-  type: "tower" | "core";
+  type: "tower" | "inhibitor" | "core";
   x: number;
   y: number;
   hp: number;

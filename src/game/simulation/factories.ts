@@ -54,6 +54,7 @@ export const createHero = (id: string, assetId: string, team: Team, x: number, y
 export const createMinion = (id: string, assetId: string, team: Team, kind: Exclude<UnitKind, "hero">, x: number, y: number, initialAttackTimer: number): Unit => {
   const caster = kind === "caster";
   const siege = kind === "siege";
+  const superMinion = kind === "super";
   return {
     id,
     assetId,
@@ -61,20 +62,20 @@ export const createMinion = (id: string, assetId: string, team: Team, kind: Excl
     kind,
     x,
     y,
-    hp: siege ? 720 : caster ? 250 : 320,
-    maxHp: siege ? 720 : caster ? 250 : 320,
+    hp: superMinion ? 1120 : siege ? 720 : caster ? 250 : 320,
+    maxHp: superMinion ? 1120 : siege ? 720 : caster ? 250 : 320,
     mana: 0,
     maxMana: 0,
     shield: 0,
     level: 1,
     xp: 0,
     gold: 0,
-    speed: siege ? 58 : caster ? 72 : 84,
-    radius: siege ? 28 : 20,
-    attackRange: siege ? 175 : caster ? 145 : 54,
-    attackDamage: siege ? 58 : caster ? 34 : 42,
-    buildingDamageMultiplier: siege ? 2.25 : 1,
-    attackCooldown: siege ? 1.55 : caster ? 1.35 : 1.05,
+    speed: superMinion ? 62 : siege ? 58 : caster ? 72 : 84,
+    radius: superMinion ? 31 : siege ? 28 : 20,
+    attackRange: superMinion ? 185 : siege ? 175 : caster ? 145 : 54,
+    attackDamage: superMinion ? 82 : siege ? 58 : caster ? 34 : 42,
+    buildingDamageMultiplier: superMinion ? 3.1 : siege ? 2.25 : 1,
+    attackCooldown: superMinion ? 1.45 : siege ? 1.55 : caster ? 1.35 : 1.05,
     cooldownReduction: 0,
     attackTimer: initialAttackTimer,
     action: "move",
@@ -99,8 +100,9 @@ export const createMinion = (id: string, assetId: string, team: Team, kind: Excl
   };
 };
 
-export const createBuilding = (id: string, assetId: BuildingAssetId, team: Team, type: "tower" | "core", x: number, y: number): Building => {
+export const createBuilding = (id: string, assetId: BuildingAssetId, team: Team, type: Building["type"], x: number, y: number): Building => {
   const tower = type === "tower";
+  const inhibitor = type === "inhibitor";
   return {
     id,
     assetId,
@@ -108,13 +110,13 @@ export const createBuilding = (id: string, assetId: BuildingAssetId, team: Team,
     type,
     x,
     y,
-    hp: tower ? 3000 : 4200,
-    maxHp: tower ? 3000 : 4200,
+    hp: tower ? 3000 : inhibitor ? 2400 : 4200,
+    maxHp: tower ? 3000 : inhibitor ? 2400 : 4200,
     attackRange: tower ? 520 : 0,
     attackDamage: tower ? 190 : 0,
     attackCooldown: 1,
     attackTimer: 0,
     attackFlash: 0,
-    radius: tower ? 72 : 104,
+    radius: tower ? 72 : inhibitor ? 76 : 104,
   };
 };

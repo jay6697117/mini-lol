@@ -92,5 +92,5 @@ export const ACTIVE_ITEM_IDS = Object.entries(ITEM_CATALOG)
   .sort(([, a], [, b]) => (a.slot ?? 0) - (b.slot ?? 0))
   .map(([id]) => id as ItemId);
 
-export const GOLD_REWARDS: Record<UnitKind, number> = { melee: 21, caster: 14, siege: 60, hero: 300 };
-export const XP_REWARDS: Record<UnitKind, number> = { melee: 58, caster: 29, siege: 92, hero: 220 };
+export const GOLD_REWARDS: Record<UnitKind, number> = { melee: 21, caster: 14, siege: 60, super: 90, hero: 300 };
+export const XP_REWARDS: Record<UnitKind, number> = { melee: 58, caster: 29, siege: 92, super: 140, hero: 220 };

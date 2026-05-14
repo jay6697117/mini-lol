@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:mvp": "npm run build && node playtest-artifacts/phase-1-simulation-unit/assertions.mjs && node scripts/mvp-test.mjs"
   },
   "dependencies": {
     "phaser": "3.90.0"

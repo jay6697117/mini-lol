@@ -1,7 +1,7 @@
 import type { Team } from "./assets";
 
 export type GameResult = "playing" | "victory" | "defeat";
-export type UnitKind = "hero" | "melee" | "caster" | "siege";
+export type UnitKind = "hero" | "melee" | "caster" | "siege" | "super";
 export type EnemyAiState = "Laning" | "Harass" | "Retreat" | "All In" | "Recall";
 
 export interface EnemyAiTraceSnapshot {
@@ -89,6 +89,8 @@ export interface MatchSummarySnapshot {
   objectives: {
     azureTowerDestroyed: boolean;
     crimsonTowerDestroyed: boolean;
+    azureInhibitorDestroyed: boolean;
+    crimsonInhibitorDestroyed: boolean;
     azureCoreHp: number;
     crimsonCoreHp: number;
   };
@@ -97,7 +99,7 @@ export interface MatchSummarySnapshot {
 export interface BuildingSnapshot {
   id: string;
   team: Team;
-  type: "tower" | "core";
+  type: "tower" | "inhibitor" | "core";
   hp: number;
   maxHp: number;
   state: "idle" | "attack" | "damaged" | "destroyed";

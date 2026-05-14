@@ -1,0 +1,17 @@
+{
+  "action": "death",
+  "accepted": true,
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  },
+  "reviewer_notes": [
+    "death rows were visually inspected through generated contact sheets and previews.",
+    "Blue siege chassis remains readable at 64x64.",
+    "Crystal payload and wheeled base separate it from caster and melee minions.",
+    "All eight directions preserve the blue-team silhouette and faction color."
+  ]
+}

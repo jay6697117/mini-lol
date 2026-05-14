@@ -649,6 +649,11 @@ button {
   opacity: 0.66;
 }
 
+.shop-item.recommended {
+  border-color: rgba(232, 186, 85, 0.72);
+  background: rgba(72, 53, 18, 0.42);
+}
+
 .shop-item img {
   width: 44px;
   height: 44px;
@@ -674,6 +679,14 @@ button {
 .shop-item span {
   color: rgba(238, 247, 255, 0.68);
   font-size: 11px;
+}
+
+.shop-item small {
+  display: block;
+  margin-top: 4px;
+  color: #f0cf81;
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .shop-item button {
@@ -813,6 +826,12 @@ button {
   font-weight: 800;
 }
 
+.death-overlay small {
+  color: rgba(255, 238, 210, 0.82);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .death-bar {
   height: 8px;
   overflow: hidden;
@@ -873,6 +892,51 @@ button {
 
 .objective-row.crimson .objective-bar i {
   background: var(--crimson);
+}
+
+.first-run-panel {
+  pointer-events: none;
+  position: absolute;
+  top: 266px;
+  left: 18px;
+  display: grid;
+  width: min(330px, calc(100vw - 36px));
+  gap: 4px;
+  padding: 10px 11px;
+  border: 1px solid rgba(232, 186, 85, 0.42);
+  border-radius: 8px;
+  background: rgba(16, 24, 20, 0.82);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.first-run-panel[hidden] {
+  display: none;
+}
+
+.first-run-panel strong {
+  color: #f0cf81;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.first-run-panel span {
+  color: rgba(242, 249, 255, 0.82);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.first-run-panel.danger {
+  border-color: rgba(255, 99, 84, 0.76);
+  background: rgba(52, 18, 16, 0.88);
+}
+
+.first-run-panel.danger strong {
+  color: #ffb0a6;
+}
+
+.first-run-panel.shop {
+  border-color: rgba(105, 225, 143, 0.5);
+  background: rgba(14, 42, 28, 0.86);
 }
 
 .minimap {
@@ -999,6 +1063,10 @@ button {
 
 @media (max-width: 760px) {
   .objective-panel {
+    display: none;
+  }
+
+  .first-run-panel {
     display: none;
   }
 

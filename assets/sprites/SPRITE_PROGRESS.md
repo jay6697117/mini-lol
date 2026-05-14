@@ -135,3 +135,10 @@ First-pass sprite production is complete for the PLAN.md character, minion, buil
 - Every accepted action sheet must have source strips, generated strips, frames, clean sheet, metadata, validation JSON, motion audit where applicable, contact sheet, previews, manifest provenance, and visual review.
 - Secondary building assets use imagegen source sheets plus chroma-key post-processing into transparent 384x384 state atlases.
 - Skill VFX and UI icons use original procedural alpha sprites/icons so frame grids, icon cells, and transparent backgrounds remain deterministic.
+
+## 2026-05-14 Siege Minion QA Completion
+
+- `assets/sprites/minions/azure/azure_siege_minion/run` 已补齐 `idle`、`move`、`basic_attack`、`hit`、`death` 的 `game-character-sprites` QA/preview/visual-review 产物。
+- `assets/sprites/minions/crimson/crimson_siege_minion/run` 已补齐 `idle`、`move`、`basic_attack`、`hit`、`death` 的 `game-character-sprites` QA/preview/visual-review 产物。
+- 两套 siege minion 的 `run-manifest.json` 均已补充 reference、scope、generation、strips、visual_review 字段，并通过 manifest validation。
+- 新增/更新的 QA 目录包含 validation JSON、motion audit、contact sheet、transparent/checker previews、per-action visual review 与 complete manifest validation。

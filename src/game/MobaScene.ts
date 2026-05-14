@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { installMobaDebugApi, type MobaDebugAdapter } from "./debug-api";
+import { installGameCommandDispatcher, type GameCommandAdapter } from "./game-command";
 import {
   BUILDING_ASSETS,
   DIRECTIONS,
@@ -301,6 +302,8 @@ export class MobaScene extends Phaser.Scene {
     this.buildings = [
       createBuilding("azure_outer_tower", "azure_outer_tower", "azure", "tower", 420, 600),
       createBuilding("crimson_outer_tower", "crimson_outer_tower", "crimson", "tower", 1180, 330),
+      createBuilding("azure_inhibitor", "azure_core", "azure", "inhibitor", 285, 660),
+      createBuilding("crimson_inhibitor", "crimson_core", "crimson", "inhibitor", 1310, 250),
       createBuilding("azure_core", "azure_core", "azure", "core", 175, 705),
       createBuilding("crimson_core", "crimson_core", "crimson", "core", 1420, 205),
     ];
@@ -308,7 +311,7 @@ export class MobaScene extends Phaser.Scene {
     for (const building of this.buildings) {
       const sprite = this.add
         .image(building.x, building.y, this.buildingTextureKey(building.assetId, "idle"))
-        .setScale(building.type === "tower" ? 0.48 : 0.42)
+        .setScale(building.type === "tower" ? 0.48 : building.type === "inhibitor" ? 0.3 : 0.42)
         .setDepth(building.y - 40);
       const bar = this.add.graphics().setDepth(building.y + 220);
       this.buildingSprites.set(building.id, sprite);
@@ -414,6 +417,7 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private exposeTestHooks() {
+    installGameCommandDispatcher(this as unknown as GameCommandAdapter);
     installMobaDebugApi(this as unknown as MobaDebugAdapter);
   }
 
@@ -1506,7 +1510,16 @@ export class MobaScene extends Phaser.Scene {
     sprite.setTexture(this.buildingTextureKey(building.assetId, state));
     sprite.setPosition(building.x, building.y);
     sprite.setDepth(building.y - 40);
-    this.drawHealthBar(bar, building.x, building.y - (building.type === "tower" ? 190 : 120), 120, building.hp, building.maxHp, building.team, 0);
+    this.drawHealthBar(
+      bar,
+      building.x,
+      building.y - (building.type === "tower" ? 190 : building.type === "inhibitor" ? 105 : 120),
+      120,
+      building.hp,
+      building.maxHp,
+      building.team,
+      0,
+    );
   }
 
   private drawHealthBar(graphics: Phaser.GameObjects.Graphics, x: number, y: number, width: number, hp: number, maxHp: number, team: Team, shield: number, effects: string[] = []) {
@@ -1568,9 +1581,16 @@ export class MobaScene extends Phaser.Scene {
         this.makeMinion("crimson_siege_minion", "crimson", "siege", LANE_END.x + 158, LANE_END.y - 164),
       );
     }
+    if (this.isInhibitorDestroyed("crimson")) {
+      wave.push(this.makeMinion("azure_siege_minion", "azure", "super", LANE_START.x - 184, LANE_START.y + 188));
+    }
+    if (this.isInhibitorDestroyed("azure")) {
+      wave.push(this.makeMinion("crimson_siege_minion", "crimson", "super", LANE_END.x + 196, LANE_END.y - 186));
+    }
     this.units.push(...wave);
     for (const unit of wave) this.createUnitView(unit);
-    this.message = this.waveNumber % 3 === 0 ? "Siege wave spawned" : "Minion wave spawned";
+    const superWave = wave.some((unit) => unit.kind === "super");
+    this.message = superWave ? "Super minion wave spawned" : this.waveNumber % 3 === 0 ? "Siege wave spawned" : "Minion wave spawned";
   }
 
   private makeMinion(assetId: string, team: Team, kind: Exclude<UnitKind, "hero">, x: number, y: number): Unit {
@@ -1650,6 +1670,10 @@ export class MobaScene extends Phaser.Scene {
 
   private isPlayerInShop() {
     return distance(this.getPlayer(), this.getBuilding("azure_core")) <= 390;
+  }
+
+  private isInhibitorDestroyed(team: Team) {
+    return (this.buildings.find((building) => building.id === `${team}_inhibitor`)?.hp ?? 0) <= 0;
   }
 
   private endGame(result: GameResult) {

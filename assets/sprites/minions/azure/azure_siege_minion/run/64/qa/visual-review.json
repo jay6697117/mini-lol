@@ -1,0 +1,35 @@
+{
+  "asset_id": "azure_siege_minion",
+  "accepted": true,
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  },
+  "reviewer_notes": [
+    "All five siege minion actions were reviewed from contact sheets and transparent/checker previews.",
+    "Blue siege chassis remains readable at 64x64.",
+    "Crystal payload and wheeled base separate it from caster and melee minions.",
+    "All eight directions preserve the blue-team silhouette and faction color.",
+    "The asset is accepted for the current MVP as an imagegen-derived siege unit sheet with complete QA artifacts."
+  ],
+  "actions": [
+    "idle",
+    "move",
+    "basic_attack",
+    "hit",
+    "death"
+  ],
+  "directions": [
+    "south",
+    "south-east",
+    "east",
+    "north-east",
+    "north",
+    "north-west",
+    "west",
+    "south-west"
+  ]
+}

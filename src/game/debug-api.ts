@@ -56,6 +56,8 @@ declare global {
       destroyEnemyTower: () => void;
       damageEnemyCore: (damage?: number) => void;
       damagePlayerCore: (damage?: number) => void;
+      damageEnemyInhibitor: (damage?: number) => void;
+      damagePlayerInhibitor: (damage?: number) => void;
       levelPlayerTo6: () => void;
       buyItem: (itemId: ItemId) => boolean;
       itemSlotAction: (itemId: ItemId) => boolean;
@@ -115,6 +117,14 @@ export const installMobaDebugApi = (scene: MobaDebugAdapter) => {
     },
     damagePlayerCore: (damage = 900) => {
       scene.applyBuildingDamage(scene.getBuilding("azure_core"), damage);
+      scene.syncViews();
+    },
+    damageEnemyInhibitor: (damage = 900) => {
+      scene.applyBuildingDamage(scene.getBuilding("crimson_inhibitor"), damage);
+      scene.syncViews();
+    },
+    damagePlayerInhibitor: (damage = 900) => {
+      scene.applyBuildingDamage(scene.getBuilding("azure_inhibitor"), damage);
       scene.syncViews();
     },
     levelPlayerTo6: () => {
@@ -402,11 +412,13 @@ export const installMobaDebugApi = (scene: MobaDebugAdapter) => {
     },
     triggerVictory: () => {
       scene.getBuilding("crimson_outer_tower").hp = 0;
+      scene.getBuilding("crimson_inhibitor").hp = 0;
       scene.applyBuildingDamage(scene.getBuilding("crimson_core"), 9999);
       scene.syncViews();
     },
     triggerDefeat: () => {
       scene.getBuilding("azure_outer_tower").hp = 0;
+      scene.getBuilding("azure_inhibitor").hp = 0;
       scene.applyBuildingDamage(scene.getBuilding("azure_core"), 9999);
       scene.syncViews();
     },

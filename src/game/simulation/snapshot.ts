@@ -192,6 +192,8 @@ const matchSummary = (input: CreateGameSnapshotInput): MatchSummarySnapshot | nu
   const enemy = input.units.find((unit) => unit.id === "enemy_hero");
   const azureTower = requiredBuilding(input, "azure_outer_tower");
   const crimsonTower = requiredBuilding(input, "crimson_outer_tower");
+  const azureInhibitor = requiredBuilding(input, "azure_inhibitor");
+  const crimsonInhibitor = requiredBuilding(input, "crimson_inhibitor");
   const azureCore = requiredBuilding(input, "azure_core");
   const crimsonCore = requiredBuilding(input, "crimson_core");
   return {
@@ -215,6 +217,8 @@ const matchSummary = (input: CreateGameSnapshotInput): MatchSummarySnapshot | nu
     objectives: {
       azureTowerDestroyed: azureTower.hp <= 0,
       crimsonTowerDestroyed: crimsonTower.hp <= 0,
+      azureInhibitorDestroyed: azureInhibitor.hp <= 0,
+      crimsonInhibitorDestroyed: crimsonInhibitor.hp <= 0,
       azureCoreHp: Math.round(azureCore.hp),
       crimsonCoreHp: Math.round(crimsonCore.hp),
     },

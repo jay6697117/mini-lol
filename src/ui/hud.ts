@@ -1,4 +1,6 @@
 import { UI_ICON_URLS } from "../game/assets";
+import { dispatchGameCommand } from "../game/game-command";
+import type { ItemId } from "../game/data/game-config";
 import type { BuildingSnapshot, GameSnapshot, UnitSnapshot } from "../game/types";
 
 const query = <T extends Element>(selector: string): T => {
@@ -57,6 +59,11 @@ export const initHud = () => {
       <div data-minimap-dots></div>
     </section>
 
+    <section class="first-run-panel" data-first-run-panel aria-label="Laning guide">
+      <strong data-first-run-title>Lane Plan</strong>
+      <span data-first-run-text>Last-hit minions, spend gold in base, then push with your wave.</span>
+    </section>
+
     <section class="ability-dock" aria-label="Abilities">
       ${(["q", "w", "e", "r"] as const)
         .map((skill) => {
@@ -113,6 +120,7 @@ export const initHud = () => {
       <strong>Respawning</strong>
       <span data-death-countdown></span>
       <em data-death-blocked></em>
+      <small data-death-guidance></small>
       <div class="death-bar"><i data-death-progress></i></div>
     </section>
 
@@ -129,58 +137,56 @@ export const initHud = () => {
     const element = event.target instanceof Element ? event.target : null;
     const item = element?.closest<HTMLButtonElement>("[data-item]");
     if (item?.dataset.item) {
-      window.miniLolDebug?.itemSlotAction(item.dataset.item as Parameters<NonNullable<typeof window.miniLolDebug>["itemSlotAction"]>[0]);
+      dispatchGameCommand({ type: "itemSlotAction", itemId: item.dataset.item as ItemId });
       return;
     }
     const shopBuy = element?.closest<HTMLButtonElement>("[data-shop-buy]");
     if (shopBuy?.dataset.shopBuy) {
-      window.miniLolDebug?.buyItem(shopBuy.dataset.shopBuy as Parameters<NonNullable<typeof window.miniLolDebug>["buyItem"]>[0]);
+      dispatchGameCommand({ type: "buyItem", itemId: shopBuy.dataset.shopBuy as ItemId });
       return;
     }
     if (element?.closest("[data-shop-toggle]")) {
-      window.miniLolDebug?.toggleShop();
+      dispatchGameCommand({ type: "toggleShop" });
       return;
     }
     if (element?.closest("[data-shop-close]")) {
-      window.miniLolDebug?.setShopOpen(false);
+      dispatchGameCommand({ type: "setShopOpen", open: false });
       return;
     }
     if (element?.closest("[data-scoreboard-close]")) {
-      window.miniLolDebug?.setScoreboardOpen(false);
+      dispatchGameCommand({ type: "setScoreboardOpen", open: false });
       return;
     }
     if (element?.closest("[data-settings-toggle]")) {
-      window.miniLolDebug?.toggleSettings();
+      dispatchGameCommand({ type: "toggleSettings" });
       return;
     }
     if (element?.closest("[data-settings-close]")) {
-      window.miniLolDebug?.setSettingsOpen(false);
+      dispatchGameCommand({ type: "setSettingsOpen", open: false });
       return;
     }
     const setting = element?.closest<HTMLButtonElement>("[data-setting]");
     if (setting?.dataset.setting === "quickCast") {
-      const enabled = window.miniLolDebug?.snapshot().settings.quickCast ?? true;
-      window.miniLolDebug?.setQuickCast(!enabled);
+      dispatchGameCommand({ type: "toggleQuickCast" });
       return;
     }
     if (setting?.dataset.setting === "rangeIndicators") {
-      const enabled = window.miniLolDebug?.snapshot().settings.showRangeIndicators ?? true;
-      window.miniLolDebug?.setRangeIndicators(!enabled);
+      dispatchGameCommand({ type: "toggleRangeIndicators" });
       return;
     }
     const upgrade = element?.closest<HTMLButtonElement>("[data-upgrade]");
     const upgradeKey = upgrade?.dataset.upgrade;
     if (upgradeKey === "q" || upgradeKey === "w" || upgradeKey === "e" || upgradeKey === "r") {
-      window.miniLolDebug?.upgradeSkill(upgradeKey);
+      dispatchGameCommand({ type: "upgradeSkill", skill: upgradeKey });
       return;
     }
     if (element?.closest("[data-recall]")) {
-      window.miniLolDebug?.startRecall();
+      dispatchGameCommand({ type: "startRecall" });
       return;
     }
     const skill = element?.closest<HTMLButtonElement>("[data-skill]");
     const skillKey = skill?.dataset.skill;
-    if (skillKey === "q" || skillKey === "w" || skillKey === "e" || skillKey === "r") window.miniLolDebug?.castSkill(skillKey);
+    if (skillKey === "q" || skillKey === "w" || skillKey === "e" || skillKey === "r") dispatchGameCommand({ type: "castSkill", skill: skillKey });
   });
 };
 
@@ -236,6 +242,7 @@ export const updateHud = (snapshot: GameSnapshot) => {
 
   renderBuildings(snapshot.buildings);
   renderMinimap(snapshot.units, snapshot.buildings);
+  renderFirstRunPanel(snapshot);
   renderItems(snapshot);
   renderShop(snapshot);
   renderScoreboard(snapshot);
@@ -336,6 +343,7 @@ const renderShop = (snapshot: GameSnapshot) => {
     gold: snapshot.player.gold,
     available: snapshot.shop.available,
     items: snapshot.shop.items,
+    recommended: recommendedShopItemId(snapshot),
   });
   if (signature === lastShopSignature) return;
   lastShopSignature = signature;
@@ -343,13 +351,15 @@ const renderShop = (snapshot: GameSnapshot) => {
     .map((item) => {
       const src = UI_ICON_URLS.items[item.id as keyof typeof UI_ICON_URLS.items];
       const disabled = item.owned || !item.available || !item.affordable;
+      const recommended = item.id === recommendedShopItemId(snapshot);
       const state = item.owned ? "Owned" : item.affordable ? `${item.cost}g` : `Need ${item.cost - snapshot.player.gold}g`;
       return `
-        <article class="shop-item ${item.owned ? "owned" : ""} ${!item.affordable ? "locked" : ""}">
+        <article class="shop-item ${item.owned ? "owned" : ""} ${!item.affordable ? "locked" : ""} ${recommended ? "recommended" : ""}">
           ${icon(src, item.name)}
           <div>
             <strong>${item.name}</strong>
             <span>${item.stats}${item.activeLabel ? ` · ${item.activeLabel} [${item.slot}]` : ""}</span>
+            ${recommended ? "<small>Recommended next buy</small>" : ""}
           </div>
           <button data-shop-buy="${item.id}" ${disabled ? "disabled" : ""}>${state}</button>
         </article>
@@ -407,7 +417,45 @@ const renderDeath = (snapshot: GameSnapshot) => {
   if (snapshot.player.alive) return;
   query<HTMLElement>("[data-death-countdown]").textContent = `${snapshot.player.deathTimer.toFixed(1)}s`;
   query<HTMLElement>("[data-death-blocked]").textContent = snapshot.controls.reason;
+  query<HTMLElement>("[data-death-guidance]").textContent = "Respawn at base, spend gold, then rejoin behind your wave.";
   query<HTMLElement>("[data-death-progress]").style.width = `${Math.round(snapshot.player.respawnProgress * 100)}%`;
+};
+
+const renderFirstRunPanel = (snapshot: GameSnapshot) => {
+  const panel = query<HTMLElement>("[data-first-run-panel]");
+  const title = query<HTMLElement>("[data-first-run-title]");
+  const text = query<HTMLElement>("[data-first-run-text]");
+  panel.classList.toggle("danger", snapshot.towerDanger.active && snapshot.towerDanger.unsupported);
+  panel.classList.toggle("shop", snapshot.shop.available);
+  panel.hidden = snapshot.mode !== "playing" || snapshot.time > 140 || snapshot.settings.open || snapshot.scoreboard.open || snapshot.shop.open;
+  if (panel.hidden) return;
+  if (!snapshot.player.alive) {
+    title.textContent = "Reset";
+    text.textContent = "Respawn at base, buy the next power spike, then return with the wave.";
+    return;
+  }
+  if (snapshot.towerDanger.active && snapshot.towerDanger.unsupported) {
+    title.textContent = "Tower Dive";
+    text.textContent = "Back out or wait for allied minions before hitting structures.";
+    return;
+  }
+  if (snapshot.shop.available && recommendedShopItemId(snapshot)) {
+    title.textContent = "Spend Gold";
+    text.textContent = `Recommended: ${recommendedShopItemName(snapshot)}. Buy before leaving base.`;
+    return;
+  }
+  if (snapshot.player.lastHits < 3) {
+    title.textContent = "Lane Plan";
+    text.textContent = "Hold the wave, last-hit low-health minions, and avoid drawing tower fire.";
+    return;
+  }
+  if (snapshot.buildings.some((building) => building.type === "inhibitor" && building.team === "crimson" && building.hp > 0)) {
+    title.textContent = "Next Objective";
+    text.textContent = "Destroy tower, break inhibitor, then super minions pressure the core.";
+    return;
+  }
+  title.textContent = "Close";
+  text.textContent = "Escort super minions and finish the exposed core.";
 };
 
 const renderLaneState = (snapshot: GameSnapshot) => {
@@ -429,7 +477,7 @@ const renderTowerDanger = (snapshot: GameSnapshot) => {
   if (!snapshot.towerDanger.active) return;
   chip.classList.toggle("unsupported", snapshot.towerDanger.unsupported);
   chip.textContent = snapshot.towerDanger.unsupported
-    ? `Enemy tower range · no minion cover · next ${snapshot.towerDanger.nextDamage}`
+    ? `Enemy tower range · no minion cover · back out · next ${snapshot.towerDanger.nextDamage}`
     : `Enemy tower range · minion cover · next ${snapshot.towerDanger.nextDamage}`;
 };
 
@@ -437,10 +485,27 @@ const minimapPosition = (id: string) => {
   const positions: Record<string, { x: number; y: number }> = {
     azure_outer_tower: { x: 26, y: 67 },
     crimson_outer_tower: { x: 74, y: 37 },
+    azure_inhibitor: { x: 18, y: 73 },
+    crimson_inhibitor: { x: 82, y: 29 },
     azure_core: { x: 11, y: 78 },
     crimson_core: { x: 89, y: 23 },
   };
   return positions[id] ?? { x: 50, y: 50 };
+};
+
+const recommendedShopItemId = (snapshot: GameSnapshot) => {
+  if (snapshot.player.items.length === 0) return "bronze_sword";
+  if (!snapshot.player.items.includes("plated_boots")) return "plated_boots";
+  if (snapshot.player.hp / snapshot.player.maxHp < 0.45 && !snapshot.player.items.includes("guard_shield")) return "guard_shield";
+  if (snapshot.player.mana / snapshot.player.maxMana < 0.35 && !snapshot.player.items.includes("focus_crystal")) return "focus_crystal";
+  if (!snapshot.player.items.includes("haste_talisman")) return "haste_talisman";
+  if (!snapshot.player.items.includes("siege_hammer")) return "siege_hammer";
+  return null;
+};
+
+const recommendedShopItemName = (snapshot: GameSnapshot) => {
+  const id = recommendedShopItemId(snapshot);
+  return snapshot.shop.items.find((item) => item.id === id)?.name ?? "Bronze Sword";
 };
 
 const renderResult = (snapshot: GameSnapshot) => {
