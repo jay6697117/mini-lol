@@ -133,8 +133,8 @@
           "id": "guard_shield",
           "path": "assets/sprites/ui/moba_ui_icons/final/item-icons-guard_shield.png",
           "frame": [
+            384,
             0,
-            128,
             128,
             128
           ]
@@ -143,7 +143,7 @@
           "id": "haste_talisman",
           "path": "assets/sprites/ui/moba_ui_icons/final/item-icons-haste_talisman.png",
           "frame": [
-            128,
+            0,
             128,
             128,
             128
@@ -153,14 +153,36 @@
           "id": "siege_hammer",
           "path": "assets/sprites/ui/moba_ui_icons/final/item-icons-siege_hammer.png",
           "frame": [
+            128,
+            128,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "rift_lens",
+          "path": "assets/sprites/ui/moba_ui_icons/final/item-icons-rift_lens.png",
+          "source": "assets/sprites/ui/moba_ui_icons/source/p2-item-icons-source.png",
+          "frame": [
             256,
+            128,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "vitality_core",
+          "path": "assets/sprites/ui/moba_ui_icons/final/item-icons-vitality_core.png",
+          "source": "assets/sprites/ui/moba_ui_icons/source/p2-item-icons-source.png",
+          "frame": [
+            384,
             128,
             128,
             128
           ]
         }
       ],
-      "columns": 3,
+      "columns": 4,
       "rows": 2
     },
     "minimap": {

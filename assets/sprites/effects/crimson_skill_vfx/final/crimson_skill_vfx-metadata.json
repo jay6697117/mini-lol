@@ -1,6 +1,6 @@
 {
   "asset_id": "crimson_skill_vfx",
-  "type": "skill_vfx",
+  "generation_method": "procedural_original_alpha_sprites_with_qwer_extension",
   "atlas": "assets/sprites/effects/crimson_skill_vfx/final/crimson_skill_vfx-atlas.png",
   "cell_size": {
     "width": 128,
@@ -11,17 +11,26 @@
     {
       "effect": "q_spear_thrust",
       "path": "assets/sprites/effects/crimson_skill_vfx/final/crimson_skill_vfx-q_spear_thrust-sheet.png",
-      "frames": 6
+      "row": 0
     },
     {
-      "effect": "basic_attack_arc",
-      "path": "assets/sprites/effects/crimson_skill_vfx/final/crimson_skill_vfx-basic_attack_arc-sheet.png",
-      "frames": 6
+      "effect": "w_guard_flare",
+      "path": "assets/sprites/effects/crimson_skill_vfx/final/crimson_skill_vfx-w_guard_flare-sheet.png",
+      "row": 1
+    },
+    {
+      "effect": "e_lunge_trail",
+      "path": "assets/sprites/effects/crimson_skill_vfx/final/crimson_skill_vfx-e_lunge_trail-sheet.png",
+      "row": 2
+    },
+    {
+      "effect": "r_crimson_rupture",
+      "path": "assets/sprites/effects/crimson_skill_vfx/final/crimson_skill_vfx-r_crimson_rupture-sheet.png",
+      "row": 3
     }
   ],
   "qa": {
     "contact_sheet": "assets/sprites/effects/crimson_skill_vfx/qa/crimson_skill_vfx-contact-sheet.png",
-    "validation": "assets/sprites/effects/crimson_skill_vfx/qa/crimson_skill_vfx-validation.json",
-    "visual_review": "accepted"
+    "validation": "assets/sprites/effects/crimson_skill_vfx/qa/crimson_skill_vfx-validation.json"
   }
 }

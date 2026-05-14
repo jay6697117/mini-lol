@@ -3,6 +3,7 @@ import type { CooldownSnapshot, GameResult, GameSnapshot, MatchSummarySnapshot, 
 import { createLaneSnapshot } from "./lane-state";
 import { lanePathProgress } from "./lane-path";
 import { lastHitHintForUnit, lastHitWindowForUnit } from "./last-hit";
+import { isPointInBrush } from "./map-zones";
 import { buildingState } from "./objectives";
 import { maxSkillLevel } from "./rules";
 import { towerDangerForUnit } from "./towers";
@@ -73,6 +74,7 @@ export const unitEffectLabels = (unit: Unit, context: UnitEffectLabelContext = {
   if (unit.shield > 0) effects.push("shielded");
   if (unit.hasteTimer > 0) effects.push("hasted");
   if (unit.aggroTimer > 0 && unit.aggroTargetId) effects.push("aggro");
+  if (isPointInBrush(unit)) effects.push("brush");
   if (context.player && context.buildings) {
     const lastHitWindow = lastHitWindowForUnit({ unit, player: context.player, buildings: context.buildings });
     if (lastHitWindow === "last_hit") effects.push("last-hit");

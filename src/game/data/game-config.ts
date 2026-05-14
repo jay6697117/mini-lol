@@ -20,6 +20,15 @@ export const ENEMY_START: Point = { x: 1085, y: 355 };
 export const AZURE_BASE: Point = { x: 175, y: 705 };
 export const CRIMSON_BASE: Point = { x: 1420, y: 205 };
 
+export const BRUSH_REVEAL_RADIUS = 260;
+
+export const BRUSH_ZONES = [
+  { id: "azure_river_brush", x: 520, y: 500, radiusX: 165, radiusY: 95 },
+  { id: "mid_river_brush", x: 800, y: 640, radiusX: 150, radiusY: 82 },
+  { id: "crimson_lane_brush", x: 1070, y: 285, radiusX: 155, radiusY: 88 },
+  { id: "crimson_jungle_brush", x: 1245, y: 490, radiusX: 190, radiusY: 105 },
+] as const;
+
 export const PLAYER_COOLDOWNS: Record<SkillKey, number> = { q: 3.6, w: 8, e: 6, r: 24 };
 export const LEVEL_XP_REQUIREMENTS = [0, 280, 660, 1140, 1720, 2400] as const;
 export const PLAYER_XP_SHARE_RANGE = 560;
@@ -80,6 +89,8 @@ export const ITEM_CATALOG = {
   plated_boots: { name: "Plated Boots", cost: 300, stats: "+35 Move Speed", activeLabel: null, slot: null, activeKind: "none", activeCooldown: 0, attackDamage: 0, moveSpeed: 35, maxHp: 0, maxMana: 0, cooldownReduction: 0 },
   focus_crystal: { name: "Focus Crystal", cost: 400, stats: "+180 Mana", activeLabel: "Clarity", slot: 1, activeKind: "mana", activeCooldown: 32, attackDamage: 0, moveSpeed: 0, maxHp: 0, maxMana: 180, cooldownReduction: 0 },
   guard_shield: { name: "Guard Shield", cost: 450, stats: "+140 Health", activeLabel: "Barrier", slot: 2, activeKind: "shield", activeCooldown: 42, attackDamage: 0, moveSpeed: 0, maxHp: 140, maxMana: 0, cooldownReduction: 0 },
+  rift_lens: { name: "Rift Lens", cost: 550, stats: "+120 Mana, +8% Haste", activeLabel: null, slot: null, activeKind: "none", activeCooldown: 0, attackDamage: 0, moveSpeed: 0, maxHp: 0, maxMana: 120, cooldownReduction: 0.08 },
+  vitality_core: { name: "Vitality Core", cost: 650, stats: "+240 Health, +8 Attack", activeLabel: null, slot: null, activeKind: "none", activeCooldown: 0, attackDamage: 8, moveSpeed: 0, maxHp: 240, maxMana: 0, cooldownReduction: 0 },
   haste_talisman: { name: "Haste Talisman", cost: 700, stats: "+12 Attack, +12 Move, +8% Haste", activeLabel: "Tempo", slot: 3, activeKind: "haste", activeCooldown: 38, attackDamage: 12, moveSpeed: 12, maxHp: 0, maxMana: 0, cooldownReduction: 0.08 },
   siege_hammer: { name: "Siege Hammer", cost: 900, stats: "+28 Attack Damage", activeLabel: "Demolish", slot: 4, activeKind: "demolish", activeCooldown: 48, attackDamage: 28, moveSpeed: 0, maxHp: 0, maxMana: 0, cooldownReduction: 0 },
 } as const;

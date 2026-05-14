@@ -1,8 +1,9 @@
 import type { EnemyAiState, LanePressure, LaneTacticalPointId } from "../types";
-import { CRIMSON_BASE, type ItemId } from "../data/game-config";
+import { BRUSH_REVEAL_RADIUS, CRIMSON_BASE, type ItemId } from "../data/game-config";
 import { findNearestEnemyUnit } from "./combat";
 import { lanePathProgress, laneTacticalPointTarget, nextLaneTacticalPointForTeam } from "./lane-path";
 import { createLaneSnapshot } from "./lane-state";
+import { isPointInBrush } from "./map-zones";
 import { findNearestAttackableBuilding, structureDamageMultiplier } from "./objectives";
 import { distance } from "./rules";
 import type { Building, Point, Unit } from "./types";
@@ -56,6 +57,7 @@ export interface EnemyHeroDecisionInput {
   minionPressure?: EnemyMinionPressure;
   siegeTarget?: Building;
   lastHitTarget?: Unit;
+  playerHiddenInBrush?: boolean;
 }
 
 interface EnemyHeroDecisionContextInput {
@@ -138,6 +140,7 @@ export const createEnemyHeroDecisionInput = ({
     minionPressure: enemyMinionPressureAround(enemy, units),
     siegeTarget,
     lastHitTarget: findLastHitCandidate(enemy, units),
+    playerHiddenInBrush: isPointInBrush(player) && distance(enemy, player) > BRUSH_REVEAL_RADIUS,
   };
 };
 
@@ -202,6 +205,7 @@ export const decideEnemyHeroAction = ({
   minionPressure = EMPTY_MINION_PRESSURE,
   siegeTarget,
   lastHitTarget,
+  playerHiddenInBrush = false,
 }: EnemyHeroDecisionInput): EnemyHeroDecision => {
   const gap = distance(enemy, player);
   const healthRatio = enemy.hp / enemy.maxHp;
@@ -231,6 +235,16 @@ export const decideEnemyHeroAction = ({
       target: distance(enemy, CRIMSON_BASE) < 160 ? CRIMSON_BASE : { x: 1210, y: 315 },
       speedMultiplier: 0.85,
       reason: "low_health_retreat",
+    };
+  }
+
+  if (playerHiddenInBrush && player.alive) {
+    return {
+      kind: "move",
+      state: "Laning",
+      target: wavePlan.holdDefensiveAnchor ? wavePlan.defensiveAnchor : enemyLaningAnchor(enemy),
+      speedMultiplier: 0.66,
+      reason: "player_hidden_in_brush",
     };
   }
 

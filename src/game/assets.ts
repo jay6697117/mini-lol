@@ -127,6 +127,18 @@ export const UNIT_ASSETS: Record<string, UnitAssetSpec> = {
       death: unitSheet(minionPath("azure", "azure_siege_minion", "death"), 6),
     },
   },
+  azure_super_minion: {
+    id: "azure_super_minion",
+    team: "azure",
+    scale: 1.26,
+    actions: {
+      idle: unitSheet(minionPath("azure", "azure_super_minion", "idle"), 4),
+      move: unitSheet(minionPath("azure", "azure_super_minion", "move"), 6),
+      basic_attack: unitSheet(minionPath("azure", "azure_super_minion", "basic_attack"), 6),
+      hit: unitSheet(minionPath("azure", "azure_super_minion", "hit"), 4),
+      death: unitSheet(minionPath("azure", "azure_super_minion", "death"), 6),
+    },
+  },
   crimson_caster_minion: {
     id: "crimson_caster_minion",
     team: "crimson",
@@ -151,7 +163,25 @@ export const UNIT_ASSETS: Record<string, UnitAssetSpec> = {
       death: unitSheet(minionPath("crimson", "crimson_siege_minion", "death"), 6),
     },
   },
+  crimson_super_minion: {
+    id: "crimson_super_minion",
+    team: "crimson",
+    scale: 1.26,
+    actions: {
+      idle: unitSheet(minionPath("crimson", "crimson_super_minion", "idle"), 4),
+      move: unitSheet(minionPath("crimson", "crimson_super_minion", "move"), 6),
+      basic_attack: unitSheet(minionPath("crimson", "crimson_super_minion", "basic_attack"), 6),
+      hit: unitSheet(minionPath("crimson", "crimson_super_minion", "hit"), 4),
+      death: unitSheet(minionPath("crimson", "crimson_super_minion", "death"), 6),
+    },
+  },
 };
+
+export const MAP_ASSETS = {
+  single_lane_rift: {
+    background: assetUrl("assets/maps/single_lane_rift/final/single-lane-rift-background.png"),
+  },
+} as const;
 
 export const BUILDING_ASSETS = {
   azure_outer_tower: {
@@ -163,6 +193,16 @@ export const BUILDING_ASSETS = {
     idle: assetUrl("assets/sprites/buildings/crimson/crimson_outer_tower/final/crimson_outer_tower-idle.png"),
     attack: assetUrl("assets/sprites/buildings/crimson/crimson_outer_tower/final/crimson_outer_tower-attack.png"),
     destroyed: assetUrl("assets/sprites/buildings/crimson/crimson_outer_tower/final/crimson_outer_tower-destroyed.png"),
+  },
+  azure_inhibitor: {
+    idle: assetUrl("assets/sprites/buildings/azure/azure_inhibitor/final/azure_inhibitor-idle.png"),
+    damaged: assetUrl("assets/sprites/buildings/azure/azure_inhibitor/final/azure_inhibitor-damaged.png"),
+    destroyed: assetUrl("assets/sprites/buildings/azure/azure_inhibitor/final/azure_inhibitor-destroyed.png"),
+  },
+  crimson_inhibitor: {
+    idle: assetUrl("assets/sprites/buildings/crimson/crimson_inhibitor/final/crimson_inhibitor-idle.png"),
+    damaged: assetUrl("assets/sprites/buildings/crimson/crimson_inhibitor/final/crimson_inhibitor-damaged.png"),
+    destroyed: assetUrl("assets/sprites/buildings/crimson/crimson_inhibitor/final/crimson_inhibitor-destroyed.png"),
   },
   azure_core: {
     idle: assetUrl("assets/sprites/buildings/azure/azure_core/final/azure_core-idle.png"),
@@ -192,6 +232,9 @@ export const VFX_ASSETS = {
     url: assetUrl("assets/sprites/effects/crimson_skill_vfx/final/crimson_skill_vfx-atlas.png"),
     rows: {
       q_spear_thrust: 0,
+      w_guard_flare: 1,
+      e_lunge_trail: 2,
+      r_crimson_rupture: 3,
       basic_attack_arc: 1,
     },
   },
@@ -210,6 +253,8 @@ export const UI_ICON_URLS = {
     plated_boots: assetUrl("assets/sprites/ui/moba_ui_icons/final/item-icons-plated_boots.png"),
     focus_crystal: assetUrl("assets/sprites/ui/moba_ui_icons/final/item-icons-focus_crystal.png"),
     guard_shield: assetUrl("assets/sprites/ui/moba_ui_icons/final/item-icons-guard_shield.png"),
+    rift_lens: assetUrl("assets/sprites/ui/moba_ui_icons/final/item-icons-rift_lens.png"),
+    vitality_core: assetUrl("assets/sprites/ui/moba_ui_icons/final/item-icons-vitality_core.png"),
     haste_talisman: assetUrl("assets/sprites/ui/moba_ui_icons/final/item-icons-haste_talisman.png"),
     siege_hammer: assetUrl("assets/sprites/ui/moba_ui_icons/final/item-icons-siege_hammer.png"),
   },

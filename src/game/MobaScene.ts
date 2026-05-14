@@ -4,6 +4,7 @@ import { installGameCommandDispatcher, type GameCommandAdapter } from "./game-co
 import {
   BUILDING_ASSETS,
   DIRECTIONS,
+  MAP_ASSETS,
   type Direction,
   type Team,
   type UnitAction,
@@ -56,7 +57,7 @@ interface VfxInstance {
   ttl: number;
 }
 
-const ENEMY_ITEM_ORDER: ItemId[] = ["bronze_sword", "plated_boots", "haste_talisman", "guard_shield", "siege_hammer"];
+const ENEMY_ITEM_ORDER: ItemId[] = ["bronze_sword", "plated_boots", "rift_lens", "vitality_core", "haste_talisman", "guard_shield", "siege_hammer"];
 
 type KeyMap = Record<
   "up" | "down" | "left" | "right" | "a" | "b" | "p" | "q" | "w" | "e" | "r" | "one" | "two" | "three" | "four" | "space" | "f" | "ctrl" | "tab" | "escape",
@@ -80,6 +81,8 @@ export class MobaScene extends Phaser.Scene {
     plated_boots: 0,
     focus_crystal: 0,
     guard_shield: 0,
+    rift_lens: 0,
+    vitality_core: 0,
     haste_talisman: 0,
     siege_hammer: 0,
   };
@@ -88,6 +91,8 @@ export class MobaScene extends Phaser.Scene {
     plated_boots: 0,
     focus_crystal: 0,
     guard_shield: 0,
+    rift_lens: 0,
+    vitality_core: 0,
     haste_talisman: 0,
     siege_hammer: 0,
   };
@@ -155,6 +160,8 @@ export class MobaScene extends Phaser.Scene {
       }
     }
 
+    this.load.image("map-single-lane-rift", MAP_ASSETS.single_lane_rift.background);
+
     this.load.spritesheet("vfx-astra", VFX_ASSETS.astra_skill_vfx.url, {
       frameWidth: 128,
       frameHeight: 128,
@@ -217,44 +224,10 @@ export class MobaScene extends Phaser.Scene {
   }
 
   private drawMap() {
-    const g = this.add.graphics();
-    g.fillStyle(0x163b28, 1);
-    g.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    g.fillStyle(0x1f5133, 1);
-    g.fillEllipse(760, 455, 1350, 620);
-
-    const lane = [
-      { x: 110, y: 710 },
-      { x: 240, y: 815 },
-      { x: 1510, y: 330 },
-      { x: 1380, y: 125 },
-    ];
-    g.fillStyle(0x837d65, 1);
-    g.fillPoints(lane, true);
-    g.lineStyle(4, 0xb2aa86, 0.55);
-    g.strokePoints(lane, true);
-
-    for (let i = 0; i < 42; i += 1) {
-      const t = i / 41;
-      const x = Phaser.Math.Linear(LANE_START.x, LANE_END.x, t);
-      const y = Phaser.Math.Linear(LANE_START.y, LANE_END.y, t);
-      const offset = Math.sin(i * 1.7) * 36;
-      g.fillStyle(i % 2 === 0 ? 0x958e74 : 0x746f5c, 0.45);
-      g.fillEllipse(x + offset, y - offset * 0.16, 56, 26);
-    }
-
-    g.fillStyle(0x224f39, 1);
-    g.fillEllipse(190, 700, 250, 170);
-    g.fillEllipse(1410, 215, 260, 180);
-    g.lineStyle(3, 0x4aa8ff, 0.45);
-    g.strokeEllipse(190, 700, 250, 170);
-    g.lineStyle(3, 0xff5448, 0.45);
-    g.strokeEllipse(1410, 215, 260, 180);
-
-    g.fillStyle(0x0d261c, 0.7);
-    g.fillEllipse(150, 390, 340, 210);
-    g.fillEllipse(1330, 560, 360, 230);
-    g.setDepth(-100);
+    const background = this.add.image(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, "map-single-lane-rift");
+    const scale = Math.max(WORLD_WIDTH / background.width, WORLD_HEIGHT / background.height);
+    background.setScale(scale);
+    background.setDepth(-120);
   }
 
   private createAnimations() {
@@ -302,8 +275,8 @@ export class MobaScene extends Phaser.Scene {
     this.buildings = [
       createBuilding("azure_outer_tower", "azure_outer_tower", "azure", "tower", 420, 600),
       createBuilding("crimson_outer_tower", "crimson_outer_tower", "crimson", "tower", 1180, 330),
-      createBuilding("azure_inhibitor", "azure_core", "azure", "inhibitor", 285, 660),
-      createBuilding("crimson_inhibitor", "crimson_core", "crimson", "inhibitor", 1310, 250),
+      createBuilding("azure_inhibitor", "azure_inhibitor", "azure", "inhibitor", 285, 660),
+      createBuilding("crimson_inhibitor", "crimson_inhibitor", "crimson", "inhibitor", 1310, 250),
       createBuilding("azure_core", "azure_core", "azure", "core", 175, 705),
       createBuilding("crimson_core", "crimson_core", "crimson", "core", 1420, 205),
     ];
@@ -1582,10 +1555,10 @@ export class MobaScene extends Phaser.Scene {
       );
     }
     if (this.isInhibitorDestroyed("crimson")) {
-      wave.push(this.makeMinion("azure_siege_minion", "azure", "super", LANE_START.x - 184, LANE_START.y + 188));
+      wave.push(this.makeMinion("azure_super_minion", "azure", "super", LANE_START.x - 184, LANE_START.y + 188));
     }
     if (this.isInhibitorDestroyed("azure")) {
-      wave.push(this.makeMinion("crimson_siege_minion", "crimson", "super", LANE_END.x + 196, LANE_END.y - 186));
+      wave.push(this.makeMinion("crimson_super_minion", "crimson", "super", LANE_END.x + 196, LANE_END.y - 186));
     }
     this.units.push(...wave);
     for (const unit of wave) this.createUnitView(unit);

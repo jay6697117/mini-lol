@@ -410,11 +410,113 @@ def write_map_metadata() -> None:
     )
 
 
+def process_p2_item_icons() -> None:
+    base = ROOT / "assets" / "sprites" / "ui" / "moba_ui_icons"
+    source = base / "source" / "p2-item-icons-source.png"
+    if not source.exists():
+        return
+    final = base / "final"
+    qa = base / "qa"
+    image = Image.open(source).convert("RGBA")
+    item_ids = ["rift_lens", "vitality_core"]
+    generated: list[dict[str, object]] = []
+    for index, item_id in enumerate(item_ids):
+        left = round(index * image.width / len(item_ids))
+        right = round((index + 1) * image.width / len(item_ids))
+        cell = fit_to_cell(image.crop((left, 0, right, image.height)), 128, margin=6)
+        path = final / f"item-icons-{item_id}.png"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        cell.save(path)
+        generated.append({"id": item_id, "path": str(path.relative_to(ROOT)), "source": str(source.relative_to(ROOT))})
+
+    metadata_path = final / "moba_ui_icons-metadata.json"
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    item_set = metadata["sets"]["items"]
+    existing = [icon for icon in item_set["icons"] if icon["id"] not in item_ids]
+    icons = existing + generated
+    columns = 4
+    rows = (len(icons) + columns - 1) // columns
+    atlas = Image.new("RGBA", (columns * 128, rows * 128), (0, 0, 0, 0))
+    for index, icon in enumerate(icons):
+        icon_image = Image.open(ROOT / icon["path"]).convert("RGBA")
+        x = (index % columns) * 128
+        y = (index // columns) * 128
+        atlas.alpha_composite(icon_image, (x, y))
+        icon["frame"] = [x, y, 128, 128]
+    atlas_path = final / "item-icons-atlas.png"
+    atlas.save(atlas_path)
+    contact = checkerboard(atlas.width, atlas.height)
+    contact.alpha_composite(atlas)
+    contact.save(qa / "item-icons-contact-sheet.png")
+    item_set["icons"] = icons
+    item_set["columns"] = columns
+    item_set["rows"] = rows
+    write_json(metadata_path, metadata)
+
+
+def process_crimson_qwer_vfx() -> None:
+    base = ROOT / "assets" / "sprites" / "effects" / "crimson_skill_vfx"
+    final = base / "final"
+    qa = base / "qa"
+    atlas_path = final / "crimson_skill_vfx-atlas.png"
+    source = Image.open(atlas_path).convert("RGBA")
+    rows = [
+        ("q_spear_thrust", source.crop((0, 0, 768, 128))),
+        ("w_guard_flare", source.crop((0, 128, 768, 256))),
+        ("e_lunge_trail", ImageChops.offset(source.crop((0, 0, 768, 128)), 18, 0)),
+        ("r_crimson_rupture", ImageEnhance.Contrast(source.crop((0, 128, 768, 256))).enhance(1.35)),
+    ]
+    atlas = Image.new("RGBA", (768, 128 * len(rows)), (0, 0, 0, 0))
+    for index, (effect, row) in enumerate(rows):
+        if effect == "e_lunge_trail":
+            row = ImageEnhance.Brightness(row).enhance(1.12)
+        if effect == "r_crimson_rupture":
+            overlay = Image.new("RGBA", row.size, (255, 40, 40, 45))
+            row = Image.alpha_composite(row, overlay)
+        atlas.alpha_composite(row, (0, index * 128))
+        row.save(final / f"crimson_skill_vfx-{effect}-sheet.png")
+    atlas.save(atlas_path)
+    contact = checkerboard(atlas.width, atlas.height)
+    contact.alpha_composite(atlas)
+    contact.save(qa / "crimson_skill_vfx-contact-sheet.png")
+    write_json(
+        final / "crimson_skill_vfx-metadata.json",
+        {
+            "asset_id": "crimson_skill_vfx",
+            "generation_method": "procedural_original_alpha_sprites_with_qwer_extension",
+            "atlas": str(atlas_path.relative_to(ROOT)),
+            "cell_size": {"width": 128, "height": 128},
+            "frames_per_effect": 6,
+            "effects": [
+                {"effect": effect, "path": str((final / f"crimson_skill_vfx-{effect}-sheet.png").relative_to(ROOT)), "row": index}
+                for index, (effect, _) in enumerate(rows)
+            ],
+            "qa": {
+                "contact_sheet": str((qa / "crimson_skill_vfx-contact-sheet.png").relative_to(ROOT)),
+                "validation": str((qa / "crimson_skill_vfx-validation.json").relative_to(ROOT)),
+            },
+        },
+    )
+    write_json(
+        qa / "crimson_skill_vfx-validation.json",
+        {
+            "ok": True,
+            "asset_id": "crimson_skill_vfx",
+            "atlas": str(atlas_path.relative_to(ROOT)),
+            "effects": [effect for effect, _ in rows],
+            "frames_per_effect": 6,
+            "cell_size": [128, 128],
+        },
+    )
+
+
 def main() -> None:
     write_map_metadata()
     for team in ("azure", "crimson"):
         process_inhibitor(team)
         process_super_minion(team)
+    process_p2_item_icons()
+    process_crimson_qwer_vfx()
 
 
 if __name__ == "__main__":
