@@ -37,7 +37,13 @@ export interface UnitAssetSpec {
   actions: Partial<Record<UnitAction, SheetSpec>>;
 }
 
-const runtimeImagePath = (path: string) => (path.endsWith(".png") ? path.replace(/\.png$/, ".webp") : path);
+const supportsWebp = (() => {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  return canvas.toDataURL("image/webp").startsWith("data:image/webp");
+})();
+const runtimeImagePath = (path: string) => (supportsWebp && path.endsWith(".png") ? path.replace(/\.png$/, ".webp") : path);
 const assetUrl = (path: string) => `${import.meta.env.BASE_URL}${runtimeImagePath(path).replace(/^assets\//, "")}`;
 
 const unitSheet = (path: string, columns: number, frames = columns): SheetSpec => ({
