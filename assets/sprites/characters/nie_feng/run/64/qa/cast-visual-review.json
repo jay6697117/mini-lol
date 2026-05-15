@@ -1,0 +1,11 @@
+{
+  "accepted": true,
+  "reviewer_notes": "Accepted for the Nie Feng inspired original wind-snow blade hero cast action. The 8 rows show a readable wind-god-leg and frost martial cast sequence with low stance, blade lift, cyan snow vortex buildup, burst frame, and recovery. The effects are more dramatic than idle/basic movement while staying inside 64px cells.",
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  }
+}

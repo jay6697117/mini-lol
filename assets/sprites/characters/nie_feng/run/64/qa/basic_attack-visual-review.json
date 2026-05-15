@@ -1,0 +1,11 @@
+{
+  "accepted": true,
+  "reviewer_notes": "Accepted for the Nie Feng inspired original wind-snow blade hero basic_attack action. The 8 rows preserve the character identity and show readable snow-drinking saber slashes, ice-blue crescent arcs, frost particles, anticipation, contact, follow-through, and recovery frames. VFX remains inside the 64px cells.",
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  }
+}
