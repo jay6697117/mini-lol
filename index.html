@@ -5,11 +5,126 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="data:," />
     <title>Mini LoL 2.5D Prototype</title>
+    <style>
+      html,
+      body,
+      #app {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #07130f;
+      }
+
+      .loading-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        color: #eef7ff;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at 38% 32%, rgba(62, 138, 89, 0.3), transparent 34%),
+          linear-gradient(135deg, #07130f 0%, #10261c 52%, #080e12 100%);
+        transition: opacity 240ms ease, visibility 240ms ease;
+      }
+
+      .loading-shell.is-hidden {
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .loading-card {
+        width: min(680px, calc(100vw - 48px));
+        padding: 24px;
+        border: 1px solid rgba(214, 232, 255, 0.22);
+        border-radius: 18px;
+        background: rgba(7, 16, 19, 0.82);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+      }
+
+      .loading-map-skeleton {
+        position: relative;
+        height: 220px;
+        overflow: hidden;
+        border: 1px solid rgba(232, 186, 85, 0.35);
+        border-radius: 14px;
+        background:
+          linear-gradient(135deg, transparent 44%, rgba(225, 206, 143, 0.36) 45%, rgba(225, 206, 143, 0.36) 49%, transparent 50%),
+          radial-gradient(circle at 18% 76%, rgba(78, 182, 255, 0.42), transparent 8%),
+          radial-gradient(circle at 82% 22%, rgba(255, 97, 88, 0.42), transparent 8%),
+          linear-gradient(135deg, #0c2118, #173f29);
+      }
+
+      .loading-map-skeleton::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.08) 45%, transparent 70%);
+        animation: loading-shimmer 1.4s infinite;
+      }
+
+      .loading-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 18px 0 12px;
+        font-size: 18px;
+        font-weight: 800;
+      }
+
+      .loading-progress {
+        height: 12px;
+        overflow: hidden;
+        border: 1px solid rgba(245, 250, 255, 0.2);
+        border-radius: 999px;
+        background: rgba(4, 8, 12, 0.76);
+      }
+
+      .loading-progress span {
+        display: block;
+        width: 8%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #4eb6ff, #58dd8b, #e8ba55);
+        transition: width 160ms ease;
+      }
+
+      .loading-status {
+        min-height: 22px;
+        margin: 12px 0 0;
+        color: rgba(238, 247, 255, 0.82);
+        font-size: 14px;
+      }
+
+      .loading-status.is-error {
+        color: #ffb4a9;
+      }
+
+      @keyframes loading-shimmer {
+        from { transform: translateX(-120%); }
+        to { transform: translateX(120%); }
+      }
+    </style>
   </head>
   <body>
     <div id="app">
       <div id="game-root"></div>
       <div id="hud-root" aria-live="polite"></div>
+    </div>
+    <div id="loading-shell" class="loading-shell" role="status" aria-live="polite">
+      <section class="loading-card" aria-label="游戏加载中">
+        <div class="loading-map-skeleton" aria-hidden="true"></div>
+        <div class="loading-title">
+          <span>正在进入峡谷</span>
+          <strong id="loading-percent">0%</strong>
+        </div>
+        <div class="loading-progress" aria-hidden="true"><span id="loading-progress-bar"></span></div>
+        <p id="loading-status" class="loading-status">正在连接战场资源…</p>
+      </section>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

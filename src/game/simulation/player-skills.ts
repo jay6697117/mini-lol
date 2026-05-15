@@ -119,7 +119,14 @@ export const createPlayerSkillCastDraft = ({ player, skill, level, direction, el
   if (skill === "q") {
     return {
       actionTimer: 0.42,
-      immediateVfx: [],
+      immediateVfx: [
+        {
+          key: "vfx-astra-e_dash_trail",
+          x: origin.x + direction.x * 32,
+          y: origin.y + direction.y * 18,
+          scale: 0.78,
+        },
+      ],
       damageEvents: [
         {
           triggerAt: elapsed + SKILL_CONFIG.q.hitDelay,
@@ -149,7 +156,14 @@ export const createPlayerSkillCastDraft = ({ player, skill, level, direction, el
   if (skill === "w") {
     return {
       actionTimer: 0.42,
-      immediateVfx: [],
+      immediateVfx: [
+        {
+          key: "vfx-astra-w_shield_pulse",
+          x: origin.x,
+          y: origin.y,
+          scale: 0.72,
+        },
+      ],
       shield: {
         amount: SKILL_CONFIG.w.shield[level],
         duration: 2.8,
@@ -191,10 +205,16 @@ export const createPlayerSkillCastDraft = ({ player, skill, level, direction, el
       actionTimer: 0.24,
       immediateVfx: [
         {
+          key: "vfx-astra-w_shield_pulse",
+          x: origin.x,
+          y: origin.y,
+          scale: 0.62,
+        },
+        {
           key: "vfx-astra-e_dash_trail",
           x: origin.x + direction.x * 42,
           y: origin.y + direction.y * 24,
-          scale: 1.05,
+          scale: 1.18,
         },
       ],
       moveTo,
@@ -211,6 +231,12 @@ export const createPlayerSkillCastDraft = ({ player, skill, level, direction, el
           cancelIfSourceDead: true,
           consumeMarkBonus: SKILL_CONFIG.e.markBonus[level],
           cooldownRefund: SKILL_CONFIG.e.markRefund,
+          vfx: {
+            key: "vfx-astra-q_slash_arc",
+            x: moveTo.x,
+            y: moveTo.y,
+            scale: 0.72,
+          },
         },
       ],
       message: "风神腿突进",
@@ -218,8 +244,21 @@ export const createPlayerSkillCastDraft = ({ player, skill, level, direction, el
   }
 
   return {
-    actionTimer: 0.42,
-    immediateVfx: [],
+    actionTimer: 0.52,
+    immediateVfx: [
+      {
+        key: "vfx-astra-w_shield_pulse",
+        x: origin.x,
+        y: origin.y,
+        scale: 0.92,
+      },
+      {
+        key: "vfx-astra-e_dash_trail",
+        x: origin.x + direction.x * 46,
+        y: origin.y + direction.y * 26,
+        scale: 1.08,
+      },
+    ],
     damageEvents: [
       {
         triggerAt: elapsed + SKILL_CONFIG.r.hitDelay,

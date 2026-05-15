@@ -78,6 +78,10 @@ const MAX_CAMERA_ZOOM = 1.28;
 const CAMERA_ZOOM_STEP = 0.08;
 const TOWER_PROJECTILE_ARC_HEIGHT = 28;
 
+const dispatchLoadingEvent = (name: string, detail: Record<string, unknown> = {}) => {
+  window.dispatchEvent(new CustomEvent(`mini-lol:${name}`, { detail }));
+};
+
 type KeyMap = Record<
   "up" | "down" | "left" | "right" | "a" | "b" | "p" | "q" | "w" | "e" | "r" | "one" | "two" | "three" | "four" | "space" | "f" | "ctrl" | "tab" | "escape",
   Phaser.Input.Keyboard.Key
@@ -165,6 +169,21 @@ export class MobaScene extends Phaser.Scene {
   }
 
   preload() {
+    dispatchLoadingEvent("loading-progress", { progress: 0 });
+    this.load.on("progress", (value: number) => {
+      dispatchLoadingEvent("loading-progress", { progress: value * 92 });
+    });
+    this.load.on("filecomplete", (key: string) => {
+      dispatchLoadingEvent("loading-file", { file: key });
+    });
+    this.load.on("loaderror", (file: { key?: string; src?: string }) => {
+      dispatchLoadingEvent("loading-error", { file: file.src ?? file.key ?? "unknown" });
+    });
+    this.load.once("complete", () => {
+      dispatchLoadingEvent("loading-progress", { progress: 96 });
+      dispatchLoadingEvent("loading-file", { file: "创建战场对象" });
+    });
+
     for (const unit of Object.values(UNIT_ASSETS)) {
       for (const [action, spec] of Object.entries(unit.actions)) {
         if (!spec) continue;
@@ -208,6 +227,7 @@ export class MobaScene extends Phaser.Scene {
     this.setCameraZoom(DEFAULT_CAMERA_ZOOM);
     this.exposeTestHooks();
     this.syncViews();
+    dispatchLoadingEvent("ready");
   }
 
   update(_: number, delta: number) {

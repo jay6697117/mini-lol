@@ -12,14 +12,25 @@ const contentTypes: Record<string, string> = {
   ".gif": "image/gif",
   ".svg": "image/svg+xml",
   ".webp": "image/webp",
+  ".avif": "image/avif",
   ".ico": "image/x-icon",
   ".woff": "font/woff",
   ".woff2": "font/woff2",
+  ".wasm": "application/wasm",
+  ".map": "application/json; charset=utf-8",
+  ".txt": "text/plain; charset=utf-8",
 };
 
 function getContentType(path: string): string {
   const extension = path.match(/\.[^.\/]+$/)?.[0].toLowerCase();
   return extension ? contentTypes[extension] ?? "application/octet-stream" : "application/octet-stream";
+}
+
+function getCacheControl(path: string): string {
+  if (path.endsWith(".html")) return "no-cache";
+  if (path.includes(`${distDir}/assets/`)) return "public, max-age=31536000, immutable";
+  if (/\.(?:avif|gif|ico|jpe?g|json|png|svg|webp|woff2?)$/i.test(path)) return "public, max-age=86400, stale-while-revalidate=604800";
+  return "public, max-age=3600";
 }
 
 function getFilePath(pathname: string): string | null {
@@ -49,7 +60,10 @@ async function serveFile(path: string): Promise<Response> {
 
   return new Response(body, {
     headers: {
+      "cache-control": getCacheControl(path),
+      "content-length": String(body.byteLength),
       "content-type": getContentType(path),
+      "x-content-type-options": "nosniff",
     },
   });
 }

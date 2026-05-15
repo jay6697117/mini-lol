@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "optimize:assets": "node scripts/optimize-runtime-assets.mjs",
+    "build": "npm run optimize:assets && tsc --noEmit && vite build",
     "preview": "vite preview",
     "test:mvp": "npm run build && node playtest-artifacts/phase-1-simulation-unit/assertions.mjs && node scripts/mvp-test.mjs"
   },
