@@ -1,0 +1,20 @@
+{
+  "accepted": true,
+  "reviewer_notes": "Accepted for the cleaned 64px Nie Feng wind-snow blade hero sprite pack. Idle and move were post-processed to remove many detached white/ice-blue frost specks that made the in-game model look noisy, while the character identity, 8-direction layout, frame separation, and action readability are preserved. Basic attack, cast, hit, and death remain from the accepted codex-gateway-imagegen source set.",
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass",
+    "floating_debris_reduced": "pass"
+  },
+  "action_reviews": {
+    "idle": "64/qa/idle-visual-review.json",
+    "move": "64/qa/move-visual-review.json",
+    "basic_attack": "64/qa/basic_attack-visual-review.json",
+    "cast": "64/qa/cast-visual-review.json",
+    "hit": "64/qa/hit-visual-review.json",
+    "death": "64/qa/death-visual-review.json"
+  }
+}

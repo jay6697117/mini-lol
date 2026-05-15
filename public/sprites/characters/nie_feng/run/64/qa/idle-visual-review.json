@@ -1,0 +1,12 @@
+{
+  "accepted": true,
+  "reviewer_notes": "Accepted after cleanup for the Nie Feng idle action. The frame geometry, 8 directions, 6-frame structure, long dark hair, white-and-ice-blue outfit, scarf, and curved ice blade are preserved, while many tiny detached white/ice-blue frost specks around the body were removed so the character reads cleaner in gameplay.",
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass",
+    "floating_debris_reduced": "pass"
+  }
+}

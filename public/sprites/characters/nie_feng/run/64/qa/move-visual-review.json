@@ -1,0 +1,12 @@
+{
+  "accepted": true,
+  "reviewer_notes": "Accepted after cleanup for the Nie Feng move action. The wind-step motion, robe/weapon movement, 8 directions, and 6-frame timing remain readable, while detached white/ice-blue frost fragments around the body were reduced to keep the moving character clearer on the map.",
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass",
+    "floating_debris_reduced": "pass"
+  }
+}
