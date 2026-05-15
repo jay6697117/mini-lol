@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { dirname, extname, join, relative } from "node:path";
 
-const roots = ["assets/maps", "assets/sprites"];
+const roots = ["public/maps", "public/sprites"];
 const force = process.argv.includes("--force");
 const pngs = [];
 
