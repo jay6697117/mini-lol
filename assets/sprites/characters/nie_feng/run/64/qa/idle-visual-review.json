@@ -1,0 +1,11 @@
+{
+  "accepted": true,
+  "reviewer_notes": "Accepted for the Nie Feng inspired original wind-snow blade hero idle action. The 8 rows preserve the white-and-ice-blue wuxia swordsman identity, long dark hair, cyan scarf, frost blade, and wind/snow foot aura. Direction rows are readable enough for 64px gameplay, with diagonals slightly front-biased but distinguishable.",
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  }
+}

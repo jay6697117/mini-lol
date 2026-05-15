@@ -965,3 +965,9 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 - 用户反馈部署后出现加载卡住/白屏体感，并提供截图：HUD 已经显示，但主游戏区域长时间只有深绿色空背景，说明问题更可能是游戏资源、场景绘制或地图/角色加载延迟，而不是 HTML/JS 完全没加载。
 - 按 `planning-with-files` 技能创建 `task_plan.md` 和 `findings.md`，并保留已有大型 `progress.md` 历史内容。
 - 创建 agent team `deno-loading-optimization`，并派发三个只读分析任务：前端加载体验、图片资源体积、Deno Deploy 静态缓存。
+- 新增 HTML 内联骨架屏，Phaser preload/create 通过 `mini-lol:*` 事件向 DOM 汇报加载进度、当前文件、加载错误和 ready 状态；慢图加载时可见“正在进入峡谷”骨架屏。
+- 发现 `nie_feng` 运行时 final 动作 sheet 不完整，运行时避免请求不存在的 `nie_feng` 动作 sheet，防止部署后资源 404 导致 HUD 已出但主画面空绿。
+- 新增 `scripts/optimize-runtime-assets.mjs` 和 `npm run optimize:assets`；236 个 runtime final PNG 已生成 lossless WebP 镜像，runtime PNG 31.95MB，对应 WebP 20.96MB。
+- `src/game/assets.ts` 运行时优先加载 WebP，浏览器不支持 WebP 时回退 PNG。
+- `server.ts` 为 Deno Deploy 静态响应添加缓存策略：HTML `no-cache`，Vite hashed assets `max-age=31536000, immutable`，图片 `max-age=86400, stale-while-revalidate=604800`。
+- 验证：`npm run build` 通过；`git diff --check` 通过；`node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 通过；Vite preview 浏览器验证 canvas 正常、WebP 请求 200、控制台无 warning/error；Deno server HEAD 验证缓存头正确。

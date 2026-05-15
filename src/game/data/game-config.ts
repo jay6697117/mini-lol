@@ -18,7 +18,7 @@ export const LANE_END: Point = { x: 1395, y: 220 };
 export const PLAYER_START: Point = { x: 485, y: 565 };
 export const ENEMY_START: Point = { x: 1085, y: 355 };
 export const AZURE_BASE: Point = { x: 175, y: 705 };
-export const CRIMSON_BASE: Point = { x: 1376, y: 126 };
+export const CRIMSON_BASE: Point = { x: 1395, y: 144 };
 
 export const FOUNTAIN_LAYOUT = {
   azure: { x: 155, y: 760 },
@@ -27,9 +27,9 @@ export const FOUNTAIN_LAYOUT = {
 
 export const BUILDING_LAYOUT = {
   azure_outer_tower: { x: 350, y: 635 },
-  crimson_outer_tower: { x: 1238, y: 264 },
+  crimson_outer_tower: { x: 1244, y: 194 },
   azure_inhibitor: { x: 245, y: 680 },
-  crimson_inhibitor: { x: 1322, y: 184 },
+  crimson_inhibitor: { x: 1347, y: 186 },
   azure_core: AZURE_BASE,
   crimson_core: CRIMSON_BASE,
 } as const;

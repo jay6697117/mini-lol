@@ -40,7 +40,18 @@
 - Planning files: `task_plan.md`, `findings.md`, `progress.md`
 
 ## Visual/Browser Findings
-- 尚未进行浏览器验证。
+- 正常 Vite 预览 `http://127.0.0.1:4174/` 验证：`#loading-shell` 在 `mini-lol:ready` 后隐藏，canvas 为 1280x720，控制台无 warning/error，运行时 WebP 请求均返回 200。
+- 慢图片加载模拟验证：资源延迟时 `#loading-shell:not(.is-hidden)` 可见，显示“正在进入峡谷”和进度/状态文本，不再是空白或只有 HUD。
+- Deno 静态入口 `http://127.0.0.1:8000/` 验证：HTML 返回 `cache-control: no-cache`；hashed JS 返回 `public, max-age=31536000, immutable`；地图 WebP 返回 `image/webp` 和 `public, max-age=86400, stale-while-revalidate=604800`。
+
+## Final Implementation Notes
+- 新增 HTML 内联骨架屏和加载进度 DOM：`index.html`。
+- `src/main.ts` 监听 `mini-lol:loading-progress`、`mini-lol:loading-file`、`mini-lol:loading-error`、`mini-lol:ready`，负责更新和隐藏骨架屏。
+- `src/game/MobaScene.ts` 在 Phaser preload/create 阶段发出加载进度、文件、错误和 ready 事件。
+- `src/game/assets.ts` 运行时优先把 PNG URL 改成 WebP URL；浏览器不支持 WebP 时回退 PNG。
+- `scripts/optimize-runtime-assets.mjs` 统计 runtime final PNG，并用 `cwebp -lossless -z 9` 生成 WebP 镜像；本次生成 236 个 WebP，runtime PNG 约 31.95MB，对应 WebP 约 20.96MB。
+- `server.ts` 增加 `Cache-Control`、`Content-Length`、`X-Content-Type-Options` 和更多 content-type。
+- 发现 `nie_feng` final 动作 sheet 不完整；当前运行时避免请求不存在的 `nie_feng` 动作 sheet，防止部署后 Phaser 资源 404 导致主画面长期空绿。
 
 ---
 *Update this file after every 2 view/browser/search operations*
