@@ -13,9 +13,9 @@ export const LANE_WAYPOINTS: readonly Point[] = [
 ];
 
 export const LANE_TACTICAL_POINTS: readonly { id: LaneTacticalPointId; progress: number }[] = [
-  { id: "azure_outer", progress: 0.24 },
+  { id: "azure_outer", progress: 0.16 },
   { id: "mid_lane", progress: 0.5 },
-  { id: "crimson_outer", progress: 0.76 },
+  { id: "crimson_outer", progress: 0.86 },
 ];
 
 const LANE_LOOK_AHEAD_PROGRESS = 0.08;

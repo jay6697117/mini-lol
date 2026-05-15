@@ -1,9 +1,8 @@
 import {
-  AZURE_BASE,
   BASE_HEALTH_REGEN_PER_SECOND,
   BASE_MANA_REGEN_PER_SECOND,
-  BASE_REGEN_RADIUS,
-  CRIMSON_BASE,
+  FOUNTAIN_LAYOUT,
+  FOUNTAIN_REGEN_RADIUS,
 } from "../data/game-config";
 import type { UnitAction } from "../assets";
 import { clearUnitCommands } from "./commands";
@@ -73,8 +72,8 @@ export const tickUnitStatusEffects = (unit: Unit, dt: number): UnitStatusTickRes
 
 export const applyBaseRecovery = (unit: Unit, dt: number) => {
   if (!unit.alive || unit.kind !== "hero") return false;
-  const base = unit.team === "azure" ? AZURE_BASE : CRIMSON_BASE;
-  if (distance(unit, base) > BASE_REGEN_RADIUS) return false;
+  const fountain = FOUNTAIN_LAYOUT[unit.team];
+  if (distance(unit, fountain) > FOUNTAIN_REGEN_RADIUS) return false;
   const previousHp = unit.hp;
   const previousMana = unit.mana;
   unit.hp = Math.min(unit.maxHp, unit.hp + unit.maxHp * BASE_HEALTH_REGEN_PER_SECOND * dt);

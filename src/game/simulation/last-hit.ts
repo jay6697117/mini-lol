@@ -1,6 +1,7 @@
 import { PLAYER_XP_SHARE_RANGE } from "../data/game-config";
 import type { LastHitHintSnapshot, LastHitHintWindow } from "../types";
 import { distance } from "./rules";
+import { isUnitInTowerAttackRange } from "./towers";
 import type { Building, Unit } from "./types";
 
 export type LastHitWindow = "none" | LastHitHintWindow;
@@ -24,7 +25,7 @@ export const lastHitPlanForUnit = ({ unit, player, buildings }: LastHitWindowInp
     return { window: "last_hit", towerShotsToLastHit: 0, hpAfterTowerShots: Math.max(0, Math.round(unit.hp)) };
   }
   const alliedTower = buildings.find(
-    (building) => building.type === "tower" && building.team === player.team && building.hp > 0 && distance(building, unit) <= building.attackRange,
+    (building) => building.type === "tower" && building.team === player.team && building.hp > 0 && isUnitInTowerAttackRange(unit, building),
   );
   if (!alliedTower) return noLastHitPlan(unit);
   const towerShotsToLastHit = Math.ceil((unit.hp - player.attackDamage) / alliedTower.attackDamage);

@@ -1,5 +1,4 @@
 import type { Building, Point, Unit } from "./types";
-import { lanePathProgress, lanePointAtProgress } from "./lane-path";
 import { minionAggroTarget } from "./minion-aggro";
 import { findNearestAttackableBuilding } from "./objectives";
 import { distance } from "./rules";
@@ -10,7 +9,7 @@ export type MinionDecision =
   | { kind: "attackBuilding"; building: Building }
   | { kind: "moveToLane"; target: Point };
 
-const MINION_LANE_SPACING_PROGRESS = 0.025;
+const MINION_ENGAGE_RANGE = 260;
 const MINION_SEPARATION_RADIUS = 46;
 const MINION_SEPARATION_STRENGTH = 38;
 
@@ -27,44 +26,29 @@ export const decideMinionAction = ({ minion, units, buildings, laneGoal }: Decid
     return unitInAttackRange(minion, aggroTarget) ? { kind: "attackUnit", target: aggroTarget } : { kind: "chaseUnit", target: aggroTarget };
   }
 
-  const minionTarget = nearestEnemyMinionInRange(minion, units);
-  if (minionTarget) return { kind: "attackUnit", target: minionTarget };
+  const minionTarget = nearestEnemyMinionInEngageRange(minion, units);
+  if (minionTarget) return unitInAttackRange(minion, minionTarget) ? { kind: "attackUnit", target: minionTarget } : { kind: "chaseUnit", target: minionTarget };
 
-  const heroTarget = nearestEnemyHeroInRange(minion, units);
-  if (heroTarget) return { kind: "attackUnit", target: heroTarget };
+  const heroTarget = nearestEnemyHeroInEngageRange(minion, units);
+  if (heroTarget) return unitInAttackRange(minion, heroTarget) ? { kind: "attackUnit", target: heroTarget } : { kind: "chaseUnit", target: heroTarget };
 
   const building = findNearestAttackableBuilding(minion, buildings, minion.attackRange + 38);
   if (building) return { kind: "attackBuilding", building };
 
-  return { kind: "moveToLane", target: laneSeparationTarget(minion, units, laneSpacingTarget(minion, units, laneGoal)) };
+  return { kind: "moveToLane", target: laneSeparationTarget(minion, units, laneGoal) };
 };
 
-const nearestEnemyMinionInRange = (minion: Unit, units: Unit[]) =>
-  enemyUnitsInRange(minion, units)
+const nearestEnemyMinionInEngageRange = (minion: Unit, units: Unit[]) =>
+  enemyUnitsInEngageRange(minion, units)
     .filter((unit) => unit.kind !== "hero")
     .sort((a, b) => minionTargetPriority(a) - minionTargetPriority(b) || distance(minion, a) - distance(minion, b))[0];
 
-const nearestEnemyHeroInRange = (minion: Unit, units: Unit[]) => enemyUnitsInRange(minion, units).filter((unit) => unit.kind === "hero").sort((a, b) => distance(minion, a) - distance(minion, b))[0];
+const nearestEnemyHeroInEngageRange = (minion: Unit, units: Unit[]) => enemyUnitsInEngageRange(minion, units).filter((unit) => unit.kind === "hero").sort((a, b) => distance(minion, a) - distance(minion, b))[0];
 
-const enemyUnitsInRange = (minion: Unit, units: Unit[]) =>
-  units.filter((unit) => unit.alive && unit.team !== minion.team && distance(minion, unit) - minion.radius - unit.radius <= minion.attackRange + 24);
+const enemyUnitsInEngageRange = (minion: Unit, units: Unit[]) =>
+  units.filter((unit) => unit.alive && unit.team !== minion.team && distance(minion, unit) - minion.radius - unit.radius <= MINION_ENGAGE_RANGE);
 
 const unitInAttackRange = (minion: Unit, target: Unit) => distance(minion, target) - minion.radius - target.radius <= minion.attackRange + 24;
-
-const laneSpacingTarget = (minion: Unit, units: Unit[], laneGoal: Point) => {
-  const progress = lanePathProgress(minion);
-  const nearestAhead = units
-    .filter((unit) => unit.alive && unit.id !== minion.id && unit.team === minion.team && unit.kind !== "hero")
-    .map((unit) => lanePathProgress(unit))
-    .filter((candidate) => (minion.team === "azure" ? candidate > progress : candidate < progress))
-    .sort((a, b) => Math.abs(a - progress) - Math.abs(b - progress))[0];
-  if (nearestAhead === undefined || Math.abs(nearestAhead - progress) >= MINION_LANE_SPACING_PROGRESS) return laneGoal;
-
-  const spacedProgress = minion.team === "azure" ? nearestAhead - MINION_LANE_SPACING_PROGRESS : nearestAhead + MINION_LANE_SPACING_PROGRESS;
-  if (minion.team === "azure" && spacedProgress <= progress) return { x: minion.x, y: minion.y };
-  if (minion.team === "crimson" && spacedProgress >= progress) return { x: minion.x, y: minion.y };
-  return lanePointAtProgress(spacedProgress);
-};
 
 const laneSeparationTarget = (minion: Unit, units: Unit[], target: Point) => {
   const separation = minionSeparationVector(minion, units);

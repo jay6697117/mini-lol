@@ -102,6 +102,10 @@ export interface BuildingSnapshot {
   type: "tower" | "inhibitor" | "core";
   hp: number;
   maxHp: number;
+  x: number;
+  y: number;
+  attackRange: number;
+  targetId: string | null;
   state: "idle" | "attack" | "damaged" | "destroyed";
 }
 

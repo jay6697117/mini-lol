@@ -2,7 +2,7 @@ import { WORLD_HEIGHT, WORLD_WIDTH, type ItemId } from "./data/game-config";
 import { clearUnitCommands } from "./simulation/commands";
 import { lastHitWindowForUnit, type LastHitWindow } from "./simulation/last-hit";
 import { clamp } from "./simulation/rules";
-import type { Building, Point, Unit } from "./simulation/types";
+import type { Building, Point, TowerAggroState, Unit } from "./simulation/types";
 import { clearUnitCrowdControlEffects } from "./simulation/unit-lifecycle";
 import type { Team } from "./assets";
 import type { CooldownSnapshot, GameSnapshot, SkillKey, UnitKind } from "./types";
@@ -12,6 +12,8 @@ type LastHitTeachingFixture = "last_hit" | "tower_setup";
 
 export interface MobaDebugAdapter {
   units: Unit[];
+  buildings: Building[];
+  towerHeroAggro: TowerAggroState;
   playerCooldowns: CooldownSnapshot;
   activeCastSkill: SkillKey | null;
   pendingSkill: SkillKey | null;
@@ -34,6 +36,8 @@ export interface MobaDebugAdapter {
   setSettingsOpen: (open: boolean) => boolean;
   setQuickCast: (enabled: boolean) => boolean;
   setRangeIndicators: (enabled: boolean) => boolean;
+  setCameraZoom: (zoom: number) => number;
+  getCameraZoom: () => number;
   clearQueuedSkill: () => void;
   activatePlayerSkill: (skill: SkillKey) => boolean;
   castPlayerSkill: (skill: SkillKey) => boolean;
@@ -69,9 +73,15 @@ declare global {
       setSettingsOpen: (open: boolean) => boolean;
       setQuickCast: (enabled: boolean) => boolean;
       setRangeIndicators: (enabled: boolean) => boolean;
+      setCameraZoom: (zoom: number) => number;
+      getCameraZoom: () => number;
       setScoreboardOpen: (open: boolean) => boolean;
       resetPlayerCooldowns: () => void;
       clearStatusEffects: () => void;
+      clearLaneUnits: () => void;
+      resetTowerState: () => void;
+      spawnTestMinion: (team: Team, kind: Exclude<UnitKind, "hero">, x: number, y: number) => string;
+      damagePlayerFromEnemy: (amount?: number) => void;
       activateSkill: (skill: SkillKey) => boolean;
       castSkill: (skill: SkillKey) => boolean;
       upgradeSkill: (skill: SkillKey) => boolean;
@@ -186,6 +196,8 @@ export const installMobaDebugApi = (scene: MobaDebugAdapter) => {
       scene.syncViews();
       return current;
     },
+    setCameraZoom: (zoom) => scene.setCameraZoom(zoom),
+    getCameraZoom: () => scene.getCameraZoom(),
     setScoreboardOpen: (open) => {
       scene.scoreboardOpen = open;
       scene.syncViews();
@@ -207,6 +219,29 @@ export const installMobaDebugApi = (scene: MobaDebugAdapter) => {
       for (const unit of scene.units) {
         clearUnitCrowdControlEffects(unit);
       }
+      scene.syncViews();
+    },
+    clearLaneUnits: () => {
+      scene.units = scene.units.filter((unit) => unit.kind === "hero");
+      resetTowerState(scene);
+      scene.syncViews();
+    },
+    resetTowerState: () => {
+      resetTowerState(scene);
+      scene.syncViews();
+    },
+    spawnTestMinion: (team, kind, x, y) => {
+      const assetId = `${team}_${kind}_minion`;
+      const minion = scene.makeMinion(assetId, team, kind, clamp(x, 80, WORLD_WIDTH - 80), clamp(y, 90, WORLD_HEIGHT - 90));
+      minion.attackTimer = 0;
+      scene.units.push(minion);
+      scene.createUnitView(minion);
+      scene.syncViews();
+      return minion.id;
+    },
+    damagePlayerFromEnemy: (amount = 20) => {
+      const player = scene.getPlayer();
+      scene.damageUnit(player, amount, "crimson", "enemy_hero");
       scene.syncViews();
     },
     activateSkill: (skill) => {
@@ -370,7 +405,7 @@ export const installMobaDebugApi = (scene: MobaDebugAdapter) => {
       player.y = 565;
       clearUnitCommands(player);
       scene.units = scene.units.filter((unit) => unit.kind === "hero");
-      const target = scene.makeMinion("crimson_melee_minion", "crimson", "melee", 635, 520);
+      const target = scene.makeMinion("crimson_melee_minion", "crimson", "melee", tower.x + 132, tower.y - 42);
       target.hp = fixture === "last_hit" ? 90 : 250;
       target.maxHp = 320;
       target.speed = 0;
@@ -423,4 +458,16 @@ export const installMobaDebugApi = (scene: MobaDebugAdapter) => {
       scene.syncViews();
     },
   };
+};
+
+const resetTowerState = (scene: Pick<MobaDebugAdapter, "buildings" | "towerHeroAggro">) => {
+  for (const building of scene.buildings) {
+    building.attackTimer = 0;
+    building.attackFlash = 0;
+    building.targetUnitId = undefined;
+    building.championTargetId = undefined;
+    building.championShotStacks = 0;
+  }
+  delete scene.towerHeroAggro.azure;
+  delete scene.towerHeroAggro.crimson;
 };

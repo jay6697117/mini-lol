@@ -70,6 +70,9 @@ export interface Building {
   attackTimer: number;
   attackFlash: number;
   radius: number;
+  targetUnitId?: string;
+  championTargetId?: string;
+  championShotStacks: number;
 }
 
 export type BuildingState = "idle" | "attack" | "damaged" | "destroyed";

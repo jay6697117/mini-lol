@@ -3,6 +3,7 @@ import {
   BASE_RESPAWN_SECONDS,
   DEFAULT_SKILL_LEVELS,
   RECALL_DURATION,
+  TOWER_ATTACK_RANGE,
 } from "../data/game-config";
 import type { UnitKind } from "../types";
 import type { Building, Unit } from "./types";
@@ -112,11 +113,14 @@ export const createBuilding = (id: string, assetId: BuildingAssetId, team: Team,
     y,
     hp: tower ? 3000 : inhibitor ? 2400 : 4200,
     maxHp: tower ? 3000 : inhibitor ? 2400 : 4200,
-    attackRange: tower ? 520 : 0,
+    attackRange: tower ? TOWER_ATTACK_RANGE : 0,
     attackDamage: tower ? 190 : 0,
     attackCooldown: 1,
     attackTimer: 0,
     attackFlash: 0,
     radius: tower ? 72 : inhibitor ? 76 : 104,
+    targetUnitId: undefined,
+    championTargetId: undefined,
+    championShotStacks: 0,
   };
 };

@@ -1,18 +1,17 @@
 import type { Team } from "../assets";
-import { TOWER_ATTACK_WINDUP, TOWER_HERO_AGGRO_SECONDS } from "../data/game-config";
+import { TOWER_ATTACK_WINDUP, TOWER_HERO_AGGRO_SECONDS, TOWER_HERO_PROTECTION_RANGE } from "../data/game-config";
 import { hasAlliedMinionNearBuilding } from "./objectives";
 import { distance } from "./rules";
 import type { Building, PendingDamageEvent, TowerAggroEntry, TowerAggroState, Unit } from "./types";
 
 const TOWER_ATTACK_FLASH_SECONDS = 0.32;
-const TOWER_HERO_AGGRO_DAMAGE_STEP = 0.22;
+const TOWER_HERO_AGGRO_DAMAGE_STEP = 0.4;
 const TOWER_HERO_AGGRO_MAX_STACKS = 3;
 const TEAMS: Team[] = ["azure", "crimson"];
 
 interface TowerTargetResult {
   target?: Unit;
   clearAggro: boolean;
-  heroAggro?: TowerAggroEntry;
 }
 
 export interface TowerAttackIntent {
@@ -79,7 +78,11 @@ export const registerTowerHeroAggro = ({ target, sourceId, units, buildings, tow
   const source = units.find((unit) => unit.id === sourceId);
   if (!source || source.kind !== "hero" || source.team === target.team || !source.alive) return false;
   const alliedTower = buildings.find((building) => building.id === towerIdForTeam(target.team));
-  if (!alliedTower || alliedTower.hp <= 0 || distance(source, alliedTower) > alliedTower.attackRange) return false;
+  if (!alliedTower || alliedTower.hp <= 0) return false;
+  if (!isUnitInTowerAttackRange(source, alliedTower)) return false;
+  if (towerRangeGap(target, alliedTower) > TOWER_HERO_PROTECTION_RANGE) return false;
+  const currentTarget = currentTowerTarget(alliedTower, units);
+  if (currentTarget?.kind === "hero") return false;
   const previousAggro = towerHeroAggro[target.team];
   towerHeroAggro[target.team] = {
     targetId: source.id,
@@ -103,9 +106,12 @@ export const resolveTowerAttacks = ({ buildings, units, towerHeroAggro, dt }: Re
 
     building.attackTimer = building.attackCooldown;
     building.attackFlash = TOWER_ATTACK_FLASH_SECONDS;
-    const damage = towerDamageForTarget(building, target, targetResult.heroAggro);
-    if (targetResult.heroAggro) {
-      targetResult.heroAggro.shots = Math.min(TOWER_HERO_AGGRO_MAX_STACKS, (targetResult.heroAggro.shots ?? 0) + 1);
+    building.targetUnitId = target.id;
+    const damage = towerDamageForTarget(building, target);
+    commitTowerHeat(building, target);
+    const aggro = towerHeroAggro[building.team];
+    if (target.kind === "hero" && aggro?.targetId === target.id) {
+      aggro.shots = building.championShotStacks;
     }
     intents.push({
       towerId: building.id,
@@ -127,18 +133,19 @@ export const resolveTowerAttacks = ({ buildings, units, towerHeroAggro, dt }: Re
 export const towerDangerForUnit = ({ unit, buildings, units, towerHeroAggro }: TowerDangerInput): TowerDangerState => {
   if (!unit.alive) return INACTIVE_TOWER_DANGER;
   const tower = buildings
-    .filter((building) => building.type === "tower" && building.hp > 0 && building.team !== unit.team && distance(unit, building) <= building.attackRange)
-    .sort((a, b) => distance(unit, a) - distance(unit, b))[0];
+    .filter((building) => building.type === "tower" && building.hp > 0 && building.team !== unit.team && isUnitInTowerAttackRange(unit, building))
+    .sort((a, b) => towerRangeGap(unit, a) - towerRangeGap(unit, b))[0];
   if (!tower) return INACTIVE_TOWER_DANGER;
 
   const aggro = towerHeroAggro[tower.team]?.targetId === unit.id ? towerHeroAggro[tower.team] : undefined;
+  const shots = tower.championTargetId === unit.id ? tower.championShotStacks : aggro?.shots ?? 0;
   return {
     active: true,
     towerId: tower.id,
     unsupported: !hasAlliedMinionNearBuilding(unit.team, tower, units),
-    distance: Math.round(distance(unit, tower)),
-    shots: aggro?.shots ?? 0,
-    nextDamage: towerDamageForTarget(tower, unit, aggro),
+    distance: Math.round(Math.max(0, towerRangeGap(unit, tower))),
+    shots,
+    nextDamage: unit.kind === "hero" ? towerDamageForHeroStacks(tower, shots) : towerDamageForTarget(tower, unit),
   };
 };
 
@@ -155,24 +162,62 @@ export const createTowerDamageEvent = (intent: TowerAttackIntent, id: string, el
   vfx: intent.vfx,
 });
 
+export const towerRangeGap = (unit: Unit, tower: Building) => distance(unit, tower) - unit.radius - tower.radius;
+
+export const isUnitInTowerAttackRange = (unit: Unit, tower: Building) => towerRangeGap(unit, tower) <= tower.attackRange;
+
+export const towerAttackDisplayRadius = (tower: Building) => tower.attackRange + tower.radius;
+
 const selectTowerTarget = (tower: Building, units: Unit[], aggro?: TowerAggroEntry): TowerTargetResult => {
+  const current = currentTowerTarget(tower, units);
+  if (current?.kind === "hero") return { target: current, clearAggro: false };
+
+  let clearAggro = false;
   if (aggro) {
-    const heroTarget = units.find((unit) => unit.id === aggro.targetId && unit.alive && distance(unit, tower) <= tower.attackRange);
-    if (heroTarget) return { target: heroTarget, clearAggro: false, heroAggro: aggro };
-    return { target: undefined, clearAggro: true };
+    const heroTarget = units.find((unit) => unit.id === aggro.targetId && unit.alive && isUnitInTowerAttackRange(unit, tower));
+    if (heroTarget) return { target: heroTarget, clearAggro: false };
+    clearAggro = true;
   }
 
-  const enemies = units.filter((unit) => unit.alive && unit.team !== tower.team && distance(unit, tower) <= tower.attackRange);
+  if (current) return { target: current, clearAggro };
+
+  const enemies = units.filter((unit) => unit.alive && unit.team !== tower.team && isUnitInTowerAttackRange(unit, tower));
   return {
-    target: enemies.sort((a, b) => towerTargetPriority(a) - towerTargetPriority(b) || distance(a, tower) - distance(b, tower))[0],
-    clearAggro: false,
+    target: enemies.sort((a, b) => towerTargetPriority(a) - towerTargetPriority(b) || towerRangeGap(a, tower) - towerRangeGap(b, tower))[0],
+    clearAggro,
   };
 };
 
-export const towerDamageForTarget = (tower: Building, target: Unit, aggro?: TowerAggroEntry) => {
-  if (!aggro || target.kind !== "hero") return tower.attackDamage;
-  const stacks = Math.min(aggro.shots ?? 0, TOWER_HERO_AGGRO_MAX_STACKS);
-  return Math.round(tower.attackDamage * (1 + stacks * TOWER_HERO_AGGRO_DAMAGE_STEP));
+const currentTowerTarget = (tower: Building, units: Unit[]) => {
+  const target = units.find((unit) => unit.id === tower.targetUnitId && unit.alive && unit.team !== tower.team && isUnitInTowerAttackRange(unit, tower));
+  if (target) return target;
+  tower.targetUnitId = undefined;
+  tower.championTargetId = undefined;
+  tower.championShotStacks = 0;
+  return undefined;
+};
+
+export const towerDamageForTarget = (tower: Building, target: Unit) => {
+  if (target.kind !== "hero") return tower.attackDamage;
+  const stacks = tower.championTargetId === target.id ? Math.min(tower.championShotStacks, TOWER_HERO_AGGRO_MAX_STACKS) : 0;
+  return towerDamageForHeroStacks(tower, stacks);
+};
+
+const towerDamageForHeroStacks = (tower: Building, stacks: number) =>
+  Math.round(tower.attackDamage * (1 + Math.min(stacks, TOWER_HERO_AGGRO_MAX_STACKS) * TOWER_HERO_AGGRO_DAMAGE_STEP));
+
+const commitTowerHeat = (tower: Building, target: Unit) => {
+  if (target.kind !== "hero") {
+    tower.championTargetId = undefined;
+    tower.championShotStacks = 0;
+    return;
+  }
+  if (tower.championTargetId !== target.id) {
+    tower.championTargetId = target.id;
+    tower.championShotStacks = 1;
+    return;
+  }
+  tower.championShotStacks = Math.min(TOWER_HERO_AGGRO_MAX_STACKS, tower.championShotStacks + 1);
 };
 
 const towerTargetPriority = (unit: Unit) => {

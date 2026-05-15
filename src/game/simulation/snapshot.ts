@@ -332,6 +332,10 @@ export const createGameSnapshot = (input: CreateGameSnapshotInput): GameSnapshot
       type: building.type,
       hp: Math.round(building.hp),
       maxHp: building.maxHp,
+      x: Math.round(building.x),
+      y: Math.round(building.y),
+      attackRange: building.attackRange,
+      targetId: building.targetUnitId ?? null,
       state: buildingState(building),
     })),
     units: input.units

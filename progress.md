@@ -78,6 +78,17 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 - Skill-feel Playwright assertions pass for Q mark, E cast buffering, marked E bonus feedback, R root, and `render_game_to_text` casting/effects state.
 - Completion round 5 regression assertions still pass after the skill state-machine changes.
 - Develop-web-game smoke playtest passes after the skill-feel pass.
+- Continued a tower and lane-axis correction pass based on LoL turret behavior.
+- Reduced tower attack range to a scaled 320 edge-range value and draw tower range circles from tower hitbox edge so the two outer tower zones no longer dominate the full mid lane.
+- Reworked tower targeting in `simulation/towers.ts`: towers now keep their current target until it dies or leaves range, select new targets by super/siege, melee, caster, then champion priority, and only switch to a champion when that champion damages an allied hero under tower protection.
+- Added LoL-like champion tower heat: repeated shots into the same champion ramp tower damage while switching to non-hero targets resets the heat.
+- Moved building placement into shared `BUILDING_LAYOUT` and aligned both towers, inhibitors, and cores to the lane center axis; enemy tower/core no longer sit off the road centerline.
+- Extended building snapshots with world position, attack range, and tower target id; the minimap now reads real building coordinates instead of hard-coded offsets.
+- Added deterministic debug hooks and `playtest-artifacts/tower-lane-pass/assertions.mjs` for tower range, target priority, sticky target, champion aggro, and building-axis checks.
+- `npm run build` passes after the tower/lane-axis pass.
+- Tower-lane Playwright assertions pass.
+- Skill-feel and completion-round-5 regression assertions still pass after tower targeting/range changes.
+- Develop-web-game smoke playtest passes and screenshots were visually inspected for tower range and lane-axis placement.
 - 根据 `PLAN.md` 开始 Phase 1 系统边界重构。
 - 在 `PLAN.md` 中补充资产生产约束：角色/小兵等动作精灵图使用 `.codex/skills/game-character-sprites`，概念图/静态 raster 生图使用 `.codex/skills/codex-gateway-imagegen`。
 - 新增 `src/game/data/game-config.ts`，集中迁出 world、lane、wave、respawn、skill、item、economy 等核心配置。
@@ -544,6 +555,10 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 - `playtest-artifacts/skill-feel-pass/report.json`
 - `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/skill-feel-smoke`
 - `playtest-artifacts/completion-round-5/report.json`
+- `playtest-artifacts/tower-lane-pass/report.json`
+- `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/tower-lane-smoke`
+- `playtest-artifacts/skill-feel-pass/report.json`
+- `playtest-artifacts/completion-round-5/report.json`
 - `git diff --check -- PLAN.md src/game/MobaScene.ts src/game/assets.ts src/game/data/game-config.ts src/game/simulation/types.ts src/game/simulation/rules.ts`
 - `npm run build`
 - `node /Users/zhangjinhui/.codex/skills/develop-web-game/scripts/web_game_playwright_client.js --url http://127.0.0.1:4173 --actions-file playtest-artifacts/runtime-actions.json --iterations 3 --pause-ms 250 --screenshot-dir playtest-artifacts/phase-1-config-refactor-smoke`
@@ -894,3 +909,31 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 - 地图已包含 brush、jungle edge、river 和 neutral pit visual；新增 `src/game/simulation/map-zones.ts`，snapshot 会给草丛内单位加 `brush` effect，Enemy AI 在玩家远距离藏入草丛时触发 `player_hidden_in_brush` gate。
 - P2 小范围扩展：新增 `Rift Lens` 与 `Vitality Core` 两条装备路线和 gateway-generated item icons；扩展 `crimson_skill_vfx` 到 Q/W/E/R rows。
 - 已验证：`npm run build`、`node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`、`npm run test:mvp`、`web_game_playwright_client.js` smoke，并检查 `playtest-artifacts/moba-art-pass-smoke/shot-2.png` 与 `playtest-artifacts/mvp/mvp-state.png`。
+
+## 2026-05-15 塔范围、红方建筑落点与中文化修复
+
+- 将 `TOWER_ATTACK_RANGE` 从 320 缩小到 200；塔范围显示仍按 tower hitbox edge 计算，因此当前圆形显示半径为塔半径加 200。
+- 按背景图右上方铺装过道重放红方外塔、红方兵营和红方核心：外塔移动到右上路口圆台附近，兵营移动到通往红方基地的铺装过道，红方核心移动到红方基地圆台中心；`CRIMSON_BASE` 同步到新核心位置，避免基地恢复/AI 回撤目标仍指向旧偏移点。
+- HUD 可见英文已中文化：队伍、建筑面板、状态消息、兵线提示、塔危险提示、商店、计分板、设置、死亡提示和胜负总结现在都显示中文；调试枚举和代码标识仍保留英文契约。
+- 修复 tower hero aggro 栈同步：防御塔连续命中同一英雄后，`towerHeroAggro.shots` 会同步到当前 building heat，HUD 下一发塔伤提示与实际塔伤保持一致。
+- `npm run build` passes after tower range, building placement, HUD localization, and tower aggro stack sync changes.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after updating tower ramp expectations for the current 40% stack step.
+- `node playtest-artifacts/tower-lane-pass/assertions.mjs http://127.0.0.1:4173/` passes for tower range 200, updated red building coordinates, tower priority, sticky target, and hero aggro.
+- `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/` and `node playtest-artifacts/skill-feel-pass/assertions.mjs http://127.0.0.1:4173/` still pass after the tower/HUD changes.
+- Develop-web-game smoke playtest passes after this pass: `playtest-artifacts/tower-200-cn-smoke` contains nonblank screenshots and JSON states with red building coordinates and tower attack range 200.
+- Visual screenshot check: `playtest-artifacts/tower-lane-pass/tower-range-and-axis.png` shows smaller tower circles and Chinese HUD text; `playtest-artifacts/tower-200-cn-smoke/shot-0.png` shows the red outer tower/core moved onto the paved right-side path/base area; `playtest-artifacts/tower-200-cn-smoke/shop-cn.png` and `settings-cn.png` verify the shop/settings panels are Chinese.
+
+## 2026-05-15 塔范围 100、塔弹体、兵线推进、镜头缩放与泉水修复
+
+- 将 `TOWER_ATTACK_RANGE` 从 200 继续缩小到 100；塔范围显示仍按 tower hitbox edge 计算，因此外显圆半径为 tower radius + 100。
+- 拉开蓝方外塔与红方外塔距离：蓝方外塔移动到 `{ x: 350, y: 635 }`，红方外塔移动到 `{ x: 1238, y: 264 }`，红方兵营和蓝方兵营同步后移到各自基地通路，保持外塔 -> 兵营 -> 核心的推进顺序。
+- 新增塔攻击飞行弹体：塔开火时从塔顶生成队伍色光球，按 `TOWER_ATTACK_WINDUP` 飞向目标，命中时仍触发既有 damage VFX 和伤害数字。
+- 小兵空闲推线不再因为前方友军太近而原地等待；无 active aggro 时会在 260 像素接敌范围内主动追击敌方小兵/英雄，仍保留近距离分离向量避免完全重叠。
+- 新增鼠标滚轮和 debug API 摄像机缩放，当前缩放 clamp 为 `0.82..1.28`；`tower-lane-pass` 覆盖 zoom-in / zoom-out。
+- 将被动回血从 390 像素基地圈改为双方后方泉水圈：蓝方泉水 `{ x: 108, y: 785 }`，红方泉水 `{ x: 1492, y: 70 }`，半径 `130`；回城完成和死亡复活也落到对应泉水，避免红方英雄在外塔附近持续回血。
+- `npm run build` passes after this pass, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs` passes after updating fountain recovery, minion surge, and last-hit tower setup expectations.
+- `node playtest-artifacts/tower-lane-pass/assertions.mjs http://127.0.0.1:4173/` passes for tower range 100, widened building coordinates, tower priority, sticky target, champion aggro, and camera zoom.
+- `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/`, `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`, and `node playtest-artifacts/skill-feel-pass/assertions.mjs http://127.0.0.1:4173/` still pass.
+- Develop-web-game smoke playtest passes: `playtest-artifacts/tower-100-projectile-fountain-smoke` contains nonblank gameplay screenshots and JSON states with tower attack range 100, widened tower coordinates, active lane combat, and intact snapshot state.
+- Visual screenshot check: `playtest-artifacts/tower-lane-pass/tower-range-and-axis.png` shows the smaller tower circles, widened red/blue tower spacing, tower projectile/impact feedback, and the Chinese HUD; `playtest-artifacts/tower-lane-pass/camera-zoom-in.png` confirms zoom-in framing; `playtest-artifacts/tower-100-projectile-fountain-smoke/shot-0.png` and `shot-2.png` show minion waves advancing and fighting instead of waiting in spawn/lane clumps.

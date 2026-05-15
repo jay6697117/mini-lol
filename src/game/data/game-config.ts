@@ -9,7 +9,7 @@ export const RECALL_DURATION = 4;
 export const BASE_RESPAWN_SECONDS = 8;
 export const RESPAWN_TIME_PER_DEATH = 2;
 export const MAX_RESPAWN_SECONDS = 22;
-export const BASE_REGEN_RADIUS = 390;
+export const FOUNTAIN_REGEN_RADIUS = 130;
 export const BASE_HEALTH_REGEN_PER_SECOND = 0.16;
 export const BASE_MANA_REGEN_PER_SECOND = 0.2;
 
@@ -18,7 +18,21 @@ export const LANE_END: Point = { x: 1395, y: 220 };
 export const PLAYER_START: Point = { x: 485, y: 565 };
 export const ENEMY_START: Point = { x: 1085, y: 355 };
 export const AZURE_BASE: Point = { x: 175, y: 705 };
-export const CRIMSON_BASE: Point = { x: 1420, y: 205 };
+export const CRIMSON_BASE: Point = { x: 1376, y: 126 };
+
+export const FOUNTAIN_LAYOUT = {
+  azure: { x: 108, y: 785 },
+  crimson: { x: 1492, y: 70 },
+} as const;
+
+export const BUILDING_LAYOUT = {
+  azure_outer_tower: { x: 350, y: 635 },
+  crimson_outer_tower: { x: 1238, y: 264 },
+  azure_inhibitor: { x: 245, y: 680 },
+  crimson_inhibitor: { x: 1322, y: 184 },
+  azure_core: AZURE_BASE,
+  crimson_core: CRIMSON_BASE,
+} as const;
 
 export const BRUSH_REVEAL_RADIUS = 260;
 
@@ -35,6 +49,8 @@ export const PLAYER_XP_SHARE_RANGE = 560;
 export const BASIC_ATTACK_WINDUP = 0.28;
 export const MINION_ATTACK_WINDUP = 0.34;
 export const TOWER_ATTACK_WINDUP = 0.2;
+export const TOWER_ATTACK_RANGE = 100;
+export const TOWER_HERO_PROTECTION_RANGE = 600;
 export const TOWER_HERO_AGGRO_SECONDS = 3.2;
 export const CAST_QUEUE_WINDOW = 0.75;
 export const DEFAULT_SKILL_LEVELS: Record<SkillKey, number> = { q: 1, w: 1, e: 1, r: 0 };

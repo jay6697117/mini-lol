@@ -13,7 +13,10 @@ import {
 } from "./assets";
 import {
   BASIC_ATTACK_WINDUP,
+  BUILDING_LAYOUT,
   ENEMY_START,
+  FOUNTAIN_LAYOUT,
+  FOUNTAIN_REGEN_RADIUS,
   ITEM_CATALOG,
   type ItemId,
   LANE_END,
@@ -21,6 +24,7 @@ import {
   MINION_ATTACK_WINDUP,
   PLAYER_START,
   PLAYER_XP_SHARE_RANGE,
+  TOWER_ATTACK_WINDUP,
   WAVE_INTERVAL,
   WORLD_HEIGHT,
   WORLD_WIDTH,
@@ -45,7 +49,7 @@ import { resolveQueuedSkillTick } from "./simulation/queued-skill";
 import { clamp, directionFromVector, distance, maxSkillLevel as configuredMaxSkillLevel, normalize, respawnDurationFor as configuredRespawnDurationFor, skillCooldown as configuredSkillCooldown, vectorFromDirection } from "./simulation/rules";
 import { createGameSnapshot, playerInputBlockedReason, unitEffectLabels } from "./simulation/snapshot";
 import { pickEnemyBuildingAtPoint, pickEnemyUnitAtPoint } from "./simulation/target-picking";
-import { createTowerDamageEvent, registerTowerHeroAggro as registerTowerHeroAggroRule, resolveTowerAttacks, tickTowerAggro } from "./simulation/towers";
+import { createTowerDamageEvent, registerTowerHeroAggro as registerTowerHeroAggroRule, resolveTowerAttacks, tickTowerAggro, towerAttackDisplayRadius } from "./simulation/towers";
 import type { Building, DamageHitEffects, PendingDamageEvent, Point, TowerAggroState, Unit } from "./simulation/types";
 import { applyBaseRecovery, beginRecallChannel, prepareHeroDeathState, respawnHeroAt, tickRecallChannel, tickUnitStatusEffects, visibleUnitAction } from "./simulation/unit-lifecycle";
 import type { EnemyAiState, GameResult, GameSnapshot, SkillKey, UnitKind } from "./types";
@@ -57,7 +61,22 @@ interface VfxInstance {
   ttl: number;
 }
 
+interface TowerProjectileInstance {
+  id: string;
+  orb: Phaser.GameObjects.Arc;
+  glow: Phaser.GameObjects.Arc;
+  start: Point;
+  end: Point;
+  elapsed: number;
+  duration: number;
+}
+
 const ENEMY_ITEM_ORDER: ItemId[] = ["bronze_sword", "plated_boots", "rift_lens", "vitality_core", "haste_talisman", "guard_shield", "siege_hammer"];
+const DEFAULT_CAMERA_ZOOM = 1;
+const MIN_CAMERA_ZOOM = 0.82;
+const MAX_CAMERA_ZOOM = 1.28;
+const CAMERA_ZOOM_STEP = 0.08;
+const TOWER_PROJECTILE_ARC_HEIGHT = 28;
 
 type KeyMap = Record<
   "up" | "down" | "left" | "right" | "a" | "b" | "p" | "q" | "w" | "e" | "r" | "one" | "two" | "three" | "four" | "space" | "f" | "ctrl" | "tab" | "escape",
@@ -74,6 +93,7 @@ export class MobaScene extends Phaser.Scene {
   private buildingBars = new Map<string, Phaser.GameObjects.Graphics>();
   private aimPreview?: Phaser.GameObjects.Graphics;
   private vfx: VfxInstance[] = [];
+  private towerProjectiles: TowerProjectileInstance[] = [];
   private pendingDamageEvents: PendingDamageEvent[] = [];
   private playerCooldowns = { q: 0, w: 0, e: 0, r: 0 };
   private itemCooldowns: Record<ItemId, number> = {
@@ -139,6 +159,7 @@ export class MobaScene extends Phaser.Scene {
   private playerXpGained = 0;
   private message = "Lane phase";
   private sequence = 0;
+  private cameraZoom = DEFAULT_CAMERA_ZOOM;
   constructor() {
     super("MobaScene");
   }
@@ -176,6 +197,7 @@ export class MobaScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.cameras.main.setBackgroundColor("#143524");
     this.drawMap();
+    this.drawFountainZones();
     this.createAnimations();
     this.createVfxAnimations();
     this.createBuildings();
@@ -183,7 +205,7 @@ export class MobaScene extends Phaser.Scene {
     this.createAimPreview();
     this.createInput();
     this.cameras.main.startFollow(this.getPlayerSprite(), true, 0.08, 0.08);
-    this.cameras.main.setZoom(1);
+    this.setCameraZoom(DEFAULT_CAMERA_ZOOM);
     this.exposeTestHooks();
     this.syncViews();
   }
@@ -216,6 +238,7 @@ export class MobaScene extends Phaser.Scene {
     this.updatePlayerInput(dt);
     this.updateEnemyHeroAI(dt);
     this.updateUnitAI(dt);
+    this.updateTowerProjectiles(dt);
     this.updateBuildings(dt);
     this.resolvePendingDamageEvents();
     this.updateVfx(dt);
@@ -228,6 +251,20 @@ export class MobaScene extends Phaser.Scene {
     const scale = Math.max(WORLD_WIDTH / background.width, WORLD_HEIGHT / background.height);
     background.setScale(scale);
     background.setDepth(-120);
+  }
+
+  private drawFountainZones() {
+    const zone = this.add.graphics().setDepth(-8);
+    const drawZone = (point: Point, color: number) => {
+      zone.fillStyle(color, 0.08);
+      zone.fillCircle(point.x, point.y, FOUNTAIN_REGEN_RADIUS);
+      zone.lineStyle(2, color, 0.28);
+      zone.strokeCircle(point.x, point.y, FOUNTAIN_REGEN_RADIUS);
+      zone.fillStyle(0xffffff, 0.08);
+      zone.fillCircle(point.x, point.y, 18);
+    };
+    drawZone(FOUNTAIN_LAYOUT.azure, 0x66cfff);
+    drawZone(FOUNTAIN_LAYOUT.crimson, 0xff675a);
   }
 
   private createAnimations() {
@@ -273,12 +310,12 @@ export class MobaScene extends Phaser.Scene {
 
   private createBuildings() {
     this.buildings = [
-      createBuilding("azure_outer_tower", "azure_outer_tower", "azure", "tower", 420, 600),
-      createBuilding("crimson_outer_tower", "crimson_outer_tower", "crimson", "tower", 1180, 330),
-      createBuilding("azure_inhibitor", "azure_inhibitor", "azure", "inhibitor", 285, 660),
-      createBuilding("crimson_inhibitor", "crimson_inhibitor", "crimson", "inhibitor", 1310, 250),
-      createBuilding("azure_core", "azure_core", "azure", "core", 175, 705),
-      createBuilding("crimson_core", "crimson_core", "crimson", "core", 1420, 205),
+      createBuilding("azure_outer_tower", "azure_outer_tower", "azure", "tower", BUILDING_LAYOUT.azure_outer_tower.x, BUILDING_LAYOUT.azure_outer_tower.y),
+      createBuilding("crimson_outer_tower", "crimson_outer_tower", "crimson", "tower", BUILDING_LAYOUT.crimson_outer_tower.x, BUILDING_LAYOUT.crimson_outer_tower.y),
+      createBuilding("azure_inhibitor", "azure_inhibitor", "azure", "inhibitor", BUILDING_LAYOUT.azure_inhibitor.x, BUILDING_LAYOUT.azure_inhibitor.y),
+      createBuilding("crimson_inhibitor", "crimson_inhibitor", "crimson", "inhibitor", BUILDING_LAYOUT.crimson_inhibitor.x, BUILDING_LAYOUT.crimson_inhibitor.y),
+      createBuilding("azure_core", "azure_core", "azure", "core", BUILDING_LAYOUT.azure_core.x, BUILDING_LAYOUT.azure_core.y),
+      createBuilding("crimson_core", "crimson_core", "crimson", "core", BUILDING_LAYOUT.crimson_core.x, BUILDING_LAYOUT.crimson_core.y),
     ];
 
     for (const building of this.buildings) {
@@ -362,6 +399,11 @@ export class MobaScene extends Phaser.Scene {
       this.pointerWorld = this.toWorldPoint(pointer);
     });
 
+    this.input.on("wheel", (_pointer: Phaser.Input.Pointer, _gameObjects: Phaser.GameObjects.GameObject[], _deltaX: number, deltaY: number) => {
+      const direction = deltaY > 0 ? -1 : 1;
+      this.setCameraZoom(this.cameraZoom + direction * CAMERA_ZOOM_STEP);
+    });
+
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       const player = this.getPlayer();
       const worldPoint = this.toWorldPoint(pointer);
@@ -441,8 +483,7 @@ export class MobaScene extends Phaser.Scene {
 
   private updateRecallChannels(dt: number) {
     for (const unit of this.units) {
-      const start = unit.team === "azure" ? PLAYER_START : ENEMY_START;
-      const recall = tickRecallChannel(unit, dt, start);
+      const recall = tickRecallChannel(unit, dt, this.fountainPointForTeam(unit.team));
       if (!recall.completed) continue;
       const enemyPurchased = unit.id === "enemy_hero" && this.tryEnemyPurchaseAtBase(unit);
       this.spawnVfx(unit.team === "azure" ? "vfx-astra-w_shield_pulse" : "vfx-crimson-q_spear_thrust", unit.x, unit.y - 10, 1);
@@ -813,8 +854,31 @@ export class MobaScene extends Phaser.Scene {
     });
     for (const attack of towerAttacks) {
       this.queueDamageEvent(createTowerDamageEvent(attack, `tower_${attack.towerId}_${this.sequence += 1}`, this.elapsed));
+      this.spawnTowerProjectile(attack.towerId, attack.targetId, attack.sourceTeam);
       this.message = attack.message;
     }
+  }
+
+  private updateTowerProjectiles(dt: number) {
+    for (const projectile of this.towerProjectiles) {
+      projectile.elapsed += dt;
+      const progress = clamp(projectile.elapsed / projectile.duration, 0, 1);
+      const eased = 1 - (1 - progress) * (1 - progress);
+      const x = projectile.start.x + (projectile.end.x - projectile.start.x) * eased;
+      const y = projectile.start.y + (projectile.end.y - projectile.start.y) * eased - Math.sin(progress * Math.PI) * TOWER_PROJECTILE_ARC_HEIGHT;
+      const alpha = 0.92 - progress * 0.18;
+      projectile.orb.setPosition(x, y).setAlpha(alpha);
+      projectile.glow.setPosition(x, y).setAlpha(0.28 * (1 - progress * 0.35));
+      projectile.orb.setDepth(y + 240);
+      projectile.glow.setDepth(y + 238);
+    }
+
+    const expired = this.towerProjectiles.filter((projectile) => projectile.elapsed >= projectile.duration);
+    for (const projectile of expired) {
+      projectile.orb.destroy();
+      projectile.glow.destroy();
+    }
+    this.towerProjectiles = this.towerProjectiles.filter((projectile) => projectile.elapsed < projectile.duration);
   }
 
   private updateVfx(dt: number) {
@@ -1215,8 +1279,7 @@ export class MobaScene extends Phaser.Scene {
       if (unit.alive || unit.kind !== "hero") continue;
       unit.respawnTimer -= dt;
       if (unit.respawnTimer <= 0) {
-        const start = unit.team === "azure" ? PLAYER_START : ENEMY_START;
-        respawnHeroAt(unit, start);
+        respawnHeroAt(unit, this.fountainPointForTeam(unit.team));
         this.message = unit.id === "player" ? "Astra respawned" : "Crimson respawned";
       }
     }
@@ -1454,10 +1517,11 @@ export class MobaScene extends Phaser.Scene {
   private drawTowerRanges() {
     const range = this.add.graphics().setDepth(-5);
     for (const building of this.buildings.filter((candidate) => candidate.type === "tower")) {
+      const radius = towerAttackDisplayRadius(building);
       range.lineStyle(3, building.team === "azure" ? 0x4aa8ff : 0xff5448, 0.42);
-      range.strokeCircle(building.x, building.y, building.attackRange);
+      range.strokeCircle(building.x, building.y, radius);
       range.fillStyle(building.team === "azure" ? 0x4aa8ff : 0xff5448, 0.06);
-      range.fillCircle(building.x, building.y, building.attackRange);
+      range.fillCircle(building.x, building.y, radius);
     }
   }
 
@@ -1587,6 +1651,27 @@ export class MobaScene extends Phaser.Scene {
     this.vfx.push({ id: `${animationKey}_${this.elapsed}_${this.vfx.length}`, sprite, ttl: 0.48 });
   }
 
+  private spawnTowerProjectile(towerId: string, targetId: string, sourceTeam: Team) {
+    const tower = this.buildings.find((building) => building.id === towerId);
+    const target = this.units.find((unit) => unit.id === targetId);
+    if (!tower || !target) return;
+    const color = sourceTeam === "azure" ? 0x7edcff : 0xff6b57;
+    const highlight = sourceTeam === "azure" ? 0xe8fbff : 0xffdccf;
+    const start = { x: tower.x, y: tower.y - (tower.type === "tower" ? 128 : 86) };
+    const end = { x: target.x, y: target.y - Math.max(18, target.radius * 0.5) };
+    const glow = this.add.circle(start.x, start.y, 15, color, 0.26).setDepth(start.y + 238);
+    const orb = this.add.circle(start.x, start.y, 6, highlight, 0.94).setStrokeStyle(3, color, 0.88).setDepth(start.y + 240);
+    this.towerProjectiles.push({
+      id: `tower_projectile_${this.sequence += 1}`,
+      orb,
+      glow,
+      start,
+      end,
+      elapsed: 0,
+      duration: TOWER_ATTACK_WINDUP,
+    });
+  }
+
   private flashUnit(unit: Unit) {
     const sprite = this.unitSprites.get(unit.id);
     if (!sprite) return;
@@ -1639,6 +1724,20 @@ export class MobaScene extends Phaser.Scene {
     const building = this.buildings.find((candidate) => candidate.id === id);
     if (!building) throw new Error(`Building ${id} is missing`);
     return building;
+  }
+
+  private fountainPointForTeam(team: Team): Point {
+    return FOUNTAIN_LAYOUT[team];
+  }
+
+  setCameraZoom(zoom: number) {
+    this.cameraZoom = clamp(zoom, MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM);
+    this.cameras.main.setZoom(this.cameraZoom);
+    return this.cameraZoom;
+  }
+
+  getCameraZoom() {
+    return this.cameraZoom;
   }
 
   private isPlayerInShop() {
@@ -1717,7 +1816,7 @@ export class MobaScene extends Phaser.Scene {
       buildings: this.buildings,
       units: this.units,
       towerHeroAggro: this.towerHeroAggro,
-      activeVfx: this.vfx.length,
+      activeVfx: this.vfx.length + this.towerProjectiles.length,
       message: this.message,
       canAttemptSkill: (skill) => this.canAttemptSkillSilently(player, skill),
     });
