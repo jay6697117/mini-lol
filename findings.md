@@ -11,6 +11,17 @@
 - 初始 git 状态已有未跟踪图片：`assets/sprites/characters/nie_feng/run/64/generated/idle-north.png`、`assets/sprites/characters/nie_feng/run/source/64-idle-north.png`。
 - 初始 `git diff --stat` 显示 5 个 `assets/sprites/characters/nie_feng/run/64/prompts/*.txt` 文件已有改动；本任务要避免误覆盖这些既有改动。
 - `task_plan.md` 和 `findings.md` 原本不存在；`progress.md` 已存在且历史内容很长。
+- `index.html` 当前只有 `#game-root` 和 `#hud-root`，没有 HTML/CSS 级别的首屏骨架屏；JS bundle 执行前用户只能看到页面背景。
+- `vite.config.ts` 使用 `publicDir: "assets"`，意味着 `assets` 下的图片会作为静态资源复制到部署产物根路径。
+- `package.json` 当前脚本只有 `dev`、`build`、`preview`、`test:mvp`，没有图片压缩或资源体积统计脚本。
+- 项目根目录没有 `deno.json`，需要继续查找 Deno Deploy 入口或自定义服务器文件。
+- `server.ts` 直接从 `dist` 读文件返回，只设置 `content-type`，当前没有 `Cache-Control`、`ETag`、`content-length`，hashed Vite 资源无法被浏览器长期缓存。
+- `server.ts` 的 SPA fallback 只在 `Accept` 包含 `text/html` 时返回 `index.html`，资源路径失败时通常会 404，不太会把图片错误回退成 HTML；这是安全的。
+- `src/main.ts` 先 `initHud()` 后 `new Phaser.Game(...)`，所以 HUD 会比 Phaser 资源加载和 Scene create 更早显示；截图现象与这条链路一致。
+- `MobaScene.preload()` 一次性加载所有单位动作 sheet、所有建筑状态、地图背景和 VFX atlas，当前没有加载进度 UI、加载错误 UI 或完成后通知 DOM 隐藏骨架屏。
+- 关键根因发现：`src/game/assets.ts` 当前玩家 `nie_feng` 需要 `assets/sprites/characters/nie_feng/run/64/final/{idle,move,basic_attack,cast,hit,death}-sheet-clean.png`，但该目录目前只有 `idle-north-test-*`，没有运行时需要的 final sheet。部署后这些请求会 404，Phaser 仍可能启动并显示 HUD/绿色背景，但角色和动画无法正常出现。
+- 地图背景 `assets/maps/single_lane_rift/final/single-lane-rift-background.png` 存在，大小约 2.9MB，是首屏最重资源之一，适合生成 WebP 版本并保留 PNG fallback。
+- `src/game/assets.ts` 通过 `import.meta.env.BASE_URL` 拼接静态资源路径，Vite `publicDir: "assets"` 会把 `assets/...` 里的实际 URL 映射为部署根路径下的相对资源。
 
 ## Technical Decisions
 | Decision | Rationale |

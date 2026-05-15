@@ -959,3 +959,9 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 - `npm run build` passes after the HUD objective pass, with the existing `vite:prepare-out-dir` timing warning.
 - `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/`, `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`, and standalone `node playtest-artifacts/tower-lane-pass/assertions.mjs http://127.0.0.1:4173/` pass.
 - `git diff --check` passes after the HUD objective pass.
+
+## 2026-05-15 Deno Deploy 加载体验与资源优化
+
+- 用户反馈部署后出现加载卡住/白屏体感，并提供截图：HUD 已经显示，但主游戏区域长时间只有深绿色空背景，说明问题更可能是游戏资源、场景绘制或地图/角色加载延迟，而不是 HTML/JS 完全没加载。
+- 按 `planning-with-files` 技能创建 `task_plan.md` 和 `findings.md`，并保留已有大型 `progress.md` 历史内容。
+- 创建 agent team `deno-loading-optimization`，并派发三个只读分析任务：前端加载体验、图片资源体积、Deno Deploy 静态缓存。

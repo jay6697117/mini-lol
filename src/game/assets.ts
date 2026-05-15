@@ -233,7 +233,7 @@ export type BuildingAssetId = keyof typeof BUILDING_ASSETS;
 
 export const VFX_ASSETS = {
   astra_skill_vfx: {
-    url: assetUrl("assets/sprites/effects/astra_skill_vfx/final/astra_skill_vfx-atlas.png"),
+    url: assetUrl("assets/sprites/effects/nie_feng_skill_vfx/final/nie_feng_skill_vfx-atlas.png"),
     rows: {
       q_slash_arc: 0,
       w_shield_pulse: 1,
@@ -255,10 +255,10 @@ export const VFX_ASSETS = {
 
 export const UI_ICON_URLS = {
   skills: {
-    astra_q: assetUrl("assets/sprites/ui/moba_ui_icons/final/skill-icons-astra_q.png"),
-    astra_w: assetUrl("assets/sprites/ui/moba_ui_icons/final/skill-icons-astra_w.png"),
-    astra_e: assetUrl("assets/sprites/ui/moba_ui_icons/final/skill-icons-astra_e.png"),
-    astra_r: assetUrl("assets/sprites/ui/moba_ui_icons/final/skill-icons-astra_r.png"),
+    nie_feng_q: assetUrl("assets/sprites/ui/moba_ui_icons/final/skill-icons-nie_feng_q.png"),
+    nie_feng_w: assetUrl("assets/sprites/ui/moba_ui_icons/final/skill-icons-nie_feng_w.png"),
+    nie_feng_e: assetUrl("assets/sprites/ui/moba_ui_icons/final/skill-icons-nie_feng_e.png"),
+    nie_feng_r: assetUrl("assets/sprites/ui/moba_ui_icons/final/skill-icons-nie_feng_r.png"),
     crimson_q: assetUrl("assets/sprites/ui/moba_ui_icons/final/skill-icons-crimson_q.png"),
   },
   items: {

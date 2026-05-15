@@ -23,6 +23,20 @@
       "accepted": true
     },
     {
+      "asset_id": "nie_feng_skill_vfx",
+      "atlas": "assets/sprites/effects/nie_feng_skill_vfx/final/nie_feng_skill_vfx-atlas.png",
+      "metadata": "assets/sprites/effects/nie_feng_skill_vfx/final/nie_feng_skill_vfx-metadata.json",
+      "qa_contact_sheet": "assets/sprites/effects/nie_feng_skill_vfx/qa/nie_feng_skill_vfx-contact-sheet.png",
+      "qa_validation": "assets/sprites/effects/nie_feng_skill_vfx/qa/nie_feng_skill_vfx-validation.json",
+      "effects": [
+        "q_slash_arc",
+        "w_shield_pulse",
+        "e_dash_trail",
+        "r_shockwave"
+      ],
+      "accepted": true
+    },
+    {
       "asset_id": "crimson_skill_vfx",
       "atlas": "assets/sprites/effects/crimson_skill_vfx/final/crimson_skill_vfx-atlas.png",
       "metadata": "assets/sprites/effects/crimson_skill_vfx/final/crimson_skill_vfx-metadata.json",

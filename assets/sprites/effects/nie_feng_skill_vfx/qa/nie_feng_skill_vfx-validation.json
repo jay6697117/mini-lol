@@ -1,0 +1,14 @@
+{
+  "accepted": true,
+  "checks": {
+    "atlas_dimensions": [
+      768,
+      512
+    ],
+    "cell": 128,
+    "columns": 6,
+    "rows": 4,
+    "transparent_background": true,
+    "theme": "wind, snow, frost saber, wind god leg dash"
+  }
+}

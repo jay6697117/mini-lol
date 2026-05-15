@@ -1,0 +1,32 @@
+{
+  "cell": 128,
+  "columns": 6,
+  "rows": 4,
+  "theme": "Nie Feng inspired original wind-snow blade VFX",
+  "effects": [
+    {
+      "row": 0,
+      "effect": "q_slash_arc",
+      "description": "雪饮刀气：冰蓝月牙刀芒 + 雪花碎冰",
+      "frames": 6
+    },
+    {
+      "row": 1,
+      "effect": "w_shield_pulse",
+      "description": "冰风护体：扩张冰环 + 六角霜盾",
+      "frames": 6
+    },
+    {
+      "row": 2,
+      "effect": "e_dash_trail",
+      "description": "风神腿突进：高速青白风带 + 残影脚风",
+      "frames": 6
+    },
+    {
+      "row": 3,
+      "effect": "r_shockwave",
+      "description": "傲寒狂刀：雪暴旋涡 + 巨型寒冰刀波",
+      "frames": 6
+    }
+  ]
+}

@@ -172,7 +172,7 @@ const localizeItemName = (itemId: string, fallback = itemId) => ITEM_LABELS[item
 const localizeItemStats = (itemId: string, fallback: string) => ITEM_STATS[itemId as ItemId] ?? fallback;
 const localizeActiveLabel = (label: string | null) => (label ? ACTIVE_LABELS[label] ?? label : null);
 const localizeBuildingName = (id: string) => BUILDING_LABELS[id] ?? id.split("_").join(" ");
-const localizeUnitName = (name: string) => (name === "Astra Vanguard" ? "星刃先锋" : name === "Crimson Duelist" ? "绯红决斗者" : name);
+const localizeUnitName = (name: string) => (name === "风雪刀客" ? "风雪刀客" : name === "Crimson Duelist" ? "绯红决斗者" : name);
 const localizeAiState = (state: GameSnapshot["enemyAi"]["state"]) => AI_STATE_LABELS[state] ?? state;
 const localizeLaneLabel = (label: string) => LANE_LABELS[label] ?? label;
 
@@ -196,8 +196,8 @@ const localizeMessage = (message: string) => {
   if (match) return `${match[1]} 个小兵转火`;
   match = message.match(/^CS missed · (\d+)$/);
   if (match) return `漏刀 ${match[1]}`;
-  match = message.match(/^Astra down · (\d+)s$/);
-  if (match) return `星刃倒下 · ${match[1]}秒`;
+  match = message.match(/^风雪刀客倒下 · (\d+)s$/);
+  if (match) return `风雪刀客倒下 · ${match[1]}秒`;
   match = message.match(/^Crimson down · (\d+)s$/);
   if (match) return `绯红倒下 · ${match[1]}秒`;
   match = message.match(/^Level (\d+)$/);
@@ -284,7 +284,7 @@ export const initHud = () => {
     <section class="ability-dock" aria-label="技能">
       ${(["q", "w", "e", "r"] as const)
         .map((skill) => {
-          const src = UI_ICON_URLS.skills[`astra_${skill}`];
+          const src = UI_ICON_URLS.skills[`nie_feng_${skill}`];
           return `
             <div class="ability-cell ${skill === "r" ? "ultimate-cell" : ""}">
               <button class="ability ${skill === "r" ? "ultimate" : ""}" data-skill="${skill}">${icon(src, skill.toUpperCase())}<span>${skill.toUpperCase()}</span><strong data-skill-rank="${skill}">${skill === "r" ? 0 : 1}</strong><em data-cooldown="${skill}"></em></button>
