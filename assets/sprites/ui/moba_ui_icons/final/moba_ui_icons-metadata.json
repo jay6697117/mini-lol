@@ -90,10 +90,50 @@
             128,
             128
           ]
+        },
+        {
+          "id": "nie_feng_q",
+          "path": "assets/sprites/ui/moba_ui_icons/final/skill-icons-nie_feng_q.png",
+          "frame": [
+            0,
+            256,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "nie_feng_w",
+          "path": "assets/sprites/ui/moba_ui_icons/final/skill-icons-nie_feng_w.png",
+          "frame": [
+            128,
+            256,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "nie_feng_e",
+          "path": "assets/sprites/ui/moba_ui_icons/final/skill-icons-nie_feng_e.png",
+          "frame": [
+            256,
+            256,
+            128,
+            128
+          ]
+        },
+        {
+          "id": "nie_feng_r",
+          "path": "assets/sprites/ui/moba_ui_icons/final/skill-icons-nie_feng_r.png",
+          "frame": [
+            384,
+            256,
+            128,
+            128
+          ]
         }
       ],
       "columns": 4,
-      "rows": 2
+      "rows": 3
     },
     "items": {
       "atlas": "assets/sprites/ui/moba_ui_icons/final/item-icons-atlas.png",

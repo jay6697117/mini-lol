@@ -1,0 +1,11 @@
+{
+  "accepted": true,
+  "reviewer_notes": "Accepted for the Nie Feng inspired original wind-snow blade hero hit action. The 8 rows show compact flinch, recoil, scarf/hair snap, recovery guard, and small cyan ice hit sparks without turning into a full knockdown. The character identity remains readable.",
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "not_procedural": "pass"
+  }
+}

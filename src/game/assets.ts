@@ -78,12 +78,12 @@ export const UNIT_ASSETS: Record<string, UnitAssetSpec> = {
     team: "azure",
     scale: 1.58,
     actions: {
-      idle: unitSheet(characterPath("astra_vanguard", "idle"), 6),
-      move: unitSheet(characterPath("astra_vanguard", "move"), 6),
-      basic_attack: unitSheet(characterPath("astra_vanguard", "basic_attack"), 6),
-      cast: unitSheet(characterPath("astra_vanguard", "cast"), 6),
-      hit: unitSheet(characterPath("astra_vanguard", "hit"), 4),
-      death: unitSheet(characterPath("astra_vanguard", "death"), 8),
+      idle: unitSheet(characterPath("nie_feng", "idle"), 6),
+      move: unitSheet(characterPath("nie_feng", "move"), 6),
+      basic_attack: unitSheet(characterPath("nie_feng", "basic_attack"), 6),
+      cast: unitSheet(characterPath("nie_feng", "cast"), 6),
+      hit: unitSheet(characterPath("nie_feng", "hit"), 4),
+      death: unitSheet(characterPath("nie_feng", "death"), 8),
     },
   },
   crimson_duelist: {
