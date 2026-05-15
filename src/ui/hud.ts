@@ -42,13 +42,6 @@ const BUILDING_LABELS: Record<string, string> = {
   crimson_core: "红方核心",
 };
 
-const BUILDING_STATE_LABELS: Record<BuildingSnapshot["state"], string> = {
-  idle: "待命",
-  attack: "攻击",
-  damaged: "受损",
-  destroyed: "摧毁",
-};
-
 const ITEM_LABELS: Record<ItemId, string> = {
   bronze_sword: "青铜长剑",
   plated_boots: "镀甲战靴",
@@ -276,7 +269,7 @@ export const initHud = () => {
       <small data-objective-detail>跟随兵线推进，先消耗防御塔。</small>
     </section>
 
-    <button class="settings-button" data-settings-toggle title="设置">Esc</button>
+    <button class="settings-button" data-settings-toggle title="设置">设置</button>
 
     <section class="minimap" aria-label="小地图">
       <div class="minimap-lane"></div>
