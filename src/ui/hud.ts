@@ -17,6 +17,9 @@ const icon = (src: string, label: string) => `<img src="${src}" alt="${label}" /
 let lastShopSignature = "";
 let lastScoreboardSignature = "";
 
+const ENEMY_OBJECTIVE_ORDER = ["crimson_outer_tower", "crimson_inhibitor", "crimson_core"] as const;
+const ALLIED_OBJECTIVE_ORDER = ["azure_outer_tower", "azure_inhibitor", "azure_core"] as const;
+
 const TEAM_LABELS: Record<BuildingSnapshot["team"], string> = {
   azure: "蓝方",
   crimson: "红方",
@@ -249,11 +252,11 @@ export const initHud = () => {
         <div class="stat-row">
           <span class="stat-pill">${icon(UI_ICON_URLS.status.level_up, "等级")}<strong data-level>1</strong></span>
           <span class="stat-pill">${icon(UI_ICON_URLS.status.gold, "金币")}<strong data-gold>842</strong></span>
-          <span class="stat-pill">${icon(UI_ICON_URLS.status.skill_point, "经验")}<strong data-xp>0</strong></span>
+          <span class="stat-pill secondary-stat">${icon(UI_ICON_URLS.status.skill_point, "经验")}<strong data-xp>0</strong></span>
           <span class="stat-pill text-stat">补 <strong data-last-hits>0</strong></span>
-          <span class="stat-pill text-stat">连 <strong data-cs-streak>0</strong></span>
-          <span class="stat-pill text-stat">漏 <strong data-missed-cs>0</strong></span>
-          <span class="stat-pill text-stat">技 <strong data-skill-points>0</strong></span>
+          <span class="stat-pill text-stat secondary-stat">连 <strong data-cs-streak>0</strong></span>
+          <span class="stat-pill text-stat secondary-stat">漏 <strong data-missed-cs>0</strong></span>
+          <span class="stat-pill text-stat secondary-stat">技 <strong data-skill-points>0</strong></span>
           <span class="stat-pill text-stat">波 <strong data-wave>1</strong></span>
           <span class="stat-pill text-stat lane-pill neutral" data-lane-pill>兵线 <strong data-lane-state>均势</strong></span>
         </div>
@@ -261,8 +264,16 @@ export const initHud = () => {
       </div>
     </section>
 
-    <section class="objective-panel" aria-label="建筑目标">
-      <div data-building-list></div>
+    <section class="objective-panel" aria-label="当前目标">
+      <div class="objective-header">
+        <span>当前目标</span>
+        <strong data-objective-title>红方外塔</strong>
+      </div>
+      <div class="objective-main">
+        <div class="objective-bar"><i data-objective-progress></i></div>
+        <em data-objective-state>待命</em>
+      </div>
+      <small data-objective-detail>跟随兵线推进，先消耗防御塔。</small>
     </section>
 
     <button class="settings-button" data-settings-toggle title="设置">Esc</button>
@@ -453,7 +464,7 @@ export const updateHud = (snapshot: GameSnapshot) => {
   recallButton.classList.toggle("channeling", snapshot.player.recalling);
   recallButton.disabled = !snapshot.player.alive;
 
-  renderBuildings(snapshot.buildings);
+  renderObjectivePanel(snapshot);
   renderMinimap(snapshot.units, snapshot.buildings);
   renderFirstRunPanel(snapshot);
   renderItems(snapshot);
@@ -470,20 +481,50 @@ const formatTime = (seconds: number) => {
   return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
 };
 
-const renderBuildings = (buildings: BuildingSnapshot[]) => {
-  const container = query<HTMLElement>("[data-building-list]");
-  container.innerHTML = buildings
-    .map((building) => {
-      const ratio = percent(building.hp, building.maxHp);
-      return `
-        <div class="objective-row ${building.team}">
-          <span>${localizeBuildingName(building.id)}</span>
-          <div class="objective-bar"><i style="width: ${ratio}"></i></div>
-          <em>${BUILDING_STATE_LABELS[building.state]}</em>
-        </div>
-      `;
-    })
-    .join("");
+const renderObjectivePanel = (snapshot: GameSnapshot) => {
+  const panel = query<HTMLElement>(".objective-panel");
+  panel.hidden = snapshot.mode !== "playing" || snapshot.settings.open || snapshot.scoreboard.open || snapshot.shop.open;
+  if (panel.hidden) return;
+
+  const nextObjective = ENEMY_OBJECTIVE_ORDER.map((id) => snapshot.buildings.find((building) => building.id === id)).find((building) => building && building.hp > 0);
+  const alliedWarning = ALLIED_OBJECTIVE_ORDER.map((id) => snapshot.buildings.find((building) => building.id === id)).find(
+    (building) => building && (building.hp <= 0 || building.hp / building.maxHp <= 0.38),
+  );
+
+  const title = query<HTMLElement>("[data-objective-title]");
+  const progress = query<HTMLElement>("[data-objective-progress]");
+  const state = query<HTMLElement>("[data-objective-state]");
+  const detail = query<HTMLElement>("[data-objective-detail]");
+
+  if (!nextObjective) {
+    title.textContent = "红方核心已摧毁";
+    progress.style.width = "100%";
+    state.textContent = "完成";
+    detail.textContent = "胜利条件已达成。";
+    panel.classList.remove("warning");
+    return;
+  }
+
+  const hpRatio = nextObjective.hp / nextObjective.maxHp;
+  title.textContent = localizeBuildingName(nextObjective.id);
+  progress.style.width = percent(nextObjective.hp, nextObjective.maxHp);
+  state.textContent = `${Math.round(hpRatio * 100)}%`;
+  panel.classList.toggle("warning", Boolean(alliedWarning));
+
+  if (alliedWarning) {
+    detail.textContent = `${localizeBuildingName(alliedWarning.id)}${alliedWarning.hp <= 0 ? "已失守" : "血量偏低"}，避免空线被反推。`;
+    return;
+  }
+
+  if (nextObjective.type === "tower") {
+    detail.textContent = snapshot.towerDanger.active ? "先等己方小兵进塔，再消耗防御塔。" : "跟随兵线推进，优先消耗外塔。";
+    return;
+  }
+  if (nextObjective.type === "inhibitor") {
+    detail.textContent = "外塔已破，推进兵营以刷新超级兵。";
+    return;
+  }
+  detail.textContent = "核心已暴露，护送兵线完成终结。";
 };
 
 const renderMinimap = (units: UnitSnapshot[], buildings: BuildingSnapshot[]) => {

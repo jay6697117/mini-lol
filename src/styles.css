@@ -9,6 +9,8 @@
   --azure-strong: #58dd8b;
   --crimson: #ff6158;
   --gold: #e8ba55;
+  --hud-edge: 16px;
+  --hud-radius: 7px;
 }
 
 * {
@@ -56,22 +58,22 @@ button {
 
 .scoreboard {
   position: absolute;
-  top: 12px;
+  top: 10px;
   left: 50%;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  min-width: 390px;
+  min-width: 308px;
   transform: translateX(-50%);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--hud-radius);
   background: linear-gradient(90deg, rgba(22, 54, 74, 0.84), rgba(12, 17, 22, 0.9), rgba(73, 24, 28, 0.84));
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
 }
 
 .team-score,
 .timer {
-  padding: 8px 14px;
+  padding: 6px 11px;
   font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -79,8 +81,8 @@ button {
 
 .team-score strong {
   display: inline-block;
-  min-width: 28px;
-  font-size: 24px;
+  min-width: 22px;
+  font-size: 20px;
 }
 
 .team-score.azure {
@@ -100,22 +102,22 @@ button {
 
 .combat-readout {
   position: absolute;
-  left: 22px;
-  bottom: 22px;
+  left: var(--hud-edge);
+  bottom: var(--hud-edge);
   display: grid;
-  grid-template-columns: 86px minmax(210px, 310px);
-  gap: 12px;
+  grid-template-columns: 54px minmax(190px, 256px);
+  gap: 8px;
   align-items: center;
-  padding: 10px;
+  padding: 8px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-strong);
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+  border-radius: var(--hud-radius);
+  background: rgba(8, 18, 22, 0.78);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
 }
 
 .portrait-frame {
-  width: 82px;
-  height: 82px;
+  width: 54px;
+  height: 54px;
   border: 2px solid rgba(94, 180, 255, 0.78);
   border-radius: 50%;
   background:
@@ -125,12 +127,12 @@ button {
 
 .bars {
   display: grid;
-  gap: 7px;
+  gap: 5px;
 }
 
 .bar {
   position: relative;
-  height: 19px;
+  height: 16px;
   overflow: hidden;
   border: 1px solid rgba(245, 250, 255, 0.2);
   border-radius: 4px;
@@ -156,7 +158,7 @@ button {
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: 12px;
+  font-size: 11px;
   font-style: normal;
   color: #f7fbff;
   text-shadow: 0 1px 2px #000;
@@ -164,25 +166,30 @@ button {
 
 .stat-row {
   display: flex;
-  gap: 8px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
 .stat-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  min-width: 58px;
-  padding: 4px 7px;
+  gap: 4px;
+  min-width: 42px;
+  min-height: 24px;
+  padding: 3px 6px;
   border: 1px solid rgba(230, 240, 255, 0.16);
-  border-radius: 6px;
+  border-radius: 5px;
   background: rgba(255, 255, 255, 0.06);
-  font-size: 13px;
+  font-size: 11px;
 }
 
 .stat-pill img {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
+}
+
+.secondary-stat {
+  display: none;
 }
 
 .stat-pill.text-stat {
@@ -191,7 +198,8 @@ button {
 }
 
 .lane-pill {
-  min-width: 154px;
+  flex-basis: 100%;
+  min-width: 0;
 }
 
 .lane-pill.azure {
@@ -242,31 +250,32 @@ button {
 
 .ability-dock {
   position: absolute;
-  right: 32px;
-  bottom: 28px;
+  bottom: var(--hud-edge);
+  left: 50%;
   display: grid;
-  grid-template-columns: repeat(4, 66px) 54px;
-  gap: 12px;
+  grid-template-columns: repeat(4, 52px) 48px;
+  gap: 8px;
   align-items: end;
+  transform: translateX(-50%);
 }
 
 .ability-cell {
   position: relative;
-  width: 66px;
-  height: 66px;
+  width: 52px;
+  height: 52px;
 }
 
 .ability-cell.ultimate-cell {
-  width: 76px;
-  height: 76px;
-  transform: translateY(-10px);
+  width: 58px;
+  height: 58px;
+  transform: translateY(-6px);
 }
 
 .ability {
   pointer-events: auto;
   position: relative;
-  width: 66px;
-  height: 66px;
+  width: 52px;
+  height: 52px;
   padding: 0;
   overflow: hidden;
   border: 2px solid rgba(238, 207, 122, 0.82);
@@ -276,8 +285,8 @@ button {
 }
 
 .ability.ultimate {
-  width: 76px;
-  height: 76px;
+  width: 58px;
+  height: 58px;
 }
 
 .ability img {
@@ -287,30 +296,30 @@ button {
 
 .ability span {
   position: absolute;
-  right: 5px;
+  right: 4px;
   bottom: 3px;
   display: grid;
-  width: 21px;
-  height: 21px;
+  width: 18px;
+  height: 18px;
   place-items: center;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.72);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
 }
 
 .ability strong {
   position: absolute;
-  left: 5px;
+  left: 4px;
   bottom: 3px;
   display: grid;
-  width: 21px;
-  height: 21px;
+  width: 18px;
+  height: 18px;
   place-items: center;
   border-radius: 50%;
   background: rgba(10, 24, 22, 0.74);
   color: #aef7c3;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -320,7 +329,7 @@ button {
   display: grid;
   place-items: center;
   background: rgba(3, 8, 12, 0.58);
-  font-size: 20px;
+  font-size: 17px;
   font-style: normal;
   font-weight: 800;
   opacity: 0;
@@ -351,17 +360,17 @@ button {
 .skill-upgrade {
   pointer-events: auto;
   position: absolute;
-  top: -9px;
-  right: -7px;
+  top: -7px;
+  right: -6px;
   display: grid;
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   place-items: center;
   border: 2px solid rgba(199, 255, 184, 0.9);
   border-radius: 50%;
   background: rgba(26, 93, 54, 0.94);
   color: #efffed;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 900;
   line-height: 1;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.36);
@@ -374,8 +383,8 @@ button {
 .recall-button {
   pointer-events: auto;
   position: relative;
-  width: 54px;
-  height: 54px;
+  width: 48px;
+  height: 48px;
   padding: 0;
   overflow: hidden;
   border: 2px solid rgba(124, 207, 255, 0.72);
@@ -394,12 +403,12 @@ button {
   right: 4px;
   bottom: 2px;
   display: grid;
-  width: 19px;
-  height: 19px;
+  width: 17px;
+  height: 17px;
   place-items: center;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.72);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
 }
 
@@ -412,38 +421,42 @@ button {
 
 .item-dock {
   position: absolute;
-  right: 32px;
-  bottom: 112px;
-  display: grid;
-  grid-template-columns: repeat(3, 42px);
-  gap: 7px;
-  padding: 7px;
+  bottom: var(--hud-edge);
+  left: calc(50% + 194px);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
+  border-radius: var(--hud-radius);
+  background: rgba(7, 16, 19, 0.58);
 }
 
 .shop-button {
   pointer-events: auto;
-  grid-column: span 3;
+  grid-column: auto;
   display: grid;
-  grid-template-columns: 28px 1fr;
-  gap: 7px;
+  place-items: center;
+  width: 34px;
   align-items: center;
-  height: 36px;
-  padding: 3px 8px;
+  height: 32px;
+  padding: 0;
   border: 1px solid rgba(232, 186, 85, 0.42);
-  border-radius: 6px;
+  border-radius: 5px;
   background: rgba(28, 19, 10, 0.84);
   color: #f7e3a5;
-  font-size: 12px;
+  font-size: 0;
   font-weight: 900;
   text-transform: uppercase;
 }
 
 .shop-button img {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
+}
+
+.shop-button span {
+  display: none;
 }
 
 .shop-button.available {
@@ -464,14 +477,18 @@ button {
 .item-slot {
   pointer-events: auto;
   position: relative;
-  width: 42px;
-  height: 42px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   overflow: hidden;
   border: 1px solid rgba(240, 222, 160, 0.36);
-  border-radius: 6px;
+  border-radius: 5px;
   background: #070d12;
   opacity: 1;
+}
+
+.item-slot:not(.purchased) {
+  display: none;
 }
 
 .item-slot:disabled {
@@ -501,13 +518,13 @@ button {
   right: 2px;
   bottom: 2px;
   display: grid;
-  width: 15px;
-  height: 15px;
+  width: 13px;
+  height: 13px;
   place-items: center;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.72);
   color: #eef7ff;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 900;
 }
 
@@ -517,7 +534,7 @@ button {
   display: grid;
   place-items: center;
   background: rgba(3, 8, 12, 0.62);
-  font-size: 13px;
+  font-size: 11px;
   font-style: normal;
   font-weight: 900;
   opacity: 0;
@@ -530,8 +547,8 @@ button {
 .settings-button {
   pointer-events: auto;
   position: absolute;
-  top: 16px;
-  left: 18px;
+  top: 12px;
+  left: var(--hud-edge);
   width: 46px;
   height: 30px;
   border: 1px solid rgba(238, 247, 255, 0.22);
@@ -567,10 +584,10 @@ button {
 }
 
 .shop-panel {
-  right: 32px;
-  top: 270px;
+  right: var(--hud-edge);
+  top: 74px;
   width: 360px;
-  max-width: calc(100vw - 64px);
+  max-width: calc(100vw - 32px);
 }
 
 .scoreboard-panel {
@@ -581,8 +598,8 @@ button {
 }
 
 .settings-panel {
-  top: 62px;
-  right: 224px;
+  top: 52px;
+  left: 70px;
   width: 290px;
   max-width: calc(100vw - 40px);
 }
@@ -796,7 +813,7 @@ button {
   pointer-events: none;
   position: absolute;
   left: 50%;
-  bottom: 152px;
+  bottom: 102px;
   display: grid;
   width: min(320px, calc(100vw - 40px));
   transform: translateX(-50%);
@@ -848,22 +865,22 @@ button {
 
 .objective-panel {
   position: absolute;
-  top: 62px;
-  left: 18px;
-  width: min(330px, calc(100vw - 36px));
-  padding: 9px;
+  top: 54px;
+  left: var(--hud-edge);
+  width: min(256px, calc(100vw - 32px));
+  padding: 7px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
+  border-radius: var(--hud-radius);
+  background: rgba(7, 16, 19, 0.58);
 }
 
 .objective-row {
   display: grid;
-  grid-template-columns: 116px 1fr 70px;
-  gap: 7px;
+  grid-template-columns: 82px 1fr 42px;
+  gap: 5px;
   align-items: center;
-  margin: 5px 0;
-  font-size: 11px;
+  margin: 4px 0;
+  font-size: 10px;
   text-transform: uppercase;
 }
 
@@ -874,7 +891,7 @@ button {
 }
 
 .objective-bar {
-  height: 7px;
+  height: 5px;
   overflow: hidden;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.45);
@@ -897,16 +914,16 @@ button {
 .first-run-panel {
   pointer-events: none;
   position: absolute;
-  top: 266px;
-  left: 18px;
+  top: 178px;
+  left: var(--hud-edge);
   display: grid;
-  width: min(330px, calc(100vw - 36px));
-  gap: 4px;
-  padding: 10px 11px;
+  width: min(256px, calc(100vw - 32px));
+  gap: 3px;
+  padding: 8px 9px;
   border: 1px solid rgba(232, 186, 85, 0.42);
-  border-radius: 8px;
-  background: rgba(16, 24, 20, 0.82);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  border-radius: var(--hud-radius);
+  background: rgba(16, 24, 20, 0.7);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.24);
 }
 
 .first-run-panel[hidden] {
@@ -921,8 +938,8 @@ button {
 
 .first-run-panel span {
   color: rgba(242, 249, 255, 0.82);
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: 11px;
+  line-height: 1.3;
 }
 
 .first-run-panel.danger {
@@ -941,17 +958,18 @@ button {
 
 .minimap {
   position: absolute;
-  right: 24px;
-  top: 76px;
-  width: 176px;
-  height: 176px;
+  right: var(--hud-edge);
+  bottom: var(--hud-edge);
+  width: 148px;
+  height: 148px;
   overflow: hidden;
   border: 2px solid rgba(226, 208, 146, 0.55);
-  border-radius: 8px;
+  border-radius: var(--hud-radius);
   background:
     radial-gradient(circle at 24% 76%, rgba(60, 164, 255, 0.26), transparent 13%),
     radial-gradient(circle at 86% 18%, rgba(255, 77, 68, 0.26), transparent 14%),
     linear-gradient(135deg, #16291e, #0a1511);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
 }
 
 .minimap-lane {
@@ -967,42 +985,42 @@ button {
 
 .map-dot {
   position: absolute;
-  width: 15px;
-  height: 15px;
+  width: 12px;
+  height: 12px;
   transform: translate(-50%, -50%);
 }
 
 .map-dot.building {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
 }
 
 .status-chip {
   position: absolute;
   left: 50%;
-  bottom: 20px;
+  top: 62px;
   max-width: min(420px, 70vw);
   transform: translateX(-50%);
-  padding: 8px 12px;
+  padding: 7px 11px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
+  border-radius: var(--hud-radius);
+  background: rgba(7, 16, 19, 0.58);
   color: rgba(244, 250, 255, 0.86);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .tower-danger-chip {
   position: absolute;
   left: 50%;
-  bottom: 62px;
+  top: 104px;
   max-width: min(460px, 74vw);
   transform: translateX(-50%);
-  padding: 8px 12px;
+  padding: 7px 11px;
   border: 1px solid rgba(255, 216, 132, 0.72);
-  border-radius: 8px;
+  border-radius: var(--hud-radius);
   background: rgba(47, 31, 15, 0.88);
   color: #ffe1a3;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   text-align: center;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
@@ -1061,7 +1079,40 @@ button {
   font-weight: 800;
 }
 
+@media (max-width: 1180px) {
+  .minimap {
+    top: 68px;
+    right: var(--hud-edge);
+    bottom: auto;
+    width: 132px;
+    height: 132px;
+  }
+
+  .item-dock {
+    right: var(--hud-edge);
+    bottom: 84px;
+    left: auto;
+  }
+
+  .shop-panel {
+    top: 210px;
+  }
+}
+
 @media (max-width: 760px) {
+  .scoreboard {
+    min-width: 260px;
+  }
+
+  .team-score,
+  .timer {
+    padding: 5px 8px;
+  }
+
+  .team-score strong {
+    font-size: 18px;
+  }
+
   .objective-panel {
     display: none;
   }
@@ -1071,6 +1122,9 @@ button {
   }
 
   .minimap {
+    top: 104px;
+    right: 12px;
+    bottom: auto;
     width: 128px;
     height: 128px;
   }
@@ -1088,9 +1142,10 @@ button {
   }
 
   .ability-dock {
-    right: 12px;
-    bottom: 116px;
+    bottom: 136px;
+    left: 50%;
     grid-template-columns: repeat(5, 54px);
+    transform: translateX(-50%);
   }
 
   .ability-cell,
@@ -1109,7 +1164,16 @@ button {
 
   .item-dock {
     right: 12px;
-    bottom: 192px;
+    bottom: 204px;
+    left: auto;
+    max-width: 126px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .status-chip {
+    top: 58px;
+    max-width: min(220px, calc(100vw - 24px));
   }
 
   .shop-panel {

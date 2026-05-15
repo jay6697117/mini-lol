@@ -1,0 +1,38 @@
+{
+  "reference": {
+    "source_type": "text_research",
+    "source": "original design inspired by Nie Feng motifs from Feng Yun: wind god legwork, snow-drinking blade, cold wind martial hero",
+    "used_for_generation": true,
+    "identity_notes": [
+      "original white-and-ice-blue wuxia swordsman, inspired by wind and snow motifs rather than a direct comic costume copy",
+      "long dark hair, pale blue scarf and short wind-torn cloak",
+      "large icy white curved blade held or carried as the primary silhouette",
+      "wind-step leg motion with cyan gust trails around the feet",
+      "snowflake and frost highlights for cast and attack frames"
+    ]
+  },
+  "scope": {
+    "sizes": [64],
+    "actions": ["idle", "move", "basic_attack", "cast", "hit", "death"],
+    "directions": ["south", "south-east", "east", "north-east", "north", "north-west", "west", "south-west"],
+    "frames_by_action": {
+      "idle": 6,
+      "move": 6,
+      "basic_attack": 6,
+      "cast": 6,
+      "hit": 4,
+      "death": 8
+    }
+  },
+  "generation": {
+    "method": "codex-gateway-imagegen",
+    "imagegen_output_path": "source/64-base-nie-feng.png",
+    "procedural": false,
+    "text_only": false,
+    "imported_contact_sheet": false
+  },
+  "strips": [],
+  "visual_review": {
+    "path": "64/qa/visual-review.json"
+  }
+}

@@ -1,0 +1,105 @@
+- generic [ref=e2] [box=0,0,1200,813]:
+  - generic [box=0,0,1200,813]:
+    - region "对局状态" [box=446,10,308,39]:
+      - generic [box=447,11,118,37]:
+        - text: 蓝方
+        - strong [box=494,17,22,24]: "0"
+      - generic [box=565,14,71,31]: 00:09
+      - generic [box=635,11,118,37]:
+        - strong [box=684,17,22,24]: "0"
+        - text: 红方
+    - region "玩家状态" [box=16,684,336,113]:
+      - generic [box=87,693,256,95]:
+        - generic [box=87,693,256,16]
+        - generic [box=87,714,256,16]
+        - generic [box=87,735,256,53]
+    - region "建筑目标" [box=16,54,256,128]:
+      - generic [box=24,66,240,104]:
+        - generic [box=24,66,240,14]
+        - generic [box=24,84,240,14]
+        - generic [box=24,102,240,14]
+        - generic [box=24,120,240,14]
+        - generic [box=24,138,240,14]
+        - generic [box=24,156,240,14]
+    - button "Esc" [ref=e5] [box=16,12,46,30]
+    - region "小地图" [box=1036,649,148,148]:
+      - generic [box=1038,651,144,0]:
+        - img "蓝方外塔" [box=1062,745,16,16]
+        - img "红方外塔" [box=1141,685,16,16]
+        - img "蓝方兵营" [box=1052,752,16,16]
+        - img "红方兵营" [box=1149,672,16,16]
+        - img "蓝方核心" [box=1046,756,16,16]
+        - img "红方核心" [box=1154,663,16,16]
+        - img "蓝方英雄" [box=1076,735,12,12]
+        - img "红方英雄" [box=1112,711,12,12]
+        - img "蓝方近战兵" [box=1090,729,12,12]
+        - img "蓝方近战兵" [box=1089,726,12,12]
+        - img "蓝方近战兵" [box=1089,727,12,12]
+        - img "蓝方远程兵" [box=1082,734,12,12]
+        - img "蓝方远程兵" [box=1081,735,12,12]
+        - img "蓝方远程兵" [box=1081,737,12,12]
+        - img "红方近战兵" [box=1098,723,12,12]
+        - img "红方近战兵" [box=1100,723,12,12]
+        - img "红方近战兵" [box=1100,724,12,12]
+        - img "红方远程兵" [box=1106,713,12,12]
+        - img "红方远程兵" [box=1110,712,12,12]
+        - img "红方远程兵" [box=1115,711,12,12]
+    - region "对线引导" [box=16,178,256,52]:
+      - strong [box=26,187,236,17]: 花掉金币
+      - generic [box=26,207,236,14]: 推荐：青铜长剑。离开基地前先购买。
+    - region "技能" [box=456,739,288,58]:
+      - button "Q Q 1" [ref=e6] [box=456,745,52,52]:
+        - img "Q" [ref=e7] [box=458,747,48,48]
+        - generic [ref=e8] [box=484,774,18,18]: Q
+        - strong [ref=e9] [box=462,774,18,18]: "1"
+        - emphasis [ref=e10] [box=458,747,48,48]
+      - button "W W 1" [ref=e12] [box=516,745,52,52]:
+        - img "W" [ref=e13] [box=518,747,48,48]
+        - generic [ref=e14] [box=544,774,18,18]: W
+        - strong [ref=e15] [box=522,774,18,18]: "1"
+        - emphasis [ref=e16] [box=518,747,48,48]
+      - button "E E 1" [ref=e18] [box=576,745,52,52]:
+        - img "E" [ref=e19] [box=578,747,48,48]
+        - generic [ref=e20] [box=604,774,18,18]: E
+        - strong [ref=e21] [box=582,774,18,18]: "1"
+        - emphasis [ref=e22] [box=578,747,48,48]
+      - button "R R 0" [disabled] [ref=e24] [box=636,733,58,58]:
+        - img "R" [ref=e25] [box=638,735,54,54]
+        - generic [ref=e26] [box=670,768,18,18]: R
+        - strong [ref=e27] [box=642,768,18,18]: "0"
+        - emphasis [ref=e28] [box=638,735,54,54]
+      - button "回城 B" [ref=e30] [box=696,749,48,48]:
+        - img "回城" [ref=e31] [box=698,751,44,44]
+        - generic [ref=e32] [box=721,776,17,17]: B
+    - region "装备" [box=794,716,268,81]:
+      - button "商店" [ref=e33] [box=800,722,34,32]:
+        - img "商店" [ref=e34] [box=805,726,24,24]
+      - button "青铜长剑" [ref=e35] [box=839,722,32,32]:
+        - img "青铜长剑" [ref=e36] [box=840,723,30,30]
+        - emphasis [ref=e38] [box=840,723,30,30]
+      - button "镀甲战靴" [ref=e39] [box=876,722,32,32]:
+        - img "镀甲战靴" [ref=e40] [box=877,723,30,30]
+        - emphasis [ref=e42] [box=877,723,30,30]
+      - button "凝神水晶 1" [ref=e67] [box=913,722,32,32]:
+        - img "凝神水晶" [ref=e44] [box=914,723,30,30]
+        - generic [ref=e45] [box=929,738,13,13]: "1"
+        - emphasis [ref=e46] [box=914,723,30,30]
+      - button "守卫盾 2" [ref=e68] [box=950,722,32,32]:
+        - img "守卫盾" [ref=e48] [box=951,723,30,30]
+        - generic [ref=e49] [box=966,738,13,13]: "2"
+        - emphasis [ref=e50] [box=951,723,30,30]
+      - button "裂隙透镜" [ref=e51] [box=987,722,32,32]:
+        - img "裂隙透镜" [ref=e52] [box=988,723,30,30]
+        - emphasis [ref=e54] [box=988,723,30,30]
+      - button "活力核心" [ref=e55] [box=1024,722,32,32]:
+        - img "活力核心" [ref=e56] [box=1025,723,30,30]
+        - emphasis [ref=e58] [box=1025,723,30,30]
+      - button "迅捷护符 3" [ref=e69] [box=800,759,32,32]:
+        - img "迅捷护符" [ref=e60] [box=801,760,30,30]
+        - generic [ref=e61] [box=816,775,13,13]: "3"
+        - emphasis [ref=e62] [box=801,760,30,30]
+      - button "攻城战锤 4" [disabled] [ref=e70] [box=839,759,32,32]:
+        - img "攻城战锤" [ref=e64] [box=840,760,30,30]
+        - generic [ref=e65] [box=855,775,13,13]: "4"
+        - emphasis [ref=e66] [box=840,760,30,30]
+    - generic [box=533,62,134,33]: 红方消耗 · 敌方 对线

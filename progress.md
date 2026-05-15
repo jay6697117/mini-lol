@@ -937,3 +937,15 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 - `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/`, `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`, and `node playtest-artifacts/skill-feel-pass/assertions.mjs http://127.0.0.1:4173/` still pass.
 - Develop-web-game smoke playtest passes: `playtest-artifacts/tower-100-projectile-fountain-smoke` contains nonblank gameplay screenshots and JSON states with tower attack range 100, widened tower coordinates, active lane combat, and intact snapshot state.
 - Visual screenshot check: `playtest-artifacts/tower-lane-pass/tower-range-and-axis.png` shows the smaller tower circles, widened red/blue tower spacing, tower projectile/impact feedback, and the Chinese HUD; `playtest-artifacts/tower-lane-pass/camera-zoom-in.png` confirms zoom-in framing; `playtest-artifacts/tower-100-projectile-fountain-smoke/shot-0.png` and `shot-2.png` show minion waves advancing and fighting instead of waiting in spawn/lane clumps.
+
+## 2026-05-15 LoL 泉水可见边界修复
+
+- 调研 LoL spawn/fountain 机制后，本项目泉水按“双方基地角落内的完整出生平台”处理：回城、复活、回血回蓝仍落在对应泉水，但视觉边界必须完整处于世界范围内。
+- 将蓝方泉水从 `{ x: 108, y: 785 }` 内移到 `{ x: 155, y: 760 }`，红方泉水从 `{ x: 1492, y: 70 }` 内移到 `{ x: 1445, y: 140 }`，回血半径从 `130` 调整为 `120`，保证两个泉水圆环不会被 1600x900 世界边界裁切。
+- `MobaScene.drawFountainZones` 现在绘制更清晰的泉水边界：半透明队伍色填充、暗色外描边、队伍色主边界和浅色内边界，避免只看到一块淡色残影。
+- `playtest-artifacts/phase-1-simulation-unit/assertions.mjs` 增加 fountain boundary bounds 断言，确保双方泉水边界完整落在世界内。
+- 新增 `playtest-artifacts/fountain-boundary-pass/assertions.mjs`，通过浏览器把镜头分别定位到蓝/红泉水并输出 `azure-fountain-boundary.png` 与 `crimson-fountain-boundary.png`，同时断言泉水坐标与边界不裁切。
+- `npm run build` passes after the fountain boundary adjustment, with the existing `vite:prepare-out-dir` timing warning.
+- `node playtest-artifacts/phase-1-simulation-unit/assertions.mjs`, `node playtest-artifacts/fountain-boundary-pass/assertions.mjs http://127.0.0.1:4173/`, `node playtest-artifacts/tower-lane-pass/assertions.mjs http://127.0.0.1:4173/`, `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/`, `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`, and `node playtest-artifacts/skill-feel-pass/assertions.mjs http://127.0.0.1:4173/` pass.
+- Develop-web-game smoke playtest passes: `playtest-artifacts/fountain-boundary-smoke` contains nonblank screenshots and state JSON after the fountain boundary adjustment.
+- Visual screenshot check: `playtest-artifacts/fountain-boundary-pass/azure-fountain-boundary.png` and `crimson-fountain-boundary.png` show full visible fountain rings and clear boundaries for both sides.

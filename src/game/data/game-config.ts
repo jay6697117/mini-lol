@@ -9,7 +9,7 @@ export const RECALL_DURATION = 4;
 export const BASE_RESPAWN_SECONDS = 8;
 export const RESPAWN_TIME_PER_DEATH = 2;
 export const MAX_RESPAWN_SECONDS = 22;
-export const FOUNTAIN_REGEN_RADIUS = 130;
+export const FOUNTAIN_REGEN_RADIUS = 120;
 export const BASE_HEALTH_REGEN_PER_SECOND = 0.16;
 export const BASE_MANA_REGEN_PER_SECOND = 0.2;
 
@@ -21,8 +21,8 @@ export const AZURE_BASE: Point = { x: 175, y: 705 };
 export const CRIMSON_BASE: Point = { x: 1376, y: 126 };
 
 export const FOUNTAIN_LAYOUT = {
-  azure: { x: 108, y: 785 },
-  crimson: { x: 1492, y: 70 },
+  azure: { x: 155, y: 760 },
+  crimson: { x: 1445, y: 140 },
 } as const;
 
 export const BUILDING_LAYOUT = {

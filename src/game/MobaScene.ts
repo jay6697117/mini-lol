@@ -256,12 +256,16 @@ export class MobaScene extends Phaser.Scene {
   private drawFountainZones() {
     const zone = this.add.graphics().setDepth(-8);
     const drawZone = (point: Point, color: number) => {
-      zone.fillStyle(color, 0.08);
+      zone.fillStyle(color, 0.1);
       zone.fillCircle(point.x, point.y, FOUNTAIN_REGEN_RADIUS);
-      zone.lineStyle(2, color, 0.28);
+      zone.lineStyle(6, 0x061018, 0.42);
+      zone.strokeCircle(point.x, point.y, FOUNTAIN_REGEN_RADIUS + 4);
+      zone.lineStyle(3, color, 0.62);
       zone.strokeCircle(point.x, point.y, FOUNTAIN_REGEN_RADIUS);
-      zone.fillStyle(0xffffff, 0.08);
-      zone.fillCircle(point.x, point.y, 18);
+      zone.lineStyle(1, 0xffffff, 0.38);
+      zone.strokeCircle(point.x, point.y, FOUNTAIN_REGEN_RADIUS - 12);
+      zone.fillStyle(0xffffff, 0.1);
+      zone.fillCircle(point.x, point.y, 20);
     };
     drawZone(FOUNTAIN_LAYOUT.azure, 0x66cfff);
     drawZone(FOUNTAIN_LAYOUT.crimson, 0xff675a);
