@@ -108,7 +108,7 @@ const MESSAGE_LABELS: Record<string, string> = {
   "Move command": "移动指令",
   "Crimson harass": "红方消耗",
   "Crimson tower destroyed": "红方防御塔已摧毁",
-  "Astra reached level 6": "星刃已达到 6 级",
+  "风雪刀客已达到 6 级": "风雪刀客已达到 6 级",
   "Lane fixture: Wave reset": "兵线调试：兵线重置",
   "Lane fixture: Azure freeze": "兵线调试：蓝方控线",
   "Lane fixture: Enemy minion pressure": "兵线调试：敌方小兵压力",
@@ -124,7 +124,7 @@ const MESSAGE_LABELS: Record<string, string> = {
   "Skill already maxed": "技能已满级",
   "No target in range": "范围内没有目标",
   "Mark consumed": "印记已消耗",
-  "Astra respawned": "星刃已复活",
+  "风雪刀客已复活": "风雪刀客已复活",
   "Crimson respawned": "绯红已复活",
   "Passive item": "这是被动装备",
   "Item not owned": "尚未拥有该装备",
@@ -150,10 +150,10 @@ const MESSAGE_LABELS: Record<string, string> = {
   "Minion wave spawned": "小兵兵线已刷新",
   "Victory: Crimson core destroyed": "胜利：红方核心已摧毁",
   "Defeat: Azure core destroyed": "失败：蓝方核心已摧毁",
-  "Arc Slash queued": "弧光斩已释放",
-  "Guard Pulse shielded": "守卫脉冲已护盾",
-  "Astra E dash": "星刃突进",
-  "Azure Breaker released": "蓝方破阵击已释放",
+  "雪饮刀气已释放": "雪饮刀气已释放",
+  "冰风护体已展开": "冰风护体已展开",
+  "风神腿突进": "风神腿突进",
+  "傲寒狂刀已斩出": "傲寒狂刀已斩出",
 };
 
 const LANE_LABELS: Record<string, string> = {

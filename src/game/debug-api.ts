@@ -143,7 +143,7 @@ export const installMobaDebugApi = (scene: MobaDebugAdapter) => {
       player.xp = 0;
       player.skillLevels.r = Math.max(1, player.skillLevels.r);
       player.skillPoints = Math.max(0, player.skillPoints + 1);
-      scene.message = "Astra reached level 6";
+      scene.message = "风雪刀客已达到 6 级";
       scene.syncViews();
     },
     buyItem: (itemId) => {

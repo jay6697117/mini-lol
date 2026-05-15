@@ -340,7 +340,7 @@ export class MobaScene extends Phaser.Scene {
 
   private createInitialUnits() {
     this.units = [
-      createHero("player", "astra_vanguard", "azure", PLAYER_START.x, PLAYER_START.y),
+      createHero("player", "nie_feng", "azure", PLAYER_START.x, PLAYER_START.y),
       createHero("enemy_hero", "crimson_duelist", "crimson", ENEMY_START.x, ENEMY_START.y),
     ];
     this.spawnWave();
@@ -1262,7 +1262,7 @@ export class MobaScene extends Phaser.Scene {
       this.activeCastSkill = null;
       target.respawnDuration = this.respawnDurationFor(this.playerDeaths);
       target.respawnTimer = target.respawnDuration;
-      this.message = `Astra down · ${Math.ceil(target.respawnTimer)}s`;
+      this.message = `风雪刀客倒下 · ${Math.ceil(target.respawnTimer)}s`;
       return;
     }
     if (target.id === "enemy_hero") {
@@ -1284,7 +1284,7 @@ export class MobaScene extends Phaser.Scene {
       unit.respawnTimer -= dt;
       if (unit.respawnTimer <= 0) {
         respawnHeroAt(unit, this.fountainPointForTeam(unit.team));
-        this.message = unit.id === "player" ? "Astra respawned" : "Crimson respawned";
+        this.message = unit.id === "player" ? "风雪刀客已复活" : "Crimson respawned";
       }
     }
     this.units = this.units.filter((unit) => unit.kind === "hero" || unit.alive || unit.actionTimer > 0);

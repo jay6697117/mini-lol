@@ -66,6 +66,19 @@ export const UNIT_ASSETS: Record<string, UnitAssetSpec> = {
       death: unitSheet(characterPath("astra_vanguard", "death"), 8),
     },
   },
+  nie_feng: {
+    id: "nie_feng",
+    team: "azure",
+    scale: 1.58,
+    actions: {
+      idle: unitSheet(characterPath("nie_feng", "idle"), 6),
+      move: unitSheet(characterPath("nie_feng", "move"), 6),
+      basic_attack: unitSheet(characterPath("nie_feng", "basic_attack"), 6),
+      cast: unitSheet(characterPath("nie_feng", "cast"), 6),
+      hit: unitSheet(characterPath("nie_feng", "hit"), 4),
+      death: unitSheet(characterPath("nie_feng", "death"), 8),
+    },
+  },
   crimson_duelist: {
     id: "crimson_duelist",
     team: "crimson",

@@ -142,7 +142,7 @@ export const createPlayerSkillCastDraft = ({ player, skill, level, direction, el
           },
         },
       ],
-      message: "Arc Slash queued",
+      message: "雪饮刀气已释放",
     };
   }
 
@@ -178,7 +178,7 @@ export const createPlayerSkillCastDraft = ({ player, skill, level, direction, el
           },
         },
       ],
-      message: "Guard Pulse shielded",
+      message: "冰风护体已展开",
     };
   }
 
@@ -213,7 +213,7 @@ export const createPlayerSkillCastDraft = ({ player, skill, level, direction, el
           cooldownRefund: SKILL_CONFIG.e.markRefund,
         },
       ],
-      message: "Astra E dash",
+      message: "风神腿突进",
     };
   }
 
@@ -245,7 +245,7 @@ export const createPlayerSkillCastDraft = ({ player, skill, level, direction, el
         },
       },
     ],
-    message: "Azure Breaker released",
+    message: "傲寒狂刀已斩出",
   };
 };
 

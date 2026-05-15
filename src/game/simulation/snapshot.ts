@@ -157,7 +157,7 @@ const scoreboardRows = (input: CreateGameSnapshotInput): ScoreboardRowSnapshot[]
     {
       id: input.player.id,
       team: input.player.team,
-      name: "Astra Vanguard",
+      name: "风雪刀客",
       level: input.player.level,
       kills: input.playerHeroKills,
       deaths: input.playerDeaths,
