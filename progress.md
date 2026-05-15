@@ -954,7 +954,7 @@ Original prompt: $game-studio $game-studio:game-playtest $game-studio:game-studi
 
 - 核实左上建筑目标面板后，确认旧版 6 行建筑血条常驻显示信息变化慢，并且与小地图、场景建筑血条重复，主要问题是遮挡左上地图视野而非提供即时决策。
 - 将 `src/ui/hud.ts` 的建筑全量列表替换为紧凑“当前目标”追踪器：默认只显示红方下一推进目标、目标血量百分比和一句战术提示；己方建筑低血或失守时才切换为防守提醒。
-- 将 `src/styles.css` 的目标面板宽度收缩到 220px，实测高度约 72px；下方 first-run 引导同步上移并保持 6px 以上间距，避免两个面板互相重叠。
+- 将 `src/styles.css` 的目标面板宽度收缩到 220px，实测高度约 72px；下方 first-run 引导同步上移并保持 6px 以上间距，避免两个面板互相重叠；左上设置入口可见文案从 `Esc` 改为 `设置`。
 - 新增浏览器截图回归产物 `playtest-artifacts/hud-objective-pass/left-top-objective.png` 与 `report.json`，断言旧 `.objective-row` 已移除、目标面板尺寸受控、引导面板不重叠。
 - `npm run build` passes after the HUD objective pass, with the existing `vite:prepare-out-dir` timing warning.
 - `node playtest-artifacts/completion-round-4/assertions.mjs http://127.0.0.1:4173/`, `node playtest-artifacts/completion-round-5/assertions.mjs http://127.0.0.1:4173/`, and standalone `node playtest-artifacts/tower-lane-pass/assertions.mjs http://127.0.0.1:4173/` pass.

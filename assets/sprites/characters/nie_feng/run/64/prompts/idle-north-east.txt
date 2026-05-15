@@ -1,0 +1,6 @@
+64x64 pixel-art game sprite animation strip for a top-down/isometric MOBA.
+One horizontal row of exactly 6 separated full-body frames, evenly spaced left to right, on a pure solid chroma-key green background #00ff00.
+Action: idle. calm martial idle stance; subtle breathing; scarf, hair, and short cloak sway in cold wind; icy broadsword held low or resting ready; feet planted; no attack
+Direction: north-east. three-quarter back view facing screen-right / north-east, back and shoulder visible.
+Use the provided reference image as the canonical identity: original white and ice-blue wuxia wind-and-snow blade hero, long dark hair, pale cyan scarf, short wind-torn cloak, large icy white curved broadsword, cyan wind trails around legs, snowflake/frost highlights. Preserve the same face, outfit, palette, weapon silhouette, and chibi MOBA proportions in every frame.
+Hard pixel-art edges, limited saturated palette, crisp silhouette, no rounded cards, no panels, no floor shadow, no UI, no text, no frame numbers, no watermark. Leave clear green space between frames. Keep every body, blade, leg, scarf, and VFX element fully inside the frame slot.
